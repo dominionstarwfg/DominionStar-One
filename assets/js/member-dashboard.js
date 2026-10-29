@@ -574,11 +574,9 @@
     if (!item) return;
     const notificationId = item.dataset.notificationId;
     if (notificationId) {
-      await supabase
-        .from('executive_events')
-        .update({ read_at:new Date().toISOString() })
-        .eq('id', notificationId)
-        .eq('member_id', user.id);
+      await supabase.rpc('mark_my_executive_notifications_read',{
+        target_event_id:notificationId
+      });
     }
   });
 
@@ -588,11 +586,9 @@
       const button = document.getElementById('markNotificationsRead');
       button.disabled = true;
       button.textContent = 'Marking…';
-      await supabase
-        .from('executive_events')
-        .update({ read_at:new Date().toISOString() })
-        .eq('member_id', user.id)
-        .is('read_at', null);
+      await supabase.rpc('mark_my_executive_notifications_read',{
+        target_event_id:null
+      });
       button.disabled = false;
       button.textContent = 'Mark all read';
       await loadExecutiveActivity();
