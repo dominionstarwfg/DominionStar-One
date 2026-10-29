@@ -2,7 +2,7 @@
   const state = { client:null, session:null, context:null, loops:new Map(), badge:0, channel:null, activeConversationMember:'' };
   const settings = () => ({
     sounds: localStorage.getItem('ds_comm_sounds') !== 'off',
-    browser: localStorage.getItem('ds_browser_notifications') !== 'off'
+    browser: localStorage.getItem('ds_browser_notifications') === 'on'
   });
   const ensureContext = () => {
     if (!window.AudioContext && !window.webkitAudioContext) return null;
@@ -37,10 +37,18 @@
   };
   const stopLoop = kind => { const id=state.loops.get(kind); if(id) clearInterval(id); state.loops.delete(kind); };
   const stopAll = () => [...state.loops.keys()].forEach(stopLoop);
+  const safeActionUrl = candidate => {
+    if (typeof candidate !== 'string' || !candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\\\')) return '/notifications/';
+    try {
+      const parsed=new URL(candidate,window.location.origin);
+      return parsed.origin===window.location.origin ? `${parsed.pathname}${parsed.search}${parsed.hash}` : '/notifications/';
+    } catch(_error) { return '/notifications/'; }
+  };
   const toast = ({title,body='',type='info',actionUrl=''}) => {
     let region=document.getElementById('genesisToastRegion');
     if(!region){ region=document.createElement('div'); region.id='genesisToastRegion'; region.className='genesis-toast-region'; document.body.appendChild(region); }
-    const item=document.createElement(actionUrl?'a':'article'); if(actionUrl) item.href=actionUrl;
+    const safeUrl=actionUrl?safeActionUrl(actionUrl):'';
+    const item=document.createElement(safeUrl?'a':'article'); if(safeUrl) item.href=safeUrl;
     item.className=`genesis-toast ${type}`; item.innerHTML=`<span></span><div><strong>${escapeHtml(title)}</strong><small>${escapeHtml(body)}</small></div><button type="button" aria-label="Dismiss">×</button>`;
     item.querySelector('button').onclick=e=>{e.preventDefault();item.remove()}; region.prepend(item); requestAnimationFrame(()=>item.classList.add('show')); setTimeout(()=>item.remove(),7000);
   };
@@ -50,11 +58,14 @@
     document.querySelectorAll('[data-communication-badge],#notificationCount').forEach(el=>{el.textContent=state.badge;el.classList.toggle('member-hidden',!state.badge)});
     if('setAppBadge' in navigator){ state.badge?navigator.setAppBadge(state.badge).catch(()=>{}):navigator.clearAppBadge().catch(()=>{}); }
   };
-  const browserNotify = async ({title,body='',tag='',actionUrl='/'}) => {
+  const browserNotify = async ({title,body='',tag='',actionUrl='/',priority='normal'}) => {
     if(!settings().browser || !('Notification' in window) || Notification.permission!=='granted') return;
+    const safeUrl=safeActionUrl(actionUrl);
+    const urgent=['high','critical'].includes(String(priority||'').toLowerCase());
     const reg=await navigator.serviceWorker?.ready.catch(()=>null);
-    if(reg) return reg.showNotification(title,{body,tag,icon:'/assets/logo.jpeg',badge:'/assets/logo.jpeg',data:{actionUrl}});
-    new Notification(title,{body,tag,icon:'/assets/logo.jpeg'});
+    if(reg) return reg.showNotification(title,{body,tag,icon:'/assets/logo.jpeg',badge:'/assets/logo.jpeg',renotify:urgent,requireInteraction:String(priority).toLowerCase()==='critical',data:{actionUrl:safeUrl}});
+    const notification=new Notification(title,{body,tag,icon:'/assets/logo.jpeg'});
+    notification.onclick=()=>{window.focus();window.location.href=safeUrl;notification.close();};
   };
   const requestPermission = async () => {
     if(!('Notification' in window)) return 'unsupported';
@@ -72,15 +83,25 @@
             document.visibilityState === 'visible';
           if (activeMessage) return;
           setBadge(state.badge+1);
-          const kind=event.event_type==='call.missed'?'missed_call':event.event_type?.startsWith('meeting.')?'meeting':'message_received';
+          const eventType=String(event.event_type||'');
+          const priority=String(event.priority||'normal').toLowerCase();
+          const kind=['high','critical'].includes(priority)
+            ? 'priority'
+            : eventType==='call.missed'
+              ? 'missed_call'
+              : (eventType.startsWith('meeting.')||eventType.startsWith('appointment.'))
+                ? 'meeting'
+                : 'message_received';
           play(kind);
-          toast({title:event.title||'DominionStar update',body:event.description||'',type:event.event_type?.startsWith('call.')?'call':'info',actionUrl:event.payload?.action_url||'/notifications/'});
-          browserNotify({title:event.title||'DominionStar update',body:event.description||'',tag:event.id,actionUrl:event.payload?.action_url||'/notifications/'});
+          const actionUrl=safeActionUrl(event.payload?.action_url||'/notifications/');
+          toast({title:event.title||'DominionStar update',body:event.description||'',type:eventType.startsWith('call.')?'call':'info',actionUrl});
+          browserNotify({title:event.title||'DominionStar update',body:event.description||'',tag:event.id,actionUrl,priority});
+          window.dispatchEvent(new CustomEvent('dominionstar:notification',{detail:event}));
         }).subscribe();
     }
     return api;
   };
   const setActiveConversation = memberId => { state.activeConversationMember=memberId||''; };
-  const api={init,play,startLoop,stopLoop,stopAll,toast,setBadge,browserNotify,requestPermission,settings,setActiveConversation};
+  const api={init,play,startLoop,stopLoop,stopAll,toast,setBadge,browserNotify,requestPermission,settings,setActiveConversation,safeActionUrl};
   window.CommunicationEngine=api;
 })();
