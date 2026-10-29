@@ -808,7 +808,13 @@
     if (!payload || payload.type !== 'offer' || !payload.from ||
         payload.from === session.user.id || payload.to !== session.user.id) return;
     if (peerConnection) return; // Never displace an active call.
-    if (pendingOffer) return; // Keep the first unanswered invitation visible.
+    if (pendingOffer) {
+      // Pair and inbox deliver the same offer; only a genuinely new SDP from
+      // the SAME caller may supersede it. A different caller cannot override
+      // the currently visible invitation.
+      if (pendingOffer.from !== payload.from ||
+          pendingOffer.description?.sdp === payload.description?.sdp) return;
+    }
     pendingOffer = payload;
     const caller = members.find(member => member.id === payload.from);
     setAvatarElement(incomingAvatar, caller);
