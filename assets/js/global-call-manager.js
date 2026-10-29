@@ -114,36 +114,49 @@
   };
 
   const renderIncoming = async payload => {
+    // A second caller must not replace a ringing invitation. The same caller
+    // may update an offer, but every async continuation must still own it.
+    if (state.pending && state.pending.from !== payload.from) return;
     state.pending = payload;
     sessionStorage.setItem('ds_pending_global_call', JSON.stringify(payload));
+    clearTimeout(state.timeout);
+    state.timeout = setTimeout(() => dismiss('timeout', payload), 30000);
 
-    state.callerProfile = await resolveCaller(payload.from);
+    let callerProfile;
+    try {
+      callerProfile = await resolveCaller(payload.from);
+    } catch (_error) {
+      callerProfile = {id:payload.from, display_name:'DominionStar Member', avatar_url:''};
+    }
+    if (state.pending !== payload) return; // Cancelled during profile lookup.
+    state.callerProfile = callerProfile;
+
     const overlay = document.getElementById('dsGlobalIncomingCall');
     const avatar = document.getElementById('dsGlobalCallerAvatar');
     const name = document.getElementById('dsGlobalCallerName');
     const type = document.getElementById('dsGlobalCallType');
 
-    avatar.innerHTML = state.callerProfile.avatar_url
-      ? `<img src="${escapeHtml(state.callerProfile.avatar_url)}" alt="${escapeHtml(state.callerProfile.display_name)}">`
-      : `<span>${escapeHtml(initials(state.callerProfile.display_name))}</span>`;
-    name.textContent = state.callerProfile.display_name;
+    avatar.innerHTML = callerProfile.avatar_url
+      ? `<img src="${escapeHtml(callerProfile.avatar_url)}" alt="${escapeHtml(callerProfile.display_name)}">`
+      : `<span>${escapeHtml(initials(callerProfile.display_name))}</span>`;
+    name.textContent = callerProfile.display_name;
     type.textContent = payload.callType === 'video' ? 'Incoming video call' : 'Incoming audio call';
 
     overlay.classList.add('visible');
     overlay.setAttribute('aria-hidden','false');
 
     const engine = await ensureCommunicationEngine();
-    await engine?.init({client:state.client,session:state.session});
+    if (state.pending !== payload) return; // Cancelled while audio loads.
+    try { await engine?.init({client:state.client,session:state.session}); }
+    catch (_error) { /* Visual call controls still work without audio. */ }
+    if (state.pending !== payload) return;
     engine?.startLoop('incoming_ring');
     engine?.browserNotify({
-      title:`${state.callerProfile.display_name} is calling`,
+      title:`${callerProfile.display_name} is calling`,
       body:type.textContent,
       tag:`incoming-call-${payload.from}`,
       actionUrl:`/direct-messages/?member=${encodeURIComponent(payload.from)}&incoming=1`
     });
-
-    clearTimeout(state.timeout);
-    state.timeout = setTimeout(() => dismiss('timeout'), 30000);
   };
 
   const sendPairSignal = async (targetId, signal) => {
@@ -162,40 +175,48 @@
   };
 
   async function accept() {
-    if (!state.pending) return;
-    clearTimeout(state.timeout);
-    window.CommunicationEngine?.stopAll();
-    sessionStorage.setItem('ds_pending_global_call', JSON.stringify({...state.pending, acceptedFromGlobal:true}));
-    location.href = `/direct-messages/?member=${encodeURIComponent(state.pending.from)}&incoming=1`;
+    const pending = state.pending;
+    if (!pending || !hide(pending)) return;
+    // Only a deliberately accepted invitation is persisted for the next
+    // /direct-messages/ page, never one cancelled during async loading.
+    sessionStorage.setItem('ds_pending_global_call', JSON.stringify({...pending, acceptedFromGlobal:true}));
+    location.href = `/direct-messages/?member=${encodeURIComponent(pending.from)}&incoming=1`;
   }
 
   async function decline() {
-    if (!state.pending) return;
     const pending = state.pending;
-    clearTimeout(state.timeout);
-    window.CommunicationEngine?.stopAll();
-    await sendPairSignal(pending.from, {type:'decline', callType:pending.callType || 'audio'});
-    sessionStorage.removeItem('ds_pending_global_call');
-    hide();
+    if (!pending || !hide(pending)) return;
+    // Never leave a ringing overlay open while waiting for Realtime I/O.
+    try { await sendPairSignal(pending.from, {type:'decline', callType:pending.callType || 'audio'}); }
+    catch (error) { console.warn('Call decline signal failed:', error); }
   }
 
-  async function dismiss(reason) {
-    if (!state.pending) return;
+  async function dismiss(reason, expectedOffer = null) {
     const pending = state.pending;
-    window.CommunicationEngine?.stopAll();
+    if (!pending || (expectedOffer && expectedOffer !== pending) || !hide(pending)) return;
     if (reason === 'timeout') {
-      await sendPairSignal(pending.from, {type:'hangup', reason:'timeout', callType:pending.callType || 'audio'});
-      window.CommunicationEngine?.play('missed_call');
+      try {
+        await sendPairSignal(pending.from, {type:'hangup', reason:'timeout', callType:pending.callType || 'audio'});
+      } catch (error) {
+        console.warn('Call timeout signal failed:', error);
+      } finally {
+        window.CommunicationEngine?.play('missed_call');
+      }
     }
-    sessionStorage.removeItem('ds_pending_global_call');
-    hide();
   }
 
-  const hide = () => {
+  const hide = (expectedOffer = null) => {
+    if (expectedOffer && state.pending !== expectedOffer) return false;
+    clearTimeout(state.timeout);
+    state.timeout = null;
     state.pending = null;
+    state.callerProfile = null;
+    sessionStorage.removeItem('ds_pending_global_call');
+    window.CommunicationEngine?.stopAll();
     const overlay = document.getElementById('dsGlobalIncomingCall');
     overlay?.classList.remove('visible');
     overlay?.setAttribute('aria-hidden','true');
+    return true;
   };
 
   const init = async () => {
@@ -246,17 +267,16 @@
     state.channel = state.client
       .channel(inboxChannelName(state.session.user.id), callChannelConfig())
       .on('broadcast', {event:'incoming-call'}, async ({payload}) => {
-        if (!payload || payload.to !== state.session.user.id || payload.from === state.session.user.id) return;
-        // Ignore a duplicate broadcast for the same WebRTC offer.
-        if (state.pending?.from === payload.from && state.pending?.description?.sdp === payload.description?.sdp) return;
+        if (!payload || payload.type !== 'offer' || !payload.description?.sdp ||
+            !payload.from || payload.to !== state.session.user.id || payload.from === state.session.user.id) return;
+        // Ignore duplicate pair/inbox delivery and unrelated concurrent calls.
+        if (state.pending && (state.pending.from !== payload.from ||
+            state.pending.description?.sdp === payload.description.sdp)) return;
         await renderIncoming(payload);
       })
       .on('broadcast', {event:'call-cancelled'}, ({payload}) => {
-        if (state.pending && payload?.from === state.pending.from) {
-          window.CommunicationEngine?.stopAll();
-          sessionStorage.removeItem('ds_pending_global_call');
-          hide();
-        }
+        if (state.pending && payload?.to === state.session.user.id &&
+            payload.from === state.pending.from) hide(state.pending);
       })
       .subscribe();
 
