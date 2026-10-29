@@ -91,6 +91,7 @@ body.ds-auth-os-page .founder-panel,
 body.ds-auth-os-page .settings-panel{
   border-radius:16px!important;
 }
+body.ds-auth-os-page small{font-size:12px!important}
 body.ds-auth-os-page h1,
 body.ds-auth-os-page h2,
 body.ds-auth-os-page h3,
