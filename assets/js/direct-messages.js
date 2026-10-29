@@ -849,8 +849,19 @@
     return true;
   };
 
-  const subscribeIncomingCallInbox = () => {
+  const subscribeIncomingCallInbox = async () => {
     if (incomingCallInboxChannel) return incomingCallInboxChannel;
+    // A stored session alone does not authorize incoming agent calls. Check
+    // Founder approval and Agent Code before creating a Realtime subscriber.
+    // Supabase RLS remains the authoritative server-side boundary.
+    let membership;
+    try {
+      membership = await client.from('member_profiles')
+        .select('verification_status,agent_code')
+        .eq('id',session.user.id).maybeSingle();
+    } catch (_error) { return null; }
+    if (membership.error || membership.data?.verification_status !== 'approved' ||
+        !String(membership.data?.agent_code || '').trim()) return null;
     incomingCallInboxChannel = client.channel(callInboxName(session.user.id), callChannelConfig())
       .on('broadcast', {event:'incoming-call'}, ({payload}) => {
         showIncomingCallOffer(payload);
@@ -1293,7 +1304,7 @@
   renderMembers('');
   // The global listener deliberately skips /direct-messages/. Subscribe to
   // the same inbox here to receive calls from agents outside the open chat.
-  subscribeIncomingCallInbox();
+  await subscribeIncomingCallInbox();
 
   const pendingGlobalCallRaw = sessionStorage.getItem('ds_pending_global_call');
   if (pendingGlobalCallRaw) {
