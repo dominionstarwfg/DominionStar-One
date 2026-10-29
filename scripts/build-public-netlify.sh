@@ -251,6 +251,10 @@ grep -Fq 'DominionStar Meet' "$MEET_DIST/index.html"
 test ! -e "$DIST/meet-desktop"
 test ! -e "$DIST/rebuild-dist"
 
+# Block accidental activation of gated web Agent Dashboard features before
+# publishing any Netlify output, including isolated review/staging packages.
+node "$ROOT/scripts/check-agent-release-gates.mjs" "$DIST"
+
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"
 
