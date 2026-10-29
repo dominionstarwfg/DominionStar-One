@@ -8,12 +8,21 @@ on:
       - 'assets/js/communication-engine.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/member-dashboard.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/notification-feature-flags.js'
       - 'assets/css/member-dashboard-readability-v2.css'
       - 'account-settings/**'
       - 'member-dashboard/**'
+      - 'direct-messages/**'
+      - 'netlify/functions/push-public-key.mjs'
+      - 'netlify/functions/process-push-outbox.mjs'
+      - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'package.json'
+      - 'scripts/check-agent-release-gates.mjs'
       - 'sw.js'
       - 'supabase/member-email-notifications.sql'
       - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
+      - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
       - 'tests/**'
       - '.github/workflows/notification-readability-review-gate.yml'
   workflow_dispatch:
@@ -36,6 +45,9 @@ jobs:
           node --check assets/js/communication-engine.js
           node --check assets/js/account-settings.js
           node --check assets/js/member-dashboard.js
+          node --check assets/js/direct-messages.js
+          node --check assets/js/notification-feature-flags.js
+          node --check scripts/check-agent-release-gates.mjs
           node --check sw.js
           node --check netlify/functions/push-public-key.mjs
           node --check netlify/functions/process-push-outbox.mjs
