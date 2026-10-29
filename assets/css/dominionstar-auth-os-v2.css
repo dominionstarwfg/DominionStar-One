@@ -1,0 +1,313 @@
+/* DominionStar Authenticated OS v2 — review branch.
+   Shared visual contract for Agent and Founder authenticated surfaces.
+   Accessibility rule: layout collapses before text becomes unreadable. */
+body.ds-auth-os-page{
+  --os-bg:#eef3f8;
+  --os-surface:#ffffff;
+  --os-surface-soft:#f7f9fc;
+  --os-surface-strong:#eaf0f6;
+  --os-text:#10263f;
+  --os-text-soft:#4e6479;
+  --os-muted:#62778b;
+  --os-line:#d8e1ea;
+  --os-navy:#0b213b;
+  --os-navy-2:#123b62;
+  --os-gold:#caa56d;
+  --os-gold-deep:#7a572b;
+  --os-success:#1f6c50;
+  --os-danger:#9d3434;
+  background:var(--os-bg)!important;
+  color:var(--os-text)!important;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;
+  line-height:1.55;
+}
+body.ds-auth-os-page main.member-dashboard,
+body.ds-auth-os-page .digital-card-page{
+  width:min(1560px,100%);
+  margin:0 auto;
+  padding:24px clamp(16px,2.3vw,34px) 64px;
+  box-sizing:border-box;
+}
+body.ds-auth-os-page .member-dashboard-header,
+body.ds-auth-os-page .command-center-header,
+body.ds-auth-os-page .digital-card-toolbar,
+body.ds-auth-os-page .notification-center>header{
+  background:linear-gradient(118deg,var(--os-navy),var(--os-navy-2))!important;
+  color:#fff!important;
+  border:1px solid #254e73!important;
+  border-radius:20px!important;
+  padding:24px clamp(18px,2.4vw,32px)!important;
+  box-shadow:0 16px 38px rgba(12,35,59,.12)!important;
+}
+body.ds-auth-os-page .member-dashboard-header h1,
+body.ds-auth-os-page .command-center-header h1,
+body.ds-auth-os-page .notification-center>header h1{
+  color:#fff!important;
+  font-size:clamp(28px,3vw,42px)!important;
+  line-height:1.12!important;
+  letter-spacing:-.035em!important;
+}
+body.ds-auth-os-page .member-dashboard-header p,
+body.ds-auth-os-page .command-center-header p,
+body.ds-auth-os-page .notification-center>header p,
+body.ds-auth-os-page .member-dashboard-header small,
+body.ds-auth-os-page .command-center-header small{
+  color:#d6e2ee!important;
+  font-size:14px!important;
+  line-height:1.65!important;
+}
+body.ds-auth-os-page .founding-member-badge,
+body.ds-auth-os-page .production-stable-pill,
+body.ds-auth-os-page .platform-badge{
+  background:#f1d29b!important;
+  color:#3e2a12!important;
+  border:1px solid #f6dfb6!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  letter-spacing:.04em!important;
+}
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .member-card,
+body.ds-auth-os-page .profile-section-card,
+body.ds-auth-os-page .executive-profile-card,
+body.ds-auth-os-page .founder-panel,
+body.ds-auth-os-page .settings-panel,
+body.ds-auth-os-page .connected-community-card,
+body.ds-auth-os-page .recognition-intro,
+body.ds-auth-os-page .command-snapshot article,
+body.ds-auth-os-page .rank-dashboard-grid article,
+body.ds-auth-os-page .founder-security-note{
+  background:var(--os-surface)!important;
+  color:var(--os-text)!important;
+  border:1px solid var(--os-line)!important;
+  box-shadow:0 9px 28px rgba(15,37,60,.055)!important;
+}
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .member-card,
+body.ds-auth-os-page .profile-section-card,
+body.ds-auth-os-page .executive-profile-card,
+body.ds-auth-os-page .founder-panel,
+body.ds-auth-os-page .settings-panel{
+  border-radius:16px!important;
+}
+body.ds-auth-os-page h1,
+body.ds-auth-os-page h2,
+body.ds-auth-os-page h3,
+body.ds-auth-os-page strong{color:var(--os-text)}
+body.ds-auth-os-page p,
+body.ds-auth-os-page li,
+body.ds-auth-os-page span,
+body.ds-auth-os-page small{color:inherit}
+body.ds-auth-os-page .member-panel p,
+body.ds-auth-os-page .member-card p,
+body.ds-auth-os-page .profile-section-card p,
+body.ds-auth-os-page .settings-panel p,
+body.ds-auth-os-page .founder-panel p,
+body.ds-auth-os-page .dsos-muted{
+  color:var(--os-text-soft)!important;
+  font-size:14px;
+}
+body.ds-auth-os-page .eyebrow{
+  color:var(--os-gold-deep)!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase!important;
+}
+body.ds-auth-os-page .member-dashboard-header .eyebrow,
+body.ds-auth-os-page .command-center-header .eyebrow,
+body.ds-auth-os-page .notification-center>header .eyebrow{
+  color:#f1cf93!important;
+}
+body.ds-auth-os-page label{
+  color:#243d55!important;
+  font-size:13.5px!important;
+  font-weight:700!important;
+}
+body.ds-auth-os-page input,
+body.ds-auth-os-page select,
+body.ds-auth-os-page textarea{
+  background:#fff!important;
+  color:#112941!important;
+  border:1px solid #bfcdda!important;
+  border-radius:10px!important;
+  min-height:44px;
+  font-size:14px!important;
+  box-shadow:none!important;
+}
+body.ds-auth-os-page textarea{min-height:110px}
+body.ds-auth-os-page input::placeholder,
+body.ds-auth-os-page textarea::placeholder{color:#687e92!important;opacity:1}
+body.ds-auth-os-page input:focus,
+body.ds-auth-os-page select:focus,
+body.ds-auth-os-page textarea:focus,
+body.ds-auth-os-page button:focus-visible,
+body.ds-auth-os-page a:focus-visible{
+  outline:3px solid rgba(202,165,109,.55)!important;
+  outline-offset:2px!important;
+  border-color:#b58a4e!important;
+}
+body.ds-auth-os-page .btn{
+  min-height:42px!important;
+  border-radius:10px!important;
+  font-size:13px!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .btn-gold{
+  background:linear-gradient(125deg,#efd59f,#d3ad74)!important;
+  color:#223246!important;
+  border-color:#d3ad74!important;
+}
+body.ds-auth-os-page .btn-outline{
+  background:#fff!important;
+  color:#244d73!important;
+  border-color:#bdccda!important;
+}
+body.ds-auth-os-page .member-dashboard-header .btn-outline,
+body.ds-auth-os-page .command-center-header .btn-outline,
+body.ds-auth-os-page .notification-center>header .btn-outline{
+  background:rgba(255,255,255,.1)!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.42)!important;
+}
+body.ds-auth-os-page table{
+  width:100%;
+  background:#fff!important;
+  color:var(--os-text)!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+body.ds-auth-os-page th{
+  background:#eaf0f6!important;
+  color:#233f5b!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  letter-spacing:.035em!important;
+}
+body.ds-auth-os-page td{
+  color:#2b455d!important;
+  font-size:13.5px!important;
+  border-bottom:1px solid #e2e8ef!important;
+}
+body.ds-auth-os-page th,
+body.ds-auth-os-page td{padding:12px 13px!important}
+body.ds-auth-os-page tr:hover td{background:#f7fafc!important}
+body.ds-auth-os-page .founder-table-wrap,
+body.ds-auth-os-page .founder-member-table-wrap{border:1px solid var(--os-line);border-radius:12px;overflow:auto}
+body.ds-auth-os-page .member-message,
+body.ds-auth-os-page .settings-save-state,
+body.ds-auth-os-page [role="status"]{font-size:13px!important}
+body.ds-auth-os-page .profile-control-note,
+body.ds-auth-os-page .settings-note,
+body.ds-auth-os-page .recognition-source,
+body.ds-auth-os-page .optional-label{
+  color:#61768a!important;
+  font-size:12.5px!important;
+}
+body.ds-auth-os-page .command-snapshot,
+body.ds-auth-os-page .rank-dashboard-grid,
+body.ds-auth-os-page .qa-summary-grid,
+body.ds-auth-os-page .email-stat-grid{
+  gap:14px!important;
+}
+body.ds-auth-os-page .command-snapshot article span,
+body.ds-auth-os-page .rank-dashboard-grid article span,
+body.ds-auth-os-page .email-stat-grid span{
+  color:#60758a!important;
+  font-size:12px!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .command-snapshot article strong,
+body.ds-auth-os-page .rank-dashboard-grid article strong,
+body.ds-auth-os-page .email-stat-grid strong{
+  color:#173550!important;
+}
+body.ds-auth-os-page .notification-center{
+  width:min(1480px,100%);
+  margin:0 auto;
+  padding:24px clamp(16px,2.3vw,34px) 64px!important;
+}
+body.ds-auth-os-page #notificationFilters{
+  background:#fff!important;
+  border:1px solid var(--os-line)!important;
+  border-radius:13px!important;
+  padding:8px!important;
+}
+body.ds-auth-os-page #notificationFilters button{
+  color:#35516c!important;
+  font-size:13px!important;
+  min-height:40px;
+}
+body.ds-auth-os-page #notificationFilters button.active{
+  background:#173b5c!important;
+  color:#fff!important;
+}
+body.ds-auth-os-page .notification-list,
+body.ds-auth-os-page .notification-item{
+  color:var(--os-text)!important;
+}
+body.ds-auth-os-page .dm-os{
+  background:var(--os-bg)!important;
+  color:var(--os-text)!important;
+}
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  background:#fff!important;
+  color:var(--os-text)!important;
+  border-color:var(--os-line)!important;
+}
+body.ds-auth-os-page .dm-sidebar-header,
+body.ds-auth-os-page .dm-chat-header{
+  background:#f8fafc!important;
+  color:var(--os-text)!important;
+  border-color:var(--os-line)!important;
+}
+body.ds-auth-os-page .dm-active-copy small,
+body.ds-auth-os-page .dm-sidebar-header small,
+body.ds-auth-os-page .dm-empty-copy,
+body.ds-auth-os-page .dm-message-meta{
+  color:#61778d!important;
+  font-size:12.5px!important;
+}
+body.ds-auth-os-page .dm-message-bubble{font-size:14px!important;line-height:1.58!important}
+body.ds-auth-os-page .digital-business-card{color:#fff!important}
+body.ds-auth-os-page .digital-business-card h1,
+body.ds-auth-os-page .digital-business-card h2,
+body.ds-auth-os-page .digital-business-card strong{color:#fff!important}
+body.ds-auth-os-page .digital-business-card p,
+body.ds-auth-os-page .digital-business-card span{color:#d7e3ef!important}
+body.ds-auth-os-page .platform-release-footer{
+  color:#65798c!important;
+  background:transparent!important;
+  font-size:12px!important;
+}
+body.ds-founder-os-page .ds-agent-shell{
+  background:linear-gradient(145deg,#071b31,#173e5e 72%,#604a2d)!important;
+}
+@media(max-width:1180px){
+  body.ds-auth-os-page .command-snapshot,
+  body.ds-auth-os-page .rank-dashboard-grid,
+  body.ds-auth-os-page .qa-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:820px){
+  body.ds-auth-os-page .member-dashboard-header,
+  body.ds-auth-os-page .command-center-header,
+  body.ds-auth-os-page .digital-card-toolbar,
+  body.ds-auth-os-page .notification-center>header{
+    grid-template-columns:1fr!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  body.ds-auth-os-page .member-dashboard-actions,
+  body.ds-auth-os-page .command-header-actions{width:100%;justify-content:flex-start!important}
+}
+@media(max-width:560px){
+  body.ds-auth-os-page main.member-dashboard,
+  body.ds-auth-os-page .digital-card-page,
+  body.ds-auth-os-page .notification-center{padding:14px 12px 44px!important}
+  body.ds-auth-os-page .command-snapshot,
+  body.ds-auth-os-page .rank-dashboard-grid,
+  body.ds-auth-os-page .qa-summary-grid{grid-template-columns:1fr!important}
+  body.ds-auth-os-page th,body.ds-auth-os-page td{font-size:12.5px!important}
+}
