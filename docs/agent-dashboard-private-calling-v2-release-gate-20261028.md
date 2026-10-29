@@ -86,3 +86,20 @@ These are **review-branch client lifecycle fixes**. `tests/agent-call-lifecycle-
 **Regression results:** [Agent Dashboard QA run 40811034536](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40811034536) completed with **158 passed, 0 failed**, including mocked incoming inbox delivery and rejection of unapproved Agent Codes. [Review-only Netlify packaging run 40811003755](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40811003755) passed after the calling-code change, with no deployment.
 
 **Outstanding:** These are JavaScript regression tests, not real two-browser phone/video delivery tests; existing legacy public Broadcast channels remain a security blocker. Isolated staging and reviewed Supabase Realtime authorization policies are still required before release. No production database or hosting change, feature-flag activation, new paid staging instance, or separate Meet application change occurred.
+
+
+## Global dashboard incoming-call race and Accept-only handoff — review branch
+
+**Problem confirmed in `assets/js/global-call-manager.js`:** Incoming calls could be cancelled while the asynchronous caller-profile lookup or audio engine initialized, after which stale completion could reopen the overlay or start a ringtone. Separately, the old implementation wrote a merely ringing invitation to session storage; `assets/js/direct-messages.js` would restore the stored offer and run its accept path on navigation, even without an explicit Accept click.
+
+**Review fixes:**
+
+- The global call handler now associates every asynchronous continuation and timer with its exact current invitation. After caller-profile resolution and audio initialization it checks that the invitation is still active; cancellation invalidates it immediately.
+- Decline, timeout, caller cancellation and explicit acceptance synchronously stop the ringtone, clear the pending state and timeout, remove incidental handoff data and dismiss the overlay. Remote decline/timeout signaling cannot hold the overlay open during slow network operations.
+- The global inbox ignores malformed offers, duplicates, self-originated calls and unrelated concurrent invitations. A new offer from the same caller can supersede an earlier one without allowing the first timer to cancel it.
+- **Most importantly, an unanswered ringing offer is never persisted to `ds_pending_global_call`.** Only an explicit Accept action creates an `acceptedFromGlobal:true` handoff containing an `acceptedAt` timestamp.
+- The Messages page consumes and immediately deletes a stored handoff, and calls `acceptIncomingCall()` only for a deliberately accepted offer with valid source and recipient, an offer SDP, and a fresh 0–60-second `acceptedAt` timestamp. Stale, unsolicited, corrupt and future-dated offers cannot automatically initiate WebRTC media setup.
+
+**Verification:** [Agent Website QA run 40887921581](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40887921581) passed **171/171** full-suite tests with zero failures. This includes new mocked global inbox race tests and actual Messages-page handoff-handler execution tests. The [review-only Netlify package run 40887743576](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40887743576) also passed with the updated source.
+
+**Limits:** Browser/session-storage guards cannot authenticate a caller's Broadcast payload or substitute for production Supabase RLS. Existing legacy calling is still not considered secure, private v2 and Google OAuth remain disabled, real two-browser media tests remain outstanding, and an isolated staging environment has not been provisioned. These changes apply only to the Agent Dashboard website review branch; no live Netlify deployment, production Supabase modification or separate DominionStar Meet change occurred.
