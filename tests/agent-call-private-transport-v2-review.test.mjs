@@ -67,7 +67,8 @@ test('Only a non-executable server policy draft is staged; release flag is off',
  assert.match(preview,/realtime\.topic\(\)/);
  assert.match(preview,/auth\.uid\(\)/);
  assert.match(preview,/verification_status = 'approved'/);
- assert.doesNotMatch(preview,/alter table realtime\.messages enable row level security/i);
+ assert.ok(preview.split(/\r?\n/).every(line=>!line.trim()||line.trim().startsWith('--')),
+   'Review-only SQL draft must contain no executable statements');
  const auth=read('assets/js/member-auth.js');
  assert.doesNotMatch(auth,/DOMINIONSTAR_CALL_PRIVATE_V2\s*=\s*true/);
 });
