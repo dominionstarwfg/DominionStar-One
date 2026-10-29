@@ -1,0 +1,74 @@
+name: DominionStar — Authenticated OS Consistency Gate
+
+on:
+  push:
+    branches:
+      - review/notification-readability-20261029
+    paths:
+      - 'member-dashboard/**'
+      - 'professional-profile/**'
+      - 'account-settings/**'
+      - 'direct-messages/**'
+      - 'community/**'
+      - 'community-chat/**'
+      - 'community-center/**'
+      - 'appointments/**'
+      - 'member-directory/**'
+      - 'recognition/**'
+      - 'notifications/**'
+      - 'digital-card/**'
+      - 'mindset-center/**'
+      - 'agent-journey/**'
+      - 'agent-learning/**'
+      - 'founder-control/**'
+      - 'founder-dashboard/**'
+      - 'founder-appointments/**'
+      - 'founder-email/**'
+      - 'qa-center/**'
+      - 'release-check/**'
+      - 'founder-features/**'
+      - 'founder-diagnostics/**'
+      - 'assets/css/dominionstar-auth-os-v2.css'
+      - 'assets/css/dominionstar-agent-nav-shell.css'
+      - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/agent-journey.js'
+      - 'assets/js/agent-learning.js'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/release-check.js'
+      - 'netlify/functions/founder-data.mjs'
+      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - '.github/workflows/authenticated-os-consistency-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check assets/js/dominionstar-agent-nav-shell.js
+          node --check assets/js/member-dashboard.js
+          node --check assets/js/agent-journey.js
+          node --check assets/js/agent-learning.js
+          node --check assets/js/notifications-center.js
+          node --check assets/js/release-check.js
+          node --check founder-dashboard/founder-dashboard.js
+          node --check netlify/functions/founder-data.mjs
+      - name: Authenticated OS consistency
+        run: node --test tests/authenticated-os-consistency-review.test.mjs
+      - name: Notification and security regression
+        run: |
+          node --test tests/notification-push-readability-review.test.mjs
+          node --test tests/web-push-foundation-review.test.mjs
+      - name: No production deployment
+        run: |
+          ! grep -R --line-number -E 'netlify deploy --prod|supabase db push|apply_migration' .github/workflows/authenticated-os-consistency-review.yml
