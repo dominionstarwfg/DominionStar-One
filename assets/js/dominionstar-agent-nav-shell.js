@@ -5,7 +5,7 @@
 
   const path=location.pathname.replace(/\/index\.html$/,'/').replace(/\/+$/,'')||'/';
   const founderRoutes=new Set([
-    '/founder-control','/founder-appointments','/founder-email','/qa-center',
+    '/founder-control','/founder-dashboard','/founder-appointments','/founder-email','/qa-center',
     '/release-check','/founder-features','/founder-diagnostics'
   ]);
   const founderMode=[...founderRoutes].some(route=>path===route||path.startsWith(route+'/'));
@@ -13,8 +13,8 @@
   const rootSelectors=[
     '#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
     '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp',
-    '#founderApp','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
-    '#agentJourneyApp'
+    '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
+    '#releaseCheckApp','#agentJourneyApp'
   ];
   const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
   if(!app || app.querySelector('[data-ds-agent-shell]')) return;
@@ -99,7 +99,8 @@
     link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);
   }
   shell.append(head,nav);
-  app.prepend(shell);
+  if(app.id==='dmApp') app.parentNode.insertBefore(shell,app);
+  else app.prepend(shell);
 
   const indicator=document.createElement('div');indicator.className='ds-agent-progress';indicator.setAttribute('aria-hidden','true');indicator.innerHTML='<span></span>';document.body.appendChild(indicator);
   const clear=()=>indicator.setAttribute('aria-hidden','true');window.addEventListener('pageshow',clear);window.addEventListener('pagehide',clear);
