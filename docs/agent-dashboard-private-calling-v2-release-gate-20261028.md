@@ -47,3 +47,9 @@
 - The source regression suite now guards both paired approval predicates and reminds us of noncalling Realtime dependencies. These tests are static and do not validate database policies against real JWTs or WebRTC in two browsers.
 
 **No release switch was enabled, no production Supabase migration was applied, and no Netlify deployment was made in this continuation.**
+
+## Agent website static release safeguard — review only
+
+A new `scripts/check-agent-release-gates.mjs` runs inside `scripts/build-public-netlify.sh` **before** staging rewrites or publication. It rejects the static package when Google sign-in/linking flags are enabled, a private call v2 flag is directly enabled in packaged member JavaScript/HTML, the two call endpoints lose coordinated flag handling, or the proposed Realtime SQL ceases to be comment-only. The automated regression suite deliberately alters temporary copies of each feature flag and expects the guard to refuse the build. Both the Agent QA and review Netlify packaging GitHub Actions workflows now monitor this guard file.
+
+**Boundaries:** A static packaging check is a release-control tripwire, **not** production authorization or cryptographic caller verification. It does not make legacy public calling private, does not configure Google OAuth, and does not replace Supabase RLS, policy tests, two-browser AV tests or actual staging separation. No Google identity-provider configuration, Realtime setting, database privilege, private v2 release flag, billable staging project or production Netlify deployment was changed. When the time comes to launch these features, this guard must be revised as part of an explicitly authorized coordinated release rather than bypassed ad hoc.
