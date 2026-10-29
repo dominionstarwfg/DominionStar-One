@@ -15,6 +15,11 @@
 -- First confirm the member_profiles directory SELECT policy covers all
 -- intended call recipients. Its profile_visibility=members constraint may
 -- exclude members with private profiles from outbound call targeting.
+-- The SELECT and INSERT proposals must both fail closed when the pair's
+-- other member is pending, rejected, revoked or lacks an Agent Code.
+-- The partner lookup inherits member_profiles RLS: private member profiles
+-- may be invisible to the caller even if approved. Resolve using a reviewed
+-- narrow authorization helper in isolated staging, not a blanket SELECT grant.
 -- Use approved test accounts and RLS-aware staging queries for validation.
 --
 -- DRAFT (comments only: cannot execute SQL when opened by mistake):
@@ -40,6 +45,16 @@
 --         and (
 --           split_part(realtime.topic(), ':', 2) = (select auth.uid())::text
 --           or split_part(realtime.topic(), ':', 3) = (select auth.uid())::text
+--         )
+--         and exists (
+--           select 1 from public.member_profiles partner
+--           where partner.id::text = (
+--             case when split_part(realtime.topic(), ':', 2) = (select auth.uid())::text
+--               then split_part(realtime.topic(), ':', 3)
+--               else split_part(realtime.topic(), ':', 2) end
+--           )
+--             and partner.verification_status = 'approved'
+--             and nullif(btrim(partner.agent_code),'') is not null
 --         )
 --       )
 --     )
