@@ -57,4 +57,4 @@ jobs:
         shell: bash
         run: |
           grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
-          ! grep -R --line-number -E 'supabase db|psql .*notification-read-state|apply_migration' .github/workflows
+          ! grep -R --line-number --exclude='notification-readability-review-gate.yml' -E 'supabase db|psql .*notification-read-state|apply_migration' .github/workflows
