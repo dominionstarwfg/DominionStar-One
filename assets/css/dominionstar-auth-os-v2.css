@@ -138,7 +138,7 @@ body.ds-auth-os-page textarea{
 }
 body.ds-auth-os-page textarea{min-height:110px}
 body.ds-auth-os-page input::placeholder,
-body.ds-auth-os-page textarea::placeholder{color:#687e92!important;opacity:1}
+body.ds-auth-os-page textarea::placeholder{color:#5d7287!important;opacity:1}
 body.ds-auth-os-page input:focus,
 body.ds-auth-os-page select:focus,
 body.ds-auth-os-page textarea:focus,
