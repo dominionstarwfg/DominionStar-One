@@ -30,6 +30,7 @@
    return;
  }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
+ await window.CommunicationEngine?.init?.({client:db,session}).catch(()=>{});
  const tabs=[...document.querySelectorAll('[data-settings-tab]')];
  tabs.forEach(b=>b.onclick=()=>{
    tabs.forEach(x=>x.classList.toggle('active',x===b));
@@ -111,7 +112,36 @@
  const toggle=(section,result)=>(input,key)=>{const before=!input.checked;state[section][key]=input.checked;saveMetadata(section,{...state[section]},result).then(ok=>{if(!ok){input.checked=before;state[section][key]=before}})};
  row('systemSwitches','reduceMotion','Reduce motion','Limit non-essential animation.',state.appearance.reduceMotion,toggle('appearance','systemResult'));
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
- [['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],['announcements','Founder & critical announcements','Email important official platform announcements.'],['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],['browser','Push notifications','Show DominionStar system notifications on this device after browser permission is granted.'],['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']].forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{const before=!i.checked;if(k==='browser'&&i.checked){const permission=await window.CommunicationEngine?.requestPermission?.();if(permission!=='granted'){i.checked=false;status('notificationsResult','Browser permission was not granted.','error');return}}state.notifications[k]=i.checked;if(!await saveNotification()){i.checked=before;state.notifications[k]=before}}));
+ const notificationRows=[
+   ['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],
+   ['announcements','Founder & critical announcements','Email important official platform announcements.'],
+   ['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],
+   ['browser','Push notifications','Show DominionStar system notifications on this device, including when the dashboard is closed.'],
+   ['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']
+ ];
+ notificationRows.forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{
+   const before=!i.checked;
+   try{
+     if(k==='browser'){
+       if(i.checked){
+         const permission=await window.CommunicationEngine?.requestPermission?.();
+         if(permission!=='granted')throw new Error('Browser notification permission was not granted.');
+         const push=await window.CommunicationEngine?.enablePushSubscription?.();
+         if(push?.status!=='subscribed')throw new Error('This device could not register for push notifications.');
+       }else{
+         await window.CommunicationEngine?.disablePushSubscription?.();
+       }
+     }
+     state.notifications[k]=i.checked;
+     if(!await saveNotification())throw new Error('Notification preference verification failed.');
+   }catch(error){
+     i.checked=before;
+     state.notifications[k]=before;
+     if(k==='browser'&&before)await window.CommunicationEngine?.enablePushSubscription?.().catch(()=>{});
+     if(k==='browser'&&!before)await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});
+     status('notificationsResult',error?.message||'Could not update notifications.','error');
+   }
+ }));
  [['directoryVisible','Member directory','Show my approved profile in the member directory.'],['onlineVisible','Online presence','Let approved members see when I am online.'],['allowMessages','Member messages','Allow approved members to message me.']].forEach(x=>row('privacySwitches',...x,state.privacy[x[0]],toggle('privacy','securityResult')));
  const saveAppearance=async()=>{
    const before={...state.appearance};
@@ -129,5 +159,5 @@
  };
  $('theme').onchange=saveAppearance;
  $('textSize').onchange=saveAppearance;
- $('testSound').onclick=()=>window.CommunicationEngine?.play?.('priority');$('passwordForm').onsubmit=async e=>{e.preventDefault();if($('newPassword').value!==$('confirmPassword').value){status('securityResult','Passwords do not match.','error');return}status('securityResult','Updating password…','saving');const r=await db.auth.updateUser({password:$('newPassword').value});status('securityResult',r.error?r.error.message:'Password updated ✓',r.error?'error':'saved');if(!r.error)e.target.reset()};$('signOutOtherSessions').onclick=async()=>{status('sessionsResult','Signing out…','saving');const r=await db.auth.signOut({scope:'global'});if(r.error)status('sessionsResult',r.error.message,'error');else location.href='/member-login/'};
+ $('testSound').onclick=()=>window.CommunicationEngine?.play?.('priority');$('passwordForm').onsubmit=async e=>{e.preventDefault();if($('newPassword').value!==$('confirmPassword').value){status('securityResult','Passwords do not match.','error');return}status('securityResult','Updating password…','saving');const r=await db.auth.updateUser({password:$('newPassword').value});status('securityResult',r.error?r.error.message:'Password updated ✓',r.error?'error':'saved');if(!r.error)e.target.reset()};$('signOutOtherSessions').onclick=async()=>{status('sessionsResult','Signing out…','saving');await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});const r=await db.auth.signOut({scope:'global'});if(r.error)status('sessionsResult',r.error.message,'error');else location.href='/member-login/'};
 })();
