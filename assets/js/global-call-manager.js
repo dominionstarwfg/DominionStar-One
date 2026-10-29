@@ -17,6 +17,17 @@
     route => location.pathname === route || location.pathname.startsWith(route + '/')
   );
   const PAIR_CHANNEL_PREFIX = 'dominionstar-call';
+  // Must match direct-messages.js: activated only after coordinated RLS rollout.
+  const privateCallV2 = window.DOMINIONSTAR_CALL_PRIVATE_V2 === true;
+  const pairChannelName = targetId => privateCallV2
+    ? 'ds-call-v2:' + [state.session.user.id, targetId].sort().join(':')
+    : [PAIR_CHANNEL_PREFIX, state.session.user.id, targetId].sort().join('-');
+  const inboxChannelName = id => privateCallV2
+    ? 'ds-call-inbox-v2:' + id
+    : 'dominionstar-user-call-' + id;
+  const callChannelConfig = () => ({
+    config: { ...(privateCallV2 ? {private:true} : {}), broadcast:{self:false} }
+  });
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -136,11 +147,11 @@
   };
 
   const sendPairSignal = async (targetId, signal) => {
-    const name = [PAIR_CHANNEL_PREFIX, state.session.user.id, targetId].sort().join('-');
+    const name = pairChannelName(targetId);
     // Publish on the exact pair channel used by direct-messages.js. A unique
     // response topic cannot be heard by the caller and caused Decline/Timeout
     // actions outside Chat to disappear.
-    const channel = state.client.channel(name, {config:{broadcast:{self:false}}});
+    const channel = state.client.channel(name, callChannelConfig());
     await channel.subscribe();
     await channel.send({
       type:'broadcast',
@@ -233,7 +244,7 @@
     await window.CommunicationEngine?.init({client:state.client,session:state.session});
 
     state.channel = state.client
-      .channel(`dominionstar-user-call-${state.session.user.id}`, {config:{broadcast:{self:false}}})
+      .channel(inboxChannelName(state.session.user.id), callChannelConfig())
       .on('broadcast', {event:'incoming-call'}, async ({payload}) => {
         if (!payload || payload.to !== state.session.user.id || payload.from === state.session.user.id) return;
         // Ignore a duplicate broadcast for the same WebRTC offer.
