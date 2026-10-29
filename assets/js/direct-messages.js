@@ -155,6 +155,7 @@
   let pendingVoiceBlob = null;
   let pendingVoiceUrl = '';
   let peerConnection = null;
+  let callDialing = false;
   let localStream = null;
   let callChannel = null;
   let globalOutgoingCallChannel = null;
@@ -551,7 +552,10 @@
     await loadConversation();
     textarea?.focus();
     history.replaceState({},'',`?member=${encodeURIComponent(memberId)}`);
-    await ensureCallChannel(memberId);
+    // Reading another chat must never replace the signaling channel of an
+    // active, ringing, or not-yet-connected call. The chat/typing view may
+    // change independently; the call remains tied to its original partner.
+    if (!peerConnection && !callDialing && !pendingOffer) await ensureCallChannel(memberId);
     await ensureTypingChannel(memberId);
     updatePresenceDisplays();
   }
@@ -1030,7 +1034,7 @@
   };
 
   const startCall = async callType => {
-    if (peerConnection) {
+    if (peerConnection || callDialing) {
       setSendStatus('End the current call before starting another.', 'error');
       return;
     }
@@ -1038,9 +1042,11 @@
       setSendStatus('Select a conversation first.', 'error');
       return;
     }
-    const member = members.find(item => item.id === activeMemberId);
+    const dialedMember = activeMemberId;
+    const member = members.find(item => item.id === dialedMember);
+    callDialing = true;
     try {
-      await ensureCallChannel(activeMemberId);
+      await ensureCallChannel(dialedMember);
       localStream = await navigator.mediaDevices.getUserMedia({
         audio:true,
         video:callType === 'video'
@@ -1058,7 +1064,6 @@
       // Keep the connection identity: a previous timeout must never end a
       // newer call to the same agent after a rapid redial.
       const dialedPeer = peerConnection;
-      const dialedMember = activeMemberId;
       clearTimeout(outgoingCallTimer);
       outgoingCallTimer = setTimeout(async () => {
         if (!dialedPeer || peerConnection !== dialedPeer || activeCallAnswered || callPartnerId !== dialedMember) return;
@@ -1069,7 +1074,9 @@
       }, 30000);
     } catch (error) {
       setSendStatus(error.message || 'Call could not start.', 'error');
-      endActiveCall(false);
+      await endActiveCall(false);
+    } finally {
+      callDialing = false;
     }
   };
 
@@ -1138,6 +1145,12 @@
     activeCallBar?.setAttribute('aria-hidden','true');
     toggleMute?.classList.remove('is-off');
     toggleCamera?.classList.remove('is-off');
+    // After hangup, restore signaling for the conversation the user is now
+    // viewing; do not retain the completed call's partner indefinitely.
+    if (activeMemberId && activeMemberId !== callPartnerId) {
+      try { await ensureCallChannel(activeMemberId); }
+      catch (error) { console.warn('Conversation call signaling could not be restored:', error); }
+    }
   };
 
 
