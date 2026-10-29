@@ -53,3 +53,19 @@
 A new `scripts/check-agent-release-gates.mjs` runs inside `scripts/build-public-netlify.sh` **before** staging rewrites or publication. It rejects the static package when Google sign-in/linking flags are enabled, a private call v2 flag is directly enabled in packaged member JavaScript/HTML, the two call endpoints lose coordinated flag handling, or the proposed Realtime SQL ceases to be comment-only. The automated regression suite deliberately alters temporary copies of each feature flag and expects the guard to refuse the build. Both the Agent QA and review Netlify packaging GitHub Actions workflows now monitor this guard file.
 
 **Boundaries:** A static packaging check is a release-control tripwire, **not** production authorization or cryptographic caller verification. It does not make legacy public calling private, does not configure Google OAuth, and does not replace Supabase RLS, policy tests, two-browser AV tests or actual staging separation. No Google identity-provider configuration, Realtime setting, database privilege, private v2 release flag, billable staging project or production Netlify deployment was changed. When the time comes to launch these features, this guard must be revised as part of an explicitly authorized coordinated release rather than bypassed ad hoc.
+
+
+## Browser calling lifecycle repair — review branch only
+
+Following the static release guard, the browser Agent calling implementation was audited for timeout/decline defects. In `assets/js/direct-messages.js`:
+
+- **Incoming ring timeout:** removed a contradictory `activeCallAnswered=true` assignment from the missed-call timeout path. A timed-out offer is dismissed with `aria-hidden=true`, the ringing sound is stopped and only the matching offer records the missed call. A stale timeout cannot dismiss a replacement invitation.
+- **Outgoing rapid redial:** added an explicitly tracked timeout associated with the original `RTCPeerConnection` instance. After a new call starts, an expired timer for an older call cannot hang up the new connection; repeated Call clicks while a connection exists are rejected rather than overwriting it.
+- **Answer and cleanup:** the ring timer stops as soon as an incoming call is accepted, while the outgoing timer is cancelled after an answer and both timers are cleared during call cleanup.
+- **Decline from another conversation:** removed the premature assignment of `callPartnerId` that previously caused `ensureCallChannel` to reuse a channel for the wrong conversation. The channel is selected using the incoming caller's identity before sending the decline signal.
+
+These are **review-branch client lifecycle fixes**. `tests/agent-call-lifecycle-runtime-review.test.mjs` executes the extracted browser call handlers with mock sessions, timers, media and channels; it covers timeout, replacement invitation, answered call, rapid redial and decline-channel selection.
+
+**Verified:** [Agent Website QA run 40810381010](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40810381010) completed successfully with **149 passed, 0 failed**. [Review-only Netlify static build run 40810232812](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40810232812) also completed successfully after the website script change.
+
+**Remaining gates are unchanged:** browser mock tests are not two-human/browser WebRTC tests; legacy Broadcast channels remain public; private v2 requires approved per-topic Supabase RLS and independent staging. Google OAuth remains off, no Netlify production deployment occurred, no Supabase policies or settings changed, and the separate DominionStar Meet application was not edited.
