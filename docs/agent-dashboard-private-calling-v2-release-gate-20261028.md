@@ -120,3 +120,19 @@ These are **review-branch client lifecycle fixes**. `tests/agent-call-lifecycle-
 **Verified:** [Agent Dashboard QA run 40888624531](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40888624531) — **177 tests passed, 0 failed**. The new `tests/agent-call-conversation-isolation.test.mjs` exercises active calls, ringing offers, pending media permission, ended-call restoration, and normal idle navigation. [Review-only Netlify build run 40888456892](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40888456892) passed after the source change.
 
 **Limits:** VM-based tests do not prove live WebRTC connection quality or authorize server-side signaling. Independent staging, two-user/two-browser tests, Realtime RLS validation, OAuth setup and production release gating remain pending. No production deploy, billable staging creation, Supabase policy activation or Meet app change was performed.
+
+
+## Accepted incoming call — correct caller pair after chat-switching isolation
+
+**Confirmed defect:** The prior navigation isolation kept an incoming ringing call from changing its signaling channel, but the receiver's `acceptIncomingCall()` used `openConversation(callerId)` as though it would also switch to the caller's pair topic. With `pendingOffer` set, `openConversation` deliberately skipped `ensureCallChannel`, so a call arriving from a different agent could send the WebRTC `answer` over the previous chat's pair topic.
+
+**Review-only remediation in `assets/js/direct-messages.js`:**
+
+- On explicit incoming-call acceptance, update the viewed conversation **then call `ensureCallChannel(callerId)` unconditionally**, before requesting microphone/video or creating the answer. Verify the pending offer still matches after each asynchronous navigation/subscription step.
+- Guard the in-progress acceptance with `callAccepting` so concurrent Accept clicks cannot issue multiple permission prompts or overlapping answers, and chat navigation cannot redirect the signaling channel while acceptance is pending.
+- If the caller cancels during microphone permissions, immediately stop all newly granted tracks and do not create a peer connection or send an answer. Recheck after remote description and local description operations; clean up a cancelled in-flight connection.
+- If pairing or media setup fails, record the error and clean up. Do not broadcast a decline through a channel still associated with another conversation.
+
+**Verification:** [Agent Website QA run 40906188333](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40906188333) passed **184 tests with zero failures**, including new runtime checks in `tests/agent-incoming-accept-route-runtime.test.mjs` for cross-conversation acceptance, same-chat wrong-channel recovery, navigation cancellation, microphone permission cancellation, double Accept and pair-subscription failure. The [review-only Netlify package run 40905893348](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40905893348) succeeded on the browser source change; no production deployment occurred.
+
+**Remaining limitations:** These tests use simulated channels and media, not actual two-browser WebRTC. Private Realtime authorization, independent staging, browser media validation and Google OAuth launch still require separate verification/approval. The existing legacy public Broadcast mode remains unverified for secure calling. Production Netlify, Supabase and the separate Meet application have not been modified.
