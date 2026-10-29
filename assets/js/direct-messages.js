@@ -786,13 +786,24 @@
     }
   });
 
-  const callChannelName = otherId => ['dominionstar-call', session.user.id, otherId].sort().join('-');
+  // Private v2 signaling is an opt-in coordinated release. Until the
+  // realtime.messages RLS policies are approved, preserve the legacy protocol.
+  const privateCallV2 = window.DOMINIONSTAR_CALL_PRIVATE_V2 === true;
+  const callChannelName = otherId => privateCallV2
+    ? 'ds-call-v2:' + [session.user.id, otherId].sort().join(':')
+    : ['dominionstar-call', session.user.id, otherId].sort().join('-');
+  const callInboxName = memberId => privateCallV2
+    ? 'ds-call-inbox-v2:' + memberId
+    : 'dominionstar-user-call-' + memberId;
+  const callChannelConfig = () => ({
+    config: { ...(privateCallV2 ? {private:true} : {}), broadcast:{self:false} }
+  });
 
   const ensureCallChannel = async otherId => {
     if (callChannel && callPartnerId === otherId) return callChannel;
     if (callChannel) await client.removeChannel(callChannel);
     callPartnerId = otherId;
-    callChannel = client.channel(callChannelName(otherId), {config:{broadcast:{self:false}}});
+    callChannel = client.channel(callChannelName(otherId), callChannelConfig());
 
     callChannel.on('broadcast', {event:'call-signal'}, async ({payload}) => {
       if (!payload || payload.to !== session.user.id) return;
@@ -866,7 +877,7 @@
 
     if (payload.type === 'offer') {
       if (globalOutgoingCallChannel) await client.removeChannel(globalOutgoingCallChannel);
-      globalOutgoingCallChannel = client.channel(`dominionstar-user-call-${callPartnerId}`, {config:{broadcast:{self:false}}});
+      globalOutgoingCallChannel = client.channel(callInboxName(callPartnerId), callChannelConfig());
       await globalOutgoingCallChannel.subscribe();
       await globalOutgoingCallChannel.send({
         type:'broadcast',
