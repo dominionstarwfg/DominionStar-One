@@ -14,15 +14,19 @@ const offer=(sdp='offer-one',from='caller')=>({
 async function harness({profileWait,engineWait,signalWait}={}){
  const log={rings:[],notifications:[],timers:[],channels:[],storage:new Map()};
  const nodes={};
- const element=id=>({
-   id,textContent:'',classList:{
-     add(token){log.rings.push('hide:'+id+':'+token)},
-     remove(token){log.rings.push('show:'+id+':'+token)}
-   },
-   setAttribute(name,value){log.rings.push(id+':'+name+':'+value)},
-   addEventListener(event,fn){this.handlers??={};this.handlers[event]=fn},
-   set innerHTML(value){this._html=value},get innerHTML(){return this._html}
- });
+ const element=id=>{
+   const el={
+     id,textContent:'',
+     setAttribute(name,value){log.rings.push(this.id+':'+name+':'+value)},
+     addEventListener(event,fn){this.handlers??={};this.handlers[event]=fn},
+     set innerHTML(value){this._html=value},get innerHTML(){return this._html}
+   };
+   el.classList={
+     add(token){log.rings.push('show:'+el.id+':'+token)},
+     remove(token){log.rings.push('hide:'+el.id+':'+token)}
+   };
+   return el;
+ };
  for(const id of ['dsGlobalAcceptCall','dsGlobalDeclineCall','dsGlobalCallerAvatar',
   'dsGlobalCallerName','dsGlobalCallType'])nodes[id]=element(id);
  const doc={
@@ -56,8 +60,9 @@ async function harness({profileWait,engineWait,signalWait}={}){
   channel(name,config){log.channels.push({name,config});return channel},
   removeChannel(){}
  };
+ let engineInitCount=0;
  const engine={
-  async init(){if(engineWait)await engineWait.promise},
+  async init(){engineInitCount++;if(engineWait && engineInitCount>1)await engineWait.promise},
   stopAll(){log.rings.push('stopAudio')},
   startLoop(name){log.rings.push('startAudio:'+name)},
   play(name){log.rings.push('playAudio:'+name)},
