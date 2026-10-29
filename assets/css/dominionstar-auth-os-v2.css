@@ -320,3 +320,33 @@ body.ds-auth-os-page .founder-login-card{
 }
 body.ds-auth-os-page .founder-login-card p{color:var(--os-text-soft)!important}
 @media(max-width:1040px){body.ds-auth-os-page{padding-left:0}}
+
+/* Legacy authenticated microcopy floor: old shared styles contain many 9–11px rules. */
+body.ds-auth-os-page :is(
+  .member-status,.community-message-head span,.digital-card-brand span,.digital-card-grid span,
+  .digital-card-qr-frame span,.digital-card-theme-controls>span,.appointment-card dt,.appointment-status,
+  .community-post-author span,.community-post-type,.community-pinned-label,.community-locked-label,
+  .community-chat-unread,.community-chat-bubble header span,.connected-community-card span,
+  .founder-live-stat span,.email-stat-grid span,.email-queue-item>span,.qa-summary-grid span,
+  .aurora-command-brand small,.dm-sidebar-footer button,.dm-sidebar-footer span,.dm-conversation-meta time,
+  .dm-conversation-meta b,.dm-member-profile p,.dm-member-facts span,.dm-member-facts strong,
+  .dm-shared-summary span,.command-snapshot span,.command-snapshot small,.command-action-grid span,
+  .command-link-row a,.dm-call-header-copy small,.dm-date-separator span,.dm-receipt,
+  .dm-message-reactions b,.dm-pin-mark,.dm-inline-reply span,.dm-typing-indicator,
+  .dm-image-attachment span,.dm-message-meta,.notification-item>b,.notification-item small,
+  .notification-new-label,.founder-status-badge
+){font-size:12px!important;line-height:1.4!important}
+
+body.ds-auth-os-page :is(
+  .command-priority-item p,.command-health-row p,.command-activity-item p,.command-activity-item small,
+  .command-clear-state p,.dm-conversation-copy small,.dm-active-copy small,.dm-message-bubble small,
+  .dm-modal-card header small,.dm-member-actions .btn,.dm-send-status
+){font-size:12.5px!important;line-height:1.5!important}
+
+body.ds-auth-os-page :is(
+  .community-message-head span,.community-post-author span,.community-post-type,.community-pinned-label,
+  .community-locked-label,.community-chat-bubble header span,.connected-community-card span,
+  .appointment-card dt,.appointment-status,.email-queue-item>span,.qa-summary-grid span,
+  .dm-conversation-copy small,.dm-active-copy small,.dm-message-meta,.notification-item small,
+  .command-priority-item p,.command-health-row p,.command-activity-item p,.command-activity-item small
+){color:#5d7287!important}
