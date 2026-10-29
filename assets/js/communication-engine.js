@@ -58,8 +58,61 @@
     document.querySelectorAll('[data-communication-badge],#notificationCount').forEach(el=>{el.textContent=state.badge;el.classList.toggle('member-hidden',!state.badge)});
     if('setAppBadge' in navigator){ state.badge?navigator.setAppBadge(state.badge).catch(()=>{}):navigator.clearAppBadge().catch(()=>{}); }
   };
+  const urlBase64ToUint8Array = value => {
+    const padding='='.repeat((4-value.length%4)%4);
+    const base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(base64);
+    return Uint8Array.from([...raw].map(char=>char.charCodeAt(0)));
+  };
+  const pushSupport = () => (
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  );
+  const enablePushSubscription = async () => {
+    if(!pushSupport())return {status:'unsupported'};
+    if(!state.client||!state.session?.user?.id)return {status:'not_ready'};
+    if(Notification.permission!=='granted')return {status:'permission_required'};
+
+    const registration=await navigator.serviceWorker.register('/sw.js');
+    const keyResponse=await fetch('/.netlify/functions/push-public-key',{headers:{accept:'application/json'}});
+    if(!keyResponse.ok)throw new Error('Push delivery is not configured yet.');
+    const keyData=await keyResponse.json();
+    if(!keyData?.publicKey)throw new Error('Push public key is unavailable.');
+
+    let subscription=await registration.pushManager.getSubscription();
+    if(!subscription){
+      subscription=await registration.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(keyData.publicKey)
+      });
+    }
+
+    const payload=subscription.toJSON();
+    const registered=await state.client.rpc('register_my_push_subscription',{
+      target_endpoint:subscription.endpoint,
+      target_p256dh:payload.keys?.p256dh||'',
+      target_auth:payload.keys?.auth||'',
+      target_user_agent:navigator.userAgent.slice(0,500)
+    });
+    if(registered.error)throw registered.error;
+    localStorage.setItem('ds_browser_notifications','on');
+    return {status:'subscribed',subscription};
+  };
+  const disablePushSubscription = async () => {
+    localStorage.setItem('ds_browser_notifications','off');
+    if(!pushSupport())return {status:'unsupported'};
+    const registration=await navigator.serviceWorker.getRegistration('/').catch(()=>null);
+    const subscription=await registration?.pushManager?.getSubscription?.();
+    if(subscription&&state.client&&state.session?.user?.id){
+      await state.client.rpc('remove_my_push_subscription',{target_endpoint:subscription.endpoint}).catch(()=>{});
+      await subscription.unsubscribe().catch(()=>{});
+    }
+    return {status:'disabled'};
+  };
   const browserNotify = async ({title,body='',tag='',actionUrl='/',priority='normal'}) => {
     if(!settings().browser || !('Notification' in window) || Notification.permission!=='granted') return;
+    if(document.visibilityState==='visible' && document.hasFocus()) return;
     const safeUrl=safeActionUrl(actionUrl);
     const urgent=['high','critical'].includes(String(priority||'').toLowerCase());
     const reg=await navigator.serviceWorker?.ready.catch(()=>null);
@@ -69,12 +122,18 @@
   };
   const requestPermission = async () => {
     if(!('Notification' in window)) return 'unsupported';
-    const result=await Notification.requestPermission(); localStorage.setItem('ds_browser_notifications',result==='granted'?'on':'off'); return result;
+    const result=await Notification.requestPermission();
+    localStorage.setItem('ds_browser_notifications',result==='granted'?'on':'off');
+    if(result==='granted'&&state.client&&state.session)await enablePushSubscription().catch(()=>{});
+    return result;
   };
   const init = async ({client,session}={}) => {
     state.client=client||state.client; state.session=session||state.session;
     if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
     document.addEventListener('pointerdown',ensureContext,{once:true});
+    if(settings().browser&&Notification.permission==='granted'){
+      enablePushSubscription().catch(()=>{});
+    }
     if(state.client&&state.session&&!state.channel){
       state.channel=state.client.channel(`communication-events-${state.session.user.id}`)
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'executive_events',filter:`member_id=eq.${state.session.user.id}`},({new:event})=>{
@@ -102,6 +161,6 @@
     return api;
   };
   const setActiveConversation = memberId => { state.activeConversationMember=memberId||''; };
-  const api={init,play,startLoop,stopLoop,stopAll,toast,setBadge,browserNotify,requestPermission,settings,setActiveConversation,safeActionUrl};
+  const api={init,play,startLoop,stopLoop,stopAll,toast,setBadge,browserNotify,requestPermission,enablePushSubscription,disablePushSubscription,settings,setActiveConversation,safeActionUrl};
   window.CommunicationEngine=api;
 })();
