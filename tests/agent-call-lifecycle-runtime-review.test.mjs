@@ -26,7 +26,7 @@ function clock(){
  };
 }
 
-function incoming(){
+function incoming({status='approved',agentCode='DS123',denied=false,lookupFailure=false}={}){
  const c=clock(),missed=[],media=[],ui=[],channels=[];
  let listener;
  const inboxHandlers=new Map();
@@ -39,7 +39,22 @@ function incoming(){
    classList:{add(name){ui.push('hide:'+name)},remove(name){ui.push('show:'+name)}},
    setAttribute(name,value){ui.push(name+':'+value)}
  };
- const client={channel(name,config){
+ const client={
+   from(name){
+     assert.equal(name,'member_profiles');
+     return {select(columns){
+       assert.equal(columns,'verification_status,agent_code');
+       return {eq(column,value){
+         assert.equal(column,'id');assert.equal(value,'recipient');
+         return {async maybeSingle(){
+           if(lookupFailure)throw Error('network unavailable');
+           return denied ? {data:null,error:{message:'RLS denied'}} :
+             {data:{verification_status:status,agent_code:agentCode},error:null};
+         }};
+       }};
+     }};
+   },
+   channel(name,config){
    channels.push({name,config});
    return {on(_type,{event},handler){inboxHandlers.set(event,handler);return this},subscribe(){return this}};
  }};
@@ -197,7 +212,7 @@ test('Declining an incoming call switches from another conversation channel firs
 
 test('Messages page inbox receives a call from an agent outside the selected conversation',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  assert.equal(h.channels.length,1);
  assert.equal(h.channels[0].name,'inbox:recipient');
  assert.equal(h.channels[0].config.config.private,true);
@@ -210,7 +225,7 @@ test('Messages page inbox receives a call from an agent outside the selected con
 
 test('Pair and inbox duplicate offers do not create duplicate ringing timers',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  const offer={type:'offer',from:'caller',to:'recipient',callType:'audio',description:{sdp:'same-offer'}};
  await h.send(offer);
  await h.inbox('incoming-call',{...offer});
@@ -220,7 +235,7 @@ test('Pair and inbox duplicate offers do not create duplicate ringing timers',as
 
 test('Wrong recipient and self-call notifications are ignored on Messages',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  await h.inbox('incoming-call',{type:'offer',from:'another',to:'someone-else'});
  await h.inbox('incoming-call',{type:'offer',from:'recipient',to:'recipient'});
  assert.equal(h.access.state().pendingOffer,null);
@@ -229,7 +244,7 @@ test('Wrong recipient and self-call notifications are ignored on Messages',async
 
 test('Caller cancellation clears a pending inbox offer and its ringtone',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient'});
  assert.ok(h.access.state().pendingOffer);
  await h.inbox('call-cancelled',{type:'hangup',from:'another',to:'recipient'});
@@ -242,7 +257,7 @@ test('Caller cancellation clears a pending inbox offer and its ringtone',async()
 
 test('Messages inbox ignores additional invitations while another call is active',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  h.access.setPeer({});
  await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient'});
  assert.equal(h.access.state().pendingOffer,null);
@@ -254,13 +269,13 @@ test('Accepting a call from another agent switches to their conversation before 
  assert.match(block,/if \(activeMemberId !== callerId\) await openConversation\(callerId\)/);
  assert.match(block,/if \(pendingOffer !== acceptedOffer\) return/);
  assert.match(block,/setRemoteDescription\(acceptedOffer\.description\)/);
- assert.match(source,/subscribeIncomingCallInbox\(\);\n\n  const pendingGlobalCallRaw/);
+ assert.match(source,/await subscribeIncomingCallInbox\(\);\n\n  const pendingGlobalCallRaw/);
  assert.match(source,/if \(incomingCallInboxChannel\) client\.removeChannel\(incomingCallInboxChannel\)/);
 });
 
 test('An unrelated caller cannot overwrite an existing ringing invitation',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  const first={type:'offer',from:'caller',to:'recipient',description:{sdp:'caller-one'}};
  await h.inbox('incoming-call',first);
  await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient',description:{sdp:'caller-two'}});
@@ -270,10 +285,22 @@ test('An unrelated caller cannot overwrite an existing ringing invitation',async
 
 test('Unrelated cancellation cannot dismiss a different caller invitation',async()=>{
  const h=incoming();
- h.access.subscribeIncomingCallInbox();
+ await h.access.subscribeIncomingCallInbox();
  const first={type:'offer',from:'caller',to:'recipient',description:{sdp:'caller-one'}};
  await h.inbox('incoming-call',first);
  await h.inbox('call-cancelled',{type:'hangup',from:'another',to:'recipient'});
  assert.equal(h.access.state().pendingOffer,first);
  assert.equal(h.clock.timers[0].cancelled,false);
+});
+
+test('Unapproved or unverified Messages users cannot subscribe to incoming agent calls',async()=>{
+ for(const options of [
+   {status:'pending'}, {status:'revoked'}, {status:'rejected'},
+   {agentCode:'   '}, {denied:true}, {lookupFailure:true}
+ ]){
+   const h=incoming(options);
+   const channel=await h.access.subscribeIncomingCallInbox();
+   assert.equal(channel,null);
+   assert.equal(h.channels.length,0);
+ }
 });
