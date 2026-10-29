@@ -118,7 +118,8 @@
     // may update an offer, but every async continuation must still own it.
     if (state.pending && state.pending.from !== payload.from) return;
     state.pending = payload;
-    sessionStorage.setItem('ds_pending_global_call', JSON.stringify(payload));
+    // A ringing invitation is NOT permission to auto-answer after navigation.
+    // Only the explicit Accept action may create a cross-page handoff.
     clearTimeout(state.timeout);
     state.timeout = setTimeout(() => dismiss('timeout', payload), 30000);
 
@@ -179,7 +180,9 @@
     if (!pending || !hide(pending)) return;
     // Only a deliberately accepted invitation is persisted for the next
     // /direct-messages/ page, never one cancelled during async loading.
-    sessionStorage.setItem('ds_pending_global_call', JSON.stringify({...pending, acceptedFromGlobal:true}));
+    sessionStorage.setItem('ds_pending_global_call', JSON.stringify({
+      ...pending, acceptedFromGlobal:true, acceptedAt:Date.now()
+    }));
     location.href = `/direct-messages/?member=${encodeURIComponent(pending.from)}&incoming=1`;
   }
 
