@@ -1,0 +1,98 @@
+-- DO NOT RUN. Review-only proposal for DominionStar EXECUTIVE OS browser calls.
+-- No database migration is authorized by this file.
+-- Requirements: independent staging Supabase, approved policy review,
+-- two-browser call test, separate launch flag authorization.
+--
+-- Live read-only check on Oct 28 2026:
+-- realtime.messages has RLS enabled and zero policies.
+-- Supabase requires explicit SELECT/INSERT RLS and config.private=true.
+-- Do not ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY.
+--
+-- Proposed private topics:
+--   ds-call-inbox-v2:<receiver_uuid>
+--   ds-call-v2:<lexically_smaller_uuid>:<lexically_larger_uuid>
+--
+-- First confirm the member_profiles directory SELECT policy covers all
+-- intended call recipients. Its profile_visibility=members constraint may
+-- exclude members with private profiles from outbound call targeting.
+-- Use approved test accounts and RLS-aware staging queries for validation.
+--
+-- DRAFT (comments only: cannot execute SQL when opened by mistake):
+--
+-- create policy "ds_agent_v2_broadcast_read"
+--   on realtime.messages
+--   for select
+--   to authenticated
+--   using (
+--     extension = 'broadcast'
+--     and (select auth.uid()) is not null
+--     and exists (
+--       select 1 from public.member_profiles own
+--       where own.id = (select auth.uid())
+--         and own.verification_status = 'approved'
+--         and nullif(btrim(own.agent_code),'') is not null
+--     )
+--     and (
+--       realtime.topic() = 'ds-call-inbox-v2:' || (select auth.uid())::text
+--       or (
+--         realtime.topic() ~ '^ds-call-v2:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+--         and split_part(realtime.topic(), ':', 2) < split_part(realtime.topic(), ':', 3)
+--         and (
+--           split_part(realtime.topic(), ':', 2) = (select auth.uid())::text
+--           or split_part(realtime.topic(), ':', 3) = (select auth.uid())::text
+--         )
+--       )
+--     )
+--   );
+--
+-- create policy "ds_agent_v2_broadcast_send"
+--   on realtime.messages
+--   for insert
+--   to authenticated
+--   with check (
+--     extension = 'broadcast'
+--     and (select auth.uid()) is not null
+--     and exists (
+--       select 1 from public.member_profiles own
+--       where own.id = (select auth.uid())
+--         and own.verification_status = 'approved'
+--         and nullif(btrim(own.agent_code),'') is not null
+--     )
+--     and (
+--       (
+--         realtime.topic() ~ '^ds-call-inbox-v2:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+--         and split_part(realtime.topic(), ':', 2) <> (select auth.uid())::text
+--         and exists (
+--           select 1 from public.member_profiles receiver
+--           where receiver.id::text = split_part(realtime.topic(), ':', 2)
+--             and receiver.verification_status = 'approved'
+--             and nullif(btrim(receiver.agent_code),'') is not null
+--         )
+--       )
+--       or (
+--         realtime.topic() ~ '^ds-call-v2:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+--         and split_part(realtime.topic(), ':', 2) < split_part(realtime.topic(), ':', 3)
+--         and (
+--           split_part(realtime.topic(), ':', 2) = (select auth.uid())::text
+--           or split_part(realtime.topic(), ':', 3) = (select auth.uid())::text
+--         )
+--         and exists (
+--           select 1 from public.member_profiles partner
+--           where partner.id::text = (
+--             case when split_part(realtime.topic(), ':', 2) = (select auth.uid())::text
+--               then split_part(realtime.topic(), ':', 3)
+--               else split_part(realtime.topic(), ':', 2) end
+--           )
+--             and partner.verification_status = 'approved'
+--             and nullif(btrim(partner.agent_code),'') is not null
+--         )
+--       )
+--     )
+--   );
+--
+-- Cannot authenticate payload.from fields using topic-only RLS:
+-- client-side checks must not be presented as cryptographic spoofing protection.
+-- Consider server-mediated signaling or signed messages for spoof-resistant calls.
+-- Do not set Realtime "Allow public access" to OFF without migrating all
+-- other public channel consumers (typing/presence/Meet separately).
+-- Caller and receiver must flip v2 in the SAME coordinated release.
