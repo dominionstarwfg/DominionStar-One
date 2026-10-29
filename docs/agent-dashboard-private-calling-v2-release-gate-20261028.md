@@ -69,3 +69,20 @@ These are **review-branch client lifecycle fixes**. `tests/agent-call-lifecycle-
 **Verified:** [Agent Website QA run 40810381010](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40810381010) completed successfully with **149 passed, 0 failed**. [Review-only Netlify static build run 40810232812](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40810232812) also completed successfully after the website script change.
 
 **Remaining gates are unchanged:** browser mock tests are not two-human/browser WebRTC tests; legacy Broadcast channels remain public; private v2 requires approved per-topic Supabase RLS and independent staging. Google OAuth remains off, no Netlify production deployment occurred, no Supabase policies or settings changed, and the separate DominionStar Meet application was not edited.
+
+
+## Messages-page incoming call coverage — review-branch repair
+
+**Verified gap:** The `assets/js/global-call-manager.js` global inbox deliberately skips `/direct-messages/`. Previously the Messages page itself only subscribed to a call pair topic for the currently selected conversation. An offer from a different member therefore could be missed while browsing Messages.
+
+**Review-branch repair in `assets/js/direct-messages.js`:**
+
+- The Messages page now also subscribes to its per-agent incoming-call inbox. It uses the existing coordinated legacy/private-v2 topic helper and remains in the same web project; the separate Meet application is untouched.
+- Before starting this subscriber, it queries its own `member_profiles` record and requires `verification_status='approved'` and a nonblank Agent Code. Missing membership, RLS denial or network lookup failure stops the new subscription. This browser check supplements, **not replaces**, server RLS.
+- Pair and inbox offer notifications pass through the same ringing state handler. Duplicate deliveries do not create two dialogs or timers; a replacement offer with a different SDP from the same caller still updates ringing; a second caller cannot displace the visible offer.
+- Caller cancellation dismisses only a matching pending invitation, clears its timer and ringtone; wrong-recipient and self-originated notifications are ignored.
+- Accepting a call from another agent switches the Messages conversation to that caller before attempting WebRTC negotiation, and checks that the invitation has not been cancelled during navigation. The inbox channel is removed on page unload.
+
+**Regression results:** [Agent Dashboard QA run 40811034536](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40811034536) completed with **158 passed, 0 failed**, including mocked incoming inbox delivery and rejection of unapproved Agent Codes. [Review-only Netlify packaging run 40811003755](https://github.com/dominionstarwfg/DominionStar-One/actions/runs/40811003755) passed after the calling-code change, with no deployment.
+
+**Outstanding:** These are JavaScript regression tests, not real two-browser phone/video delivery tests; existing legacy public Broadcast channels remain a security blocker. Isolated staging and reviewed Supabase Realtime authorization policies are still required before release. No production database or hosting change, feature-flag activation, new paid staging instance, or separate Meet application change occurred.
