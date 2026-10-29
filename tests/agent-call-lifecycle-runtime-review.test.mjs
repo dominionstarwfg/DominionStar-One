@@ -11,6 +11,7 @@ const extract=(begin,end)=>{
  assert.ok(stop>start,'Expected runtime boundary: '+end);
  return source.slice(start,stop);
 };
+const incomingHelpers=extract('  const showIncomingCallOffer = payload => {','  const ensureCallChannel = async otherId => {');
 const incomingCode=extract("    callChannel.on('broadcast', {event:'call-signal'}, async ({payload}) => {","    await callChannel.subscribe();");
 const startCallCode=extract('  const startCall = async callType => {','  const acceptIncomingCall = async () => {');
 const declineCode=extract("  declineCall?.addEventListener('click', async () => {","  endCall?.addEventListener('click', () => endActiveCall(true));");
@@ -26,8 +27,9 @@ function clock(){
 }
 
 function incoming(){
- const c=clock(),missed=[],media=[],ui=[];
+ const c=clock(),missed=[],media=[],ui=[],channels=[];
  let listener;
+ const inboxHandlers=new Map();
  const window={CommunicationEngine:{
    startLoop(name){media.push('start:'+name)},
    stopAll(){media.push('stop')},
@@ -37,10 +39,14 @@ function incoming(){
    classList:{add(name){ui.push('hide:'+name)},remove(name){ui.push('show:'+name)}},
    setAttribute(name,value){ui.push(name+':'+value)}
  };
+ const client={channel(name,config){
+   channels.push({name,config});
+   return {on(_type,{event},handler){inboxHandlers.set(event,handler);return this},subscribe(){return this}};
+ }};
  const context={
   setTimeout:c.setTimeout,clearTimeout:c.clearTimeout,
-  window,incomingCall,incomingAvatar:{},incomingName:{},incomingType:{},
-  session:{user:{id:'recipient'}},members:[{id:'caller',display_name:'Caller'}],
+  window,client,incomingCall,incomingAvatar:{},incomingName:{},incomingType:{},
+  session:{user:{id:'recipient'}},members:[{id:'caller',display_name:'Caller'},{id:'another',display_name:'Another agent'}],
   setAvatarElement(){},startCallDuration(){},updateCallStatus(){},
   recordMissedCall:async (...args)=>missed.push(args),
   callChannel:{on(_type,_event,handler){listener=handler}},
@@ -50,19 +56,26 @@ function incoming(){
     let pendingOffer=null;
     let incomingCallTimer=null;
     let outgoingCallTimer=null;
+    let incomingCallInboxChannel=null;
     let activeCallAnswered=false;
     let callPartnerId='caller';
     let activeCallType='audio';
     let callStartedAt=0;
     let peerConnection=null;
+    const callInboxName=id=>'inbox:'+id;
+    const callChannelConfig=()=>({config:{private:true}});
+    ${incomingHelpers}
     ${incomingCode}
     return {
       state:()=>({pendingOffer,incomingCallTimer,activeCallAnswered}),
       setPeer:p=>{peerConnection=p},
+      subscribeIncomingCallInbox,
     };
   })()`;
  const access=vm.runInNewContext(code,context,{timeout:2000});
- return {access,send:async payload=>listener({payload}),clock:c,missed,media,ui};
+ return {access,send:async payload=>listener({payload}),
+   inbox:async(event,payload)=>inboxHandlers.get(event)({payload}),
+   channels,clock:c,missed,media,ui};
 }
 
 test('Incoming offer timeout clears the invitation without pretending it was answered',async()=>{
@@ -180,4 +193,67 @@ test('Declining an incoming call switches from another conversation channel firs
  assert.equal(state.state().pendingOffer,null);
  assert.equal(state.state().incomingCallTimer,null);
  assert.ok(ui.includes('aria-hidden:true'));
+});
+
+test('Messages page inbox receives a call from an agent outside the selected conversation',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ assert.equal(h.channels.length,1);
+ assert.equal(h.channels[0].name,'inbox:recipient');
+ assert.equal(h.channels[0].config.config.private,true);
+ const offer={type:'offer',from:'another',to:'recipient',callType:'video',description:{sdp:'other-agent-offer'}};
+ await h.inbox('incoming-call',offer);
+ assert.equal(h.access.state().pendingOffer,offer);
+ assert.equal(h.clock.timers.length,1);
+ assert.ok(h.ui.includes('aria-hidden:false'));
+});
+
+test('Pair and inbox duplicate offers do not create duplicate ringing timers',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ const offer={type:'offer',from:'caller',to:'recipient',callType:'audio',description:{sdp:'same-offer'}};
+ await h.send(offer);
+ await h.inbox('incoming-call',{...offer});
+ assert.equal(h.clock.timers.length,1);
+ assert.equal(h.media.filter(x=>x==='start:incoming_ring').length,1);
+});
+
+test('Wrong recipient and self-call notifications are ignored on Messages',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ await h.inbox('incoming-call',{type:'offer',from:'another',to:'someone-else'});
+ await h.inbox('incoming-call',{type:'offer',from:'recipient',to:'recipient'});
+ assert.equal(h.access.state().pendingOffer,null);
+ assert.equal(h.clock.timers.length,0);
+});
+
+test('Caller cancellation clears a pending inbox offer and its ringtone',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient'});
+ assert.ok(h.access.state().pendingOffer);
+ await h.inbox('call-cancelled',{type:'hangup',from:'another',to:'recipient'});
+ assert.equal(h.access.state().pendingOffer,null);
+ assert.equal(h.clock.timers[0].cancelled,true);
+ assert.ok(h.ui.includes('aria-hidden:true'));
+ assert.ok(h.media.includes('stop'));
+ assert.equal(h.missed.length,0);
+});
+
+test('Messages inbox ignores additional invitations while another call is active',async()=>{
+ const h=incoming();
+ h.access.subscribeIncomingCallInbox();
+ h.access.setPeer({});
+ await h.inbox('incoming-call',{type:'offer',from:'another',to:'recipient'});
+ assert.equal(h.access.state().pendingOffer,null);
+ assert.equal(h.clock.timers.length,0);
+});
+
+test('Accepting a call from another agent switches to their conversation before answering',()=>{
+ const block=extract('  const acceptIncomingCall = async () => {','  const endActiveCall = async notify => {');
+ assert.match(block,/if \(activeMemberId !== callerId\) await openConversation\(callerId\)/);
+ assert.match(block,/if \(pendingOffer !== acceptedOffer\) return/);
+ assert.match(block,/setRemoteDescription\(acceptedOffer\.description\)/);
+ assert.match(source,/subscribeIncomingCallInbox\(\);\n\n  const pendingGlobalCallRaw/);
+ assert.match(source,/if \(incomingCallInboxChannel\) client\.removeChannel\(incomingCallInboxChannel\)/);
 });
