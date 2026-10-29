@@ -366,3 +366,131 @@ body.ds-founder-os-page .founder-exclusive-control span{font-size:12px!important
 body.ds-founder-os-page .recognize-member{white-space:nowrap;min-width:96px}
 body.ds-founder-os-page .founder-notes{min-width:170px}
 body.ds-founder-os-page #founderRecognitionResult{margin-top:14px}
+
+/* Profile: override legacy dark-card descendants after converting the page to light OS surfaces. */
+body.ds-auth-os-page .profile-stable-layout{
+  grid-template-columns:minmax(260px,310px) minmax(0,1fr)!important;
+  gap:18px!important;
+}
+body.ds-auth-os-page .executive-profile-card{
+  top:20px!important;padding:24px!important;text-align:center!important;
+  background:linear-gradient(180deg,#fff,#f8fafc)!important
+}
+body.ds-auth-os-page .executive-avatar-wrap{width:150px!important;height:150px!important;margin-bottom:24px!important}
+body.ds-auth-os-page .executive-avatar-wrap img{background:#eef3f7!important;border-color:#caa56d!important}
+body.ds-auth-os-page .executive-rank{color:#244d73!important;font-size:20px!important}
+body.ds-auth-os-page .verified-data-grid{gap:10px!important}
+body.ds-auth-os-page .verified-data-grid>div{
+  background:#f7f9fc!important;border:1px solid #dce5ed!important;border-radius:12px!important;padding:14px!important
+}
+body.ds-auth-os-page .verified-data-grid span{
+  color:#5d7287!important;font-size:12px!important;letter-spacing:.055em!important;font-weight:800!important
+}
+body.ds-auth-os-page .verified-data-grid strong{color:#173550!important;font-size:14px!important;line-height:1.45!important}
+body.ds-auth-os-page .profile-data-column{gap:14px!important}
+body.ds-auth-os-page .profile-section-card{padding:22px!important}
+body.ds-auth-os-page .sticky-save-bar{
+  position:sticky!important;bottom:12px!important;z-index:6!important;
+  display:flex!important;align-items:center!important;gap:14px!important;justify-content:flex-end!important;
+  padding:12px 14px!important;background:rgba(255,255,255,.96)!important;
+  border:1px solid #d9e3eb!important;border-radius:13px!important;
+  box-shadow:0 10px 28px rgba(16,38,63,.1)!important;backdrop-filter:blur(8px)
+}
+
+/* Settings: convert the old dark RC5 interior into the same readable OS system. */
+body.ds-auth-os-page .settings-layout{
+  width:100%!important;max-width:1180px!important;margin:20px 0 36px!important;
+  grid-template-columns:220px minmax(0,1fr)!important;gap:16px!important
+}
+body.ds-auth-os-page .settings-nav{
+  top:20px!important;padding:10px!important;border:1px solid #d6e1ea!important;
+  background:#f8fafc!important;border-radius:14px!important
+}
+body.ds-auth-os-page .settings-nav button{
+  min-height:43px!important;padding:10px 12px!important;color:#486178!important;
+  background:transparent!important;font-size:13px!important
+}
+body.ds-auth-os-page .settings-nav button.active{
+  color:#fff!important;background:#173b5c!important;box-shadow:none!important
+}
+body.ds-auth-os-page .settings-panel{
+  padding:clamp(20px,3vw,32px)!important;border-radius:16px!important
+}
+body.ds-auth-os-page .settings-panel h2{
+  margin:.18em 0 .7em!important;color:#173550!important;
+  font-family:inherit!important;font-size:clamp(24px,3vw,34px)!important;line-height:1.15!important
+}
+body.ds-auth-os-page .settings-switch-row{
+  gap:18px!important;padding:16px 2px!important;border-bottom:1px solid #e0e7ee!important
+}
+body.ds-auth-os-page .settings-switch-row strong{color:#243e57!important;font-size:14px!important}
+body.ds-auth-os-page .settings-switch-row small,
+body.ds-auth-os-page .settings-note,
+body.ds-auth-os-page .settings-panel-note{color:#5d7287!important;font-size:12.5px!important;line-height:1.55!important}
+body.ds-auth-os-page .settings-field select,
+body.ds-auth-os-page .settings-form input,
+body.ds-auth-os-page .settings-form select{
+  background:#fff!important;color:#112941!important;border-color:#bfcdda!important
+}
+body.ds-auth-os-page .settings-session-card{
+  background:#f7f9fc!important;border-color:#dce5ed!important;color:#173550!important
+}
+body.ds-auth-os-page .settings-session-card p{color:#365a78!important}
+body.ds-auth-os-page .settings-save-state[data-state="saving"]{color:#73551f!important}
+body.ds-auth-os-page .settings-save-state[data-state="saved"]{color:#1f6c50!important}
+body.ds-auth-os-page .settings-save-state[data-state="error"]{color:#9d3434!important}
+body.ds-auth-os-page .ds-google-identity p,
+body.ds-auth-os-page .ds-google-identity #googleLinkStatus{color:#5d7287!important;font-size:12.5px!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy span{color:#5d7287!important;font-size:12px!important}
+
+/* Messages: old dark-theme controls must remain visible after moving the shell to light surfaces. */
+body.ds-auth-os-page.dm-os-body{
+  height:100vh!important;overflow:hidden!important;background:var(--os-bg)!important
+}
+body.ds-auth-os-page.dm-os-body.ds-auth-os-shell-active{display:flex!important;flex-direction:column!important}
+body.ds-auth-os-page.dm-os-body .dm-os{
+  flex:1 1 auto!important;min-height:0!important;height:auto!important;
+  background:#fff!important;color:#173550!important
+}
+body.ds-auth-os-page .dm-sidebar-header button,
+body.ds-auth-os-page .dm-back,
+body.ds-auth-os-page .dm-header-actions button,
+body.ds-auth-os-page .dm-header-actions a{
+  background:#eef3f7!important;color:#315b7d!important;border-color:#cbd7e1!important
+}
+body.ds-auth-os-page .dm-header-actions button:hover,
+body.ds-auth-os-page .dm-header-actions a:hover,
+body.ds-auth-os-page .dm-sidebar-header button:hover,
+body.ds-auth-os-page .dm-back:hover{background:#e2eaf1!important;color:#173b5c!important}
+body.ds-auth-os-page .dm-search-wrap input,
+body.ds-auth-os-page .dm-conversation-search input,
+body.ds-auth-os-page .dm-composer textarea{
+  background:#fff!important;color:#173550!important;border-color:#c4d1dc!important
+}
+body.ds-auth-os-page .dm-conversation{
+  color:#173550!important;background:transparent!important
+}
+body.ds-auth-os-page .dm-conversation:hover,
+body.ds-auth-os-page .dm-conversation.active{background:#eef4f8!important}
+body.ds-auth-os-page .dm-conversation-copy strong{color:#173550!important}
+body.ds-auth-os-page .dm-thread{background:#f4f7fa!important}
+body.ds-auth-os-page .dm-conversation-search{background:#f8fafc!important;border-color:#dce5ed!important}
+body.ds-auth-os-page .dm-member-panel{background:#f8fafc!important;border-color:#dce5ed!important}
+body.ds-auth-os-page .dm-member-avatar-large{background:linear-gradient(145deg,#dfe9f1,#c8d8e5)!important;color:#244d73!important;border-color:#caa56d!important}
+body.ds-auth-os-page .dm-sidebar-footer{background:#f8fafc!important;border-color:#dce5ed!important}
+body.ds-auth-os-page .dm-sidebar-footer button{color:#315b7d!important}
+body.ds-auth-os-page .dm-typing-indicator{color:#5d7287!important}
+@media(max-width:1040px){
+  body.ds-auth-os-page.dm-os-body .dm-os{min-height:0!important}
+}
+@media(max-width:760px){
+  body.ds-auth-os-page .settings-layout{grid-template-columns:1fr!important}
+  body.ds-auth-os-page .settings-nav{
+    position:static!important;display:flex!important;overflow-x:auto!important;gap:6px!important
+  }
+  body.ds-auth-os-page .settings-nav button{flex:0 0 auto!important;white-space:nowrap!important}
+}
+@media(max-width:900px){
+  body.ds-auth-os-page .profile-stable-layout{grid-template-columns:1fr!important}
+  body.ds-auth-os-page .executive-profile-card{position:static!important}
+}
