@@ -71,4 +71,7 @@ jobs:
           node --test tests/web-push-foundation-review.test.mjs
       - name: No production deployment
         run: |
-          ! grep -R --line-number -E 'netlify deploy --prod|supabase db push|apply_migration' .github/workflows/authenticated-os-consistency-review.yml
+          if grep -nE '^[[:space:]]+(netlify deploy --prod|supabase db push|apply_migration)' .github/workflows/authenticated-os-consistency-review.yml; then
+            echo "Production deployment command found in review workflow" >&2
+            exit 1
+          fi
