@@ -76,6 +76,9 @@ test('trusted database message events replace browser cross-member publication o
   assert.match(sql,/m\.id::text=new\.payload->>'message_id'/);
   assert.match(sql,/m\.sender_id=new\.actor_id/);
   assert.match(sql,/m\.recipient_id=new\.member_id/);
+  assert.match(sql,/DROP POLICY IF EXISTS "members create executive events"/);
+  assert.match(sql,/CREATE POLICY "members create own executive events"/);
+  assert.match(sql,/actor_id=auth\.uid\(\)[\s\S]*member_id=auth\.uid\(\)/);
 });
 
 test('push subscription and outbox tables are not directly exposed to ordinary clients',()=>{
