@@ -262,6 +262,10 @@ test ! -e "$DIST/rebuild-dist"
 # publishing any Netlify output, including isolated review/staging packages.
 node "$ROOT/scripts/check-agent-release-gates.mjs" "$DIST"
 
+# npm manifests are build inputs, not public website assets. The release gate
+# has already verified them; do not publish dependency metadata in public-dist.
+rm -f "$DIST/package.json" "$DIST/package-lock.json"
+
 echo "DOMINIONSTAR_PUBLIC_ROOT_OK"
 echo "DOMINIONSTAR_BROWSER_MEET_ROUTE_OK /meet/"
 
