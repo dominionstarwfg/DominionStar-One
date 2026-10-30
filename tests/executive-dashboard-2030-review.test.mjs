@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const html = read('member-dashboard/index.html');
-const css = read('assets/css/member-dashboard-executive-2030.css');
+const css = read('assets/css/member-dashboard-executive.css');
 const js = read('assets/js/member-dashboard.js');
 const os = read('assets/js/dominionstar-os.js');
 
@@ -36,9 +36,9 @@ test('Executive OS dashboard preserves core existing application hooks', () => {
 });
 
 test('Balanced Executive visual system remains isolated from other site pages', () => {
-  assert.match(html, /class="dsos-body dsos-executive-2030"/);
+  assert.match(html, /class="dsos-body dsos-executive"/);
   assert.match(html, /member-dashboard-executive-2030\.css/);
-  assert.match(css, /\.dsos-body\.dsos-executive-2030/);
+  assert.match(css, /\.dsos-body\.dsos-executive/);
   assert.match(css, /background:linear-gradient\(180deg,#102b4c/);
   assert.match(css, /grid-template-columns:minmax\(0,1\.75fr\)/);
   assert.match(css, /@media\(max-width:900px\)/);
