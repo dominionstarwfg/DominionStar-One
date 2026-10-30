@@ -37,10 +37,8 @@
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
-    ['Learning','/agent-learning/','book'],
-    ['My Journey','/agent-journey/','journey'],
     ['My Profile','/professional-profile/','user'],
-    ['Settings','/account-settings/','settings']
+    ['Agent Settings','/account-settings/','settings']
   ];
   const founderItems=[
     ['Command Center','/founder-control/','crown'],
@@ -91,7 +89,12 @@
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
-  const auxiliaryLabels={'/workspace/drive':'Drive','/workspace/tasks':'Tasks'};
+  const auxiliaryLabels={
+    '/agent-journey':'My Journey',
+    '/agent-learning':'Learning & Development',
+    '/workspace/drive':'Drive',
+    '/workspace/tasks':'Tasks'
+  };
   section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || auxiliaryLabels[path] || (founderMode?'Founder Operations':'My Space');
 
   const search=document.createElement('button');
