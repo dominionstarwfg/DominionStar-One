@@ -6,8 +6,8 @@ import vm from 'node:vm';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('member-dashboard/index.html');
 const dashboardJs=read('assets/js/member-dashboard.js');
-const socialJs=read('assets/js/dashboard-social-2030.js');
-const css=read('assets/css/member-dashboard-executive-2030.css');
+const socialJs=read('assets/js/dashboard-social.js');
+const css=read('assets/css/member-dashboard-executive.css');
 
 test('Local daypart greeting identifies the authenticated member and shows credentials above feed',()=>{
   const marker=html.indexOf('id="heroMemberName"');
@@ -33,7 +33,7 @@ test('Local daypart greeting identifies the authenticated member and shows crede
 });
 test('Branding remains unnumbered and no unsupported stock photo is shown',()=>{
   assert.match(html,/DominionStar Executive OS/);
-  assert.doesNotMatch(html,/>Executive OS 2030</);
+  assert.doesNotMatch(html,/>Executive OS</);
   assert.doesNotMatch(html,/id="dashboardAvatar"[^>]*src="\/assets\/logo\.jpeg"/);
   assert.doesNotMatch(html,/id="heroProfileAvatar"[^>]*src=/);
 });
