@@ -41,7 +41,7 @@ required_paths=(
   "mentorship/index.html"
   "assets/css/dominionstar-public-v5.css"
   "assets/js/dominionstar-public-v5.js"
-  "scripts/test-aurora-2030.mjs"
+  "scripts/test-aurora-executive.mjs"
   "netlify/functions/aurora-chat.mjs"
   "assets/ds-public-hero.jpg"
   "assets/ds-public-founder.jpg"
@@ -85,7 +85,7 @@ done
 
 # Review-only Aurora JS syntax + capability/UX safety contract.
 node --check "$ROOT/assets/js/dominionstar-public-v5.js"
-node "$ROOT/scripts/test-aurora-2030.mjs"
+node "$ROOT/scripts/test-aurora-executive.mjs"
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
@@ -124,8 +124,8 @@ grep -Fq 'href="/mentorship/"' "$DIST/index.html"
 grep -Fq 'href="/about/"' "$DIST/index.html"
 grep -Fq 'Aurora' "$DIST/index.html"
 grep -Fq 'aurora-v8-panel' "$ROOT/assets/css/dominionstar-public-v5.css"
-grep -Fq 'aurora-2030-panel' "$ROOT/assets/css/dominionstar-public-v5.css"
-grep -Fq 'aurora-2030-quick-grid' "$DIST/assets/js/dominionstar-public-v5.js"
+grep -Fq 'aurora-executive-panel' "$ROOT/assets/css/dominionstar-public-v5.css"
+grep -Fq 'aurora-executive-quick-grid' "$DIST/assets/js/dominionstar-public-v5.js"
 grep -Fq 'aurora-v8-transcript' "$ROOT/assets/js/dominionstar-public-v5.js"
 grep -Fq 'AURORA_AI_ENABLED' "$ROOT/netlify/functions/aurora-chat.mjs"
 grep -Fq 'Speak to Aurora' "$ROOT/assets/js/dominionstar-public-v5.js"
