@@ -8,12 +8,11 @@ import {fileURLToPath} from 'node:url';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const guard=join(root,'scripts/check-agent-release-gates.mjs');
-const sources=[
- 'assets/js/member-login-google-flags.js',
- 'assets/js/notification-feature-flags.js',
- 'assets/js/direct-messages.js',
- 'assets/js/global-call-manager.js'
-];
+const googleFlags='assets/js/member-login-google-flags.js';
+const notificationFlags='assets/js/notification-feature-flags.js';
+const directMessages='assets/js/direct-messages.js';
+const globalCallManager='assets/js/global-call-manager.js';
+const sources=[googleFlags,notificationFlags,directMessages,globalCallManager];
 const prepare=()=>{
  const dir=mkdtempSync(join(tmpdir(),'dominionstar-agent-release-'));
  for(const folder of ['member-dashboard','member-login','direct-messages','account-settings','assets/js']){
@@ -41,15 +40,15 @@ test('Website Agent release gate accepts current disabled features',()=>withFixt
  assert.match(verify(dir),/DOMINIONSTAR_AGENT_RELEASE_GATES_OK/);
 }));
 test('Website release blocks accidental Google sign-in activation',()=>withFixture(dir=>{
- change(dir,sources[0],'googleSignIn: false','googleSignIn: true');
+ change(dir,googleFlags,'googleSignIn: false','googleSignIn: true');
  assert.throws(()=>verify(dir),/AGENT_RELEASE_BLOCKED/);
 }));
 test('Website release blocks accidental Google identity-linking activation',()=>withFixture(dir=>{
- change(dir,sources[0],'googleIdentityLinking: false','googleIdentityLinking: true');
+ change(dir,googleFlags,'googleIdentityLinking: false','googleIdentityLinking: true');
  assert.throws(()=>verify(dir),/AGENT_RELEASE_BLOCKED/);
 }));
 test('Website release refuses a unilateral private call protocol change',()=>withFixture(dir=>{
- change(dir,sources[1],
+ change(dir,directMessages,
    'window.DOMINIONSTAR_CALL_PRIVATE_V2 === true',
    'window.DOMINIONSTAR_CALL_PRIVATE_V2 !== false');
  assert.throws(()=>verify(dir),/AGENT_RELEASE_BLOCKED/);
