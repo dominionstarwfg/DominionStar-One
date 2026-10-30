@@ -160,6 +160,26 @@
     });
   };
 
+  const missingRpc = error => {
+    const code=String(error?.code||'');
+    const message=String(error?.message||'').toLowerCase();
+    return code==='PGRST202' || message.includes('could not find the function') ||
+      (message.includes('function') && message.includes('schema cache'));
+  };
+
+  const finishTrustedCall = async (callId,outcome) => {
+    if(!callId || !state.client)return null;
+    const result=await state.client.rpc('finish_my_communication_call',{
+      target_call_id:callId,
+      target_outcome:outcome
+    });
+    if(result.error){
+      if(missingRpc(result.error))return null;
+      throw result.error;
+    }
+    return Boolean(result.data);
+  };
+
   const sendPairSignal = async (targetId, signal) => {
     const name = pairChannelName(targetId);
     // Publish on the exact pair channel used by direct-messages.js. A unique
@@ -190,8 +210,14 @@
     const pending = state.pending;
     if (!pending || !hide(pending)) return;
     // Never leave a ringing overlay open while waiting for Realtime I/O.
-    try { await sendPairSignal(pending.from, {type:'decline', callType:pending.callType || 'audio'}); }
-    catch (error) { console.warn('Call decline signal failed:', error); }
+    try {
+      await sendPairSignal(pending.from, {
+        type:'decline',
+        callType:pending.callType || 'audio',
+        callId:pending.callId || undefined
+      });
+      await finishTrustedCall(pending.callId || '','declined');
+    } catch (error) { console.warn('Call decline finalization failed:', error); }
   }
 
   async function dismiss(reason, expectedOffer = null) {
@@ -199,9 +225,15 @@
     if (!pending || (expectedOffer && expectedOffer !== pending) || !hide(pending)) return;
     if (reason === 'timeout') {
       try {
-        await sendPairSignal(pending.from, {type:'hangup', reason:'timeout', callType:pending.callType || 'audio'});
+        await sendPairSignal(pending.from, {
+          type:'hangup',
+          reason:'timeout',
+          callType:pending.callType || 'audio',
+          callId:pending.callId || undefined
+        });
+        await finishTrustedCall(pending.callId || '','missed');
       } catch (error) {
-        console.warn('Call timeout signal failed:', error);
+        console.warn('Call timeout finalization failed:', error);
       } finally {
         window.CommunicationEngine?.play('missed_call');
       }
