@@ -28,6 +28,11 @@ Informational snapshots:
 
 Abort if any required gate fails.
 
+Repository control requirement before production approval:
+- `main` must have branch protection enabled.
+- the three review checks must be configured as required status checks.
+- direct unreviewed pushes to `main` must not be allowed.
+
 ## Phase 1 — Additive RPC before deploy
 
 Apply only:
