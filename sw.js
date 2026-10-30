@@ -1,4 +1,4 @@
-const safeActionUrl=value=>{const candidate=String(value||'');if(!candidate.startsWith('/')||candidate.startsWith('//')||candidate.includes('\\\\'))return '/notifications/';return candidate;};
+const safeActionUrl=value=>{try{const parsed=new URL(String(value||'/notifications/'),self.location.origin);if(parsed.origin!==self.location.origin)return '/notifications/';return `${parsed.pathname}${parsed.search}${parsed.hash}`||'/notifications/';}catch{return '/notifications/';}};
 self.addEventListener('push',event=>{
   let data={}; try{data=event.data?.json()||{}}catch{data={body:event.data?.text()||''}}
   const priority=String(data.priority||'normal').toLowerCase();
