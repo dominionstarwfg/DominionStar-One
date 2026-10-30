@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const dashboard=read('member-dashboard/index.html');
-const dashboardCss=read('assets/css/member-dashboard-executive-2030.css');
+const dashboardCss=read('assets/css/member-dashboard-executive.css');
 const dashboardScript=read('assets/js/member-dashboard.js');
 const navigation=read('assets/js/dominionstar-os.js');
 const community=read('assets/js/community-hub.js');
@@ -35,7 +35,7 @@ test('Approved simplified sidebar has clean vector icons and no retired tabs',()
   assert.match(dashboard,/<symbol id="ds30-trophy"/);
   assert.match(dashboard,/<symbol id="ds30-user"/);
   assert.match(dashboard,/<symbol id="ds30-settings"/);
-  assert.match(dashboardCss,/\.dsos-executive-2030 \.ds30-icon/);
+  assert.match(dashboardCss,/\.dsos-executive \.ds30-icon/);
 });
 
 test('Real notification and message events drive meaningful status colors',()=>{
@@ -101,8 +101,8 @@ test('Executive login retains mandatory Agent Code and guards optional Google si
 
 
 test('Executive community post action row uses existing Supabase interaction endpoints',()=>{
-  const social=read('assets/js/dashboard-social-2030.js');
-  assert.match(dashboard,/dashboard-social-2030\.js/);
+  const social=read('assets/js/dashboard-social.js');
+  assert.match(dashboard,/dashboard-social\.js/);
   for(const action of ['like','comment','repost','share']) {
     assert.match(social,new RegExp('data-social="'+action+'"'));
   }
@@ -122,7 +122,7 @@ test('Executive community post action row uses existing Supabase interaction end
 });
 
 test('Dashboard engagement counts are actual queried rows and not mock values',async()=>{
-  const social=read('assets/js/dashboard-social-2030.js');
+  const social=read('assets/js/dashboard-social.js');
   const registered={};
   const rendered={innerHTML:'',insertAdjacentElement(){},setAttribute(){},removeAttribute(){},
     addEventListener(name,handler){registered[name]=handler}};
