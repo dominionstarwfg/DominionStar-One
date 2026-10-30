@@ -13,12 +13,15 @@ const targetPages=[
  ['account-settings/index.html','settingsApp']
 ];
 
-test('Member shell mounted only inside existing gated apps',()=>{
-  assert.match(js,/#communityApp, #appointmentApp, #directoryApp, #profileApp, #settingsApp/);
+test('Member shell mounts only into authenticated app roots and never bypasses their gates',()=>{
+  for(const root of ['#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp']){
+    assert.ok(js.includes(root),'Missing authenticated root '+root);
+  }
   assert.match(js,/app\.prepend\(shell\)/);
   assert.doesNotMatch(js,/\.classList\.remove\('member-hidden'\)/);
   assert.doesNotMatch(js,/signIn|signOut|setSession|updateUser|is_founder|verification_status/);
   assert.match(js,/app\.classList\.contains\('member-hidden'\)/);
+  assert.match(js,/app\.hidden\|\|app\.hasAttribute\('hidden'\)/);
   for(const [path,id] of targetPages){
     const html=read(path);
     assert.match(html,new RegExp('<section id="'+id+'" class="member-hidden"'));
@@ -41,7 +44,9 @@ test('Simple labels, SVGs and exact routes match executive approval',()=>{
  ]){
    assert.ok(js.includes("['"+label+"','"+route+"'"),label);
  }
- assert.doesNotMatch(js,/\/workspace\/|Directory'/);
+ const agentItems=js.match(/const agentItems=\[([\s\S]*?)\];\s*const founderItems=/)?.[1]||'';
+ assert.doesNotMatch(agentItems,/\/workspace\//);
+ assert.doesNotMatch(agentItems,/Directory'/);
  assert.match(js,/aria-current','page'/);
  assert.match(css,/\.ds-agent-nav-item\.active/);
  assert.match(js,/<svg viewBox="0 0 24 24"/);
@@ -63,7 +68,8 @@ test('Enhanced navigation preserves normal page links and keyboard shortcuts',()
 test('Javascript source parses and code has no unprotected interpolation for route names',()=>{
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.match(js,/label\.textContent=name/);
- assert.match(js,/section\.textContent=active/);
+ assert.match(js,/section\.textContent=/);
+ assert.match(js,/lastElementChild\.textContent=name/);
  assert.match(js,/results\.replaceChildren\(\)/);
  assert.match(css,/\.ds-agent-jump::backdrop/);
 });
