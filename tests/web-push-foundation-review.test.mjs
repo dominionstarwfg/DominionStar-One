@@ -81,6 +81,18 @@ test('trusted database message events replace browser cross-member publication o
   assert.match(sql,/actor_id=auth\.uid\(\)[\s\S]*member_id=auth\.uid\(\)/);
 });
 
+test('trusted call events require authoritative terminal call records',()=>{
+  assert.match(sql,/to_regclass\('public\.communication_calls'\)/);
+  assert.match(sql,/new\.event_type='call\.missed'/);
+  assert.match(sql,/c\.caller_id=new\.actor_id/);
+  assert.match(sql,/c\.recipient_id=new\.member_id/);
+  assert.match(sql,/c\.status='missed'/);
+  assert.match(sql,/new\.event_type='call\.declined'/);
+  assert.match(sql,/c\.caller_id=new\.member_id/);
+  assert.match(sql,/c\.recipient_id=new\.actor_id/);
+  assert.match(sql,/c\.status='declined'/);
+});
+
 test('push subscription and outbox tables are not directly exposed to ordinary clients',()=>{
   assert.match(sql,/CREATE TABLE IF NOT EXISTS public\.web_push_subscriptions/);
   assert.match(sql,/ALTER TABLE public\.web_push_subscriptions ENABLE ROW LEVEL SECURITY/);
