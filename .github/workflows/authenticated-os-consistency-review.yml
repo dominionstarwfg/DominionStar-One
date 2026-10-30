@@ -54,6 +54,9 @@ on:
       - 'tests/direct-message-integrity-review.test.mjs'
       - 'tests/agent-founder-rpc-hardening-review.test.mjs'
       - '_headers'
+      - 'scripts/security/communication-call-lifecycle.DO-NOT-RUN.review.sql'
+      - 'tests/communication-call-lifecycle-review.test.mjs'
+      - 'assets/js/global-call-manager.js'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   pull_request:
     branches:
@@ -138,6 +141,7 @@ jobs:
           node --check assets/js/founder-control.js
           node --check assets/js/community-chat.js
           node --check assets/js/direct-messages.js
+          node --check assets/js/global-call-manager.js
           node --check assets/js/professional-profile.js
           node --check assets/js/qa-center.js
           node --check assets/js/founder-diagnostics.js
@@ -151,6 +155,7 @@ jobs:
           node --test tests/workspace-retirement-review.test.mjs
           node --test tests/direct-message-integrity-review.test.mjs
           node --test tests/agent-founder-rpc-hardening-review.test.mjs
+          node --test tests/communication-call-lifecycle-review.test.mjs
 
       - name: Notification compatibility regression
         run: |
