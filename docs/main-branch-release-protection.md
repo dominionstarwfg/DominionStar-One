@@ -75,3 +75,31 @@ GH_TOKEN='<admin-capable token>' bash scripts/github/verify-main-release-protect
 ```
 
 Do not commit the token, store it in source files, or place it in public logs.
+
+
+## GitHub UI path
+
+Use GitHub's repository settings:
+
+1. Open the repository.
+2. Go to **Settings → Branches**.
+3. Under **Branch protection rules**, create a rule for `main`.
+4. Enable **Require a pull request before merging**.
+5. Require **1 approving review**.
+6. Enable **Dismiss stale pull request approvals when new commits are pushed**.
+7. Enable **Require status checks to pass before merging**.
+8. Enable **Require branches to be up to date before merging**.
+9. Add these required checks exactly:
+   - `Verify authenticated Agent and Founder OS`
+   - `Verify Agent OS notification and readability review`
+   - `Build & validate review package — never deploy`
+   - `Verify main release controls`
+10. Enable **Require conversation resolution before merging**.
+11. Apply the rule to administrators as well / do not allow bypass of the rule.
+12. Leave **Allow force pushes** disabled.
+13. Leave **Allow deletions** disabled.
+14. Save the branch protection rule.
+
+After saving, rerun **DominionStar — Production Release Control Review** on PR #183. It must turn green before any production cutover.
+
+GitHub's current documentation confirms that required status checks can be configured as strict, which requires the branch to be up to date before merging, and that protected branches can block force pushes/deletion while requiring PR reviews and status checks.
