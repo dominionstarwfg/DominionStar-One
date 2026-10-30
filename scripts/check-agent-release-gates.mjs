@@ -1,6 +1,6 @@
 // DominionStar web Agent Dashboard release guard (build-time only).
 // This is not a replacement for production RLS, OAuth and real-browser QA.
-import {readFileSync, readdirSync, statSync} from 'node:fs';
+import {readFileSync, readdirSync, statSync, existsSync} from 'node:fs';
 import {resolve, join, relative, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -13,6 +13,16 @@ const notificationFlags=safeRead(publicRoot,'assets/js/notification-feature-flag
 const messages=safeRead(publicRoot,'assets/js/direct-messages.js');
 const receiver=safeRead(publicRoot,'assets/js/global-call-manager.js');
 const policy=safeRead(sourceRoot,'scripts/security/agent-call-realtime-v2.DO-NOT-RUN.review.sql');
+const packageJson=JSON.parse(safeRead(publicRoot,'package.json'));
+const packageLockPath=join(publicRoot,'package-lock.json');
+
+check(existsSync(packageLockPath),
+  'package-lock.json is missing; server dependency graph is not reproducible');
+for(const dependency of ['@supabase/supabase-js','resend','web-push']){
+  const version=String(packageJson.dependencies?.[dependency]||'');
+  check(/^\d+\.\d+\.\d+$/.test(version),
+    dependency+' must be pinned to an exact version');
+}
 
 // Neither OAuth nor identity linking can be released with incomplete provider,
 // redirect and RLS end-to-end validation. Review and update this gate in an
