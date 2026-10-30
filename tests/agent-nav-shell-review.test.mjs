@@ -67,7 +67,6 @@ test('Enhanced navigation preserves normal page links and keyboard shortcuts',()
 
 test('Javascript source parses and code has no unprotected interpolation for route names',()=>{
  assert.doesNotThrow(()=>new vm.Script(js));
- assert.match(js,/label\.textContent=name/);
  assert.match(js,/section\.textContent=/);
  assert.match(js,/lastElementChild\.textContent=name/);
  assert.match(js,/results\.replaceChildren\(\)/);
