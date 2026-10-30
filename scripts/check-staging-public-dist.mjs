@@ -29,7 +29,7 @@ if(/^\/journey\/\s+\/opportunity\//m.test(redirects))
 if(!/^\/journey\s+\/journey\/\s+301!/m.test(redirects))
   fail('Missing canonical Journey slash normalization');
 
-for(const banned of ['meet-desktop','scripts','supabase','tests','.git','.github','netlify.toml','.env','.env.production']){
+for(const banned of ['meet-desktop','scripts','supabase','tests','.git','.github','netlify.toml','package.json','package-lock.json','.env','.env.production']){
   if(existsSync(path.join(dist,banned)))fail('Nonpublic source in staged package: '+banned);
 }
 
