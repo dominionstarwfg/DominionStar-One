@@ -7,6 +7,7 @@ DO $preflight$
 BEGIN
   IF to_regclass('public.executive_events') IS NULL
      OR to_regclass('public.direct_messages') IS NULL
+     OR to_regclass('public.communication_calls') IS NULL
      OR to_regclass('public.member_profiles') IS NULL THEN
     RAISE EXCEPTION 'Required Agent OS tables are missing; abort';
   END IF;
@@ -213,6 +214,22 @@ BEGIN
           AND m.recipient_id=new.member_id
           AND m.is_deleted=false
       ) INTO valid_cross_member;
+    ELSIF new.event_type='call.missed' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.communication_calls c
+        WHERE c.id::text=new.payload->>'call_id'
+          AND c.caller_id=new.actor_id
+          AND c.recipient_id=new.member_id
+          AND c.status='missed'
+      ) INTO valid_cross_member;
+    ELSIF new.event_type='call.declined' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.communication_calls c
+        WHERE c.id::text=new.payload->>'call_id'
+          AND c.caller_id=new.member_id
+          AND c.recipient_id=new.actor_id
+          AND c.status='declined'
+      ) INTO valid_cross_member;
     END IF;
     IF NOT valid_cross_member THEN RETURN new; END IF;
   END IF;
@@ -294,6 +311,22 @@ BEGIN
           AND m.sender_id=new.actor_id
           AND m.recipient_id=new.member_id
           AND m.is_deleted=false
+      ) INTO valid_cross_member;
+    ELSIF new.event_type='call.missed' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.communication_calls c
+        WHERE c.id::text=new.payload->>'call_id'
+          AND c.caller_id=new.actor_id
+          AND c.recipient_id=new.member_id
+          AND c.status='missed'
+      ) INTO valid_cross_member;
+    ELSIF new.event_type='call.declined' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.communication_calls c
+        WHERE c.id::text=new.payload->>'call_id'
+          AND c.caller_id=new.member_id
+          AND c.recipient_id=new.actor_id
+          AND c.status='declined'
       ) INTO valid_cross_member;
     END IF;
     IF NOT valid_cross_member THEN RETURN new; END IF;
@@ -383,7 +416,8 @@ COMMIT;
 -- 3. Sending a real direct message creates exactly one message.received event.
 -- 4. Ordinary browser INSERT cannot create an executive_event for another member.
 -- 5. Forged cross-member executive_events do not enter push/email outboxes.
--- 6. Closed-browser push reaches the subscribed test browser.
--- 7. Focused DominionStar tab suppresses duplicate service-worker popup.
--- 8. Explicit logout removes the browser subscription.
--- 9. Re-run Supabase Security Advisor and monitor both outboxes.
+-- 6. Missed/declined call events enter push only when backed by the exact terminal communication_calls row.
+-- 7. Closed-browser push reaches the subscribed test browser.
+-- 8. Focused DominionStar tab suppresses duplicate service-worker popup.
+-- 9. Explicit logout removes the browser subscription.
+-- 10. Re-run Supabase Security Advisor and monitor both outboxes.
