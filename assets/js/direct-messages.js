@@ -529,12 +529,9 @@
 
     await loadMessageExtras((result.data || []).map(message => message.id));
     renderMessages(result.data || []);
-    await client
-      .from('direct_messages')
-      .update({read_at:new Date().toISOString()})
-      .eq('sender_id',activeMemberId)
-      .eq('recipient_id',session.user.id)
-      .is('read_at',null);
+    await client.rpc('mark_my_direct_messages_read',{
+      target_other_member_id:activeMemberId
+    });
 
     await loadConversationSummaries();
     renderMembers(search?.value);
@@ -606,10 +603,10 @@
     if (action === 'edit') {
       const updatedBody = prompt('Edit your message:',selectedMessage.body);
       if (updatedBody && updatedBody.trim() && updatedBody.trim() !== selectedMessage.body) {
-        const result = await client.from('direct_messages')
-          .update({body:updatedBody.trim()})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
+        const result = await client.rpc('edit_my_direct_message',{
+          target_message_id:selectedMessage.id,
+          target_body:updatedBody.trim()
+        });
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message updated ✓');
@@ -619,10 +616,9 @@
     }
     if (action === 'delete') {
       if (confirm('Delete this message for everyone?')) {
-        const result = await client.from('direct_messages')
-          .update({is_deleted:true})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
+        const result = await client.rpc('delete_my_direct_message',{
+          target_message_id:selectedMessage.id
+        });
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message deleted');
