@@ -66,6 +66,7 @@ on:
       - 'scripts/security/agent-os-emergency-compatibility-rollback.DO-NOT-RUN.review.sql'
       - 'docs/agent-os-cutover-manifest-20261030.md'
       - 'tests/cutover-manifest-integrity-review.test.mjs'
+      - 'scripts/security/agent-os-emergency-rollback-preflight.READ-ONLY.review.sql'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   pull_request:
     branches:
