@@ -98,4 +98,7 @@ jobs:
         run: |
           grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
           grep -Fq 'DO NOT RUN' scripts/security/web-push-foundation.DO-NOT-RUN.review.sql
-          ! grep -R --line-number --exclude='notification-readability-review-gate.yml' -E 'supabase db|psql .*notification-read-state|psql .*web-push-foundation|apply_migration' .github/workflows
+          if grep -R --line-number -E '^[[:space:]]+(supabase db|psql .*notification-read-state|psql .*web-push-foundation|apply_migration)' .github/workflows; then
+            echo "Production database mutation command found in review workflow" >&2
+            exit 1
+          fi
