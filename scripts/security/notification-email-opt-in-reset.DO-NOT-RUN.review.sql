@@ -35,6 +35,15 @@ ALTER TABLE public.notification_preferences
   ALTER COLUMN messages_email_enabled SET DEFAULT false,
   ALTER COLUMN community_email_enabled SET DEFAULT false;
 
+-- Never release months-old email simply because the processor becomes healthy
+-- during this cutover. Preserve audit history by cancelling, not deleting.
+UPDATE public.email_notification_outbox
+SET status='cancelled',
+    last_error='Cancelled during Agent OS notification cutover: stale pre-release email',
+    updated_at=now()
+WHERE status='pending'
+  AND created_at < now() - interval '30 days';
+
 DO $verify$
 BEGIN
   IF EXISTS(
@@ -57,6 +66,14 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Notification email defaults were not hardened';
   END IF;
+
+  IF EXISTS(
+    SELECT 1 FROM public.email_notification_outbox
+    WHERE status='pending'
+      AND created_at < now() - interval '30 days'
+  ) THEN
+    RAISE EXCEPTION 'Stale pending email quarantine incomplete';
+  END IF;
 END;
 $verify$;
 
@@ -66,4 +83,5 @@ COMMIT;
 -- 1. Existing message/community email preferences are OFF.
 -- 2. Appointment and announcement email preferences are unchanged.
 -- 3. New preference rows default message/community email to OFF.
--- 4. Agent Settings can explicitly enable either category.
+-- 4. Pending email older than 30 days is cancelled, not deleted.
+-- 5. Agent Settings can explicitly enable either category.
