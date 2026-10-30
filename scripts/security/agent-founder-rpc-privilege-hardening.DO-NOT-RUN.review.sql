@@ -159,7 +159,7 @@ BEGIN
       ELSE '' END;
 
   dedupe := 'appointment:'||appointment_row.id::text||':'||
-    extract(epoch from appointment_row.updated_at)::bigint::text;
+    appointment_row.updated_at::text;
 
   INSERT INTO public.email_notification_outbox(
     user_id,recipient_id,recipient_email,event_type,subject,body,
@@ -174,6 +174,10 @@ BEGIN
   RETURN queued_id;
 END;
 $function$;
+
+-- Remove mutable search_path warnings from simple timestamp trigger helpers.
+ALTER FUNCTION public.touch_updated_at() SET search_path='';
+ALTER FUNCTION public.set_presence_updated_at() SET search_path='';
 
 -- Client-facing Agent/Founder RPCs. Remove inherited PUBLIC/anon execution and
 -- grant only signed-in/browser and service roles.
@@ -305,6 +309,17 @@ BEGIN
 
   IF old_community_oid IS NULL OR new_community_oid IS NULL OR appointment_oid IS NULL THEN
     RAISE EXCEPTION 'Expected email RPCs are missing';
+  END IF;
+
+  IF EXISTS(
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public'
+      AND p.proname IN ('touch_updated_at','set_presence_updated_at')
+      AND coalesce(array_to_string(p.proconfig,','),'') NOT LIKE '%search_path=%'
+  ) THEN
+    RAISE EXCEPTION 'Timestamp trigger search_path hardening missing';
   END IF;
 
   IF has_function_privilege('authenticated',old_community_oid,'EXECUTE')
