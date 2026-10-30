@@ -10,6 +10,7 @@ const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const guard=join(root,'scripts/check-agent-release-gates.mjs');
 const sources=[
  'assets/js/member-login-google-flags.js',
+ 'assets/js/notification-feature-flags.js',
  'assets/js/direct-messages.js',
  'assets/js/global-call-manager.js'
 ];
@@ -19,6 +20,10 @@ const prepare=()=>{
    mkdirSync(join(dir,folder),{recursive:true});
  }
  for(const path of sources) copyFileSync(join(root,path),join(dir,path));
+ copyFileSync(join(root,'package.json'),join(dir,'package.json'));
+ // Unit fixture represents a reproducible packaged build. The production
+ // repository itself must still carry a real npm-generated lockfile.
+ writeFileSync(join(dir,'package-lock.json'),'{}\n');
  return dir;
 };
 const verify=dir=>execFileSync(process.execPath,[guard,dir],{encoding:'utf8',timeout:7000});
