@@ -18,6 +18,7 @@ on:
       - 'netlify/functions/process-push-outbox.mjs'
       - 'netlify/functions/scheduled-push-outbox.mjs'
       - 'package.json'
+      - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
       - 'sw.js'
       - 'supabase/member-email-notifications.sql'
@@ -42,6 +43,7 @@ on:
       - 'netlify/functions/process-push-outbox.mjs'
       - 'netlify/functions/scheduled-push-outbox.mjs'
       - 'package.json'
+      - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
       - 'sw.js'
       - 'supabase/member-email-notifications.sql'
@@ -64,6 +66,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify npm lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: JavaScript syntax
         run: |
           node --check assets/js/communication-engine.js
