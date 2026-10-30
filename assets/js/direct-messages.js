@@ -193,6 +193,12 @@
   };
 
 
+  const missingRpc = error => {
+    const code=String(error?.code||'');
+    const message=String(error?.message||'').toLowerCase();
+    return code==='PGRST202' || message.includes('could not find the function') || message.includes('function')&&message.includes('schema cache');
+  };
+
   const showCallToast = (title, detail) => {
     if (!callToastRegion) return;
     const toast = document.createElement('article');
@@ -529,9 +535,16 @@
 
     await loadMessageExtras((result.data || []).map(message => message.id));
     renderMessages(result.data || []);
-    await client.rpc('mark_my_direct_messages_read',{
+    const readResult=await client.rpc('mark_my_direct_messages_read',{
       target_other_member_id:activeMemberId
     });
+    if(readResult.error&&missingRpc(readResult.error)){
+      await client.from('direct_messages')
+        .update({read_at:new Date().toISOString()})
+        .eq('sender_id',activeMemberId)
+        .eq('recipient_id',session.user.id)
+        .is('read_at',null);
+    }
 
     await loadConversationSummaries();
     renderMembers(search?.value);
@@ -603,10 +616,16 @@
     if (action === 'edit') {
       const updatedBody = prompt('Edit your message:',selectedMessage.body);
       if (updatedBody && updatedBody.trim() && updatedBody.trim() !== selectedMessage.body) {
-        const result = await client.rpc('edit_my_direct_message',{
+        let result = await client.rpc('edit_my_direct_message',{
           target_message_id:selectedMessage.id,
           target_body:updatedBody.trim()
         });
+        if(result.error&&missingRpc(result.error)){
+          result=await client.from('direct_messages')
+            .update({body:updatedBody.trim(),updated_at:new Date().toISOString()})
+            .eq('id',selectedMessage.id)
+            .eq('sender_id',session.user.id);
+        }
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message updated ✓');
@@ -616,9 +635,15 @@
     }
     if (action === 'delete') {
       if (confirm('Delete this message for everyone?')) {
-        const result = await client.rpc('delete_my_direct_message',{
+        let result = await client.rpc('delete_my_direct_message',{
           target_message_id:selectedMessage.id
         });
+        if(result.error&&missingRpc(result.error)){
+          result=await client.from('direct_messages')
+            .update({is_deleted:true,updated_at:new Date().toISOString()})
+            .eq('id',selectedMessage.id)
+            .eq('sender_id',session.user.id);
+        }
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message deleted');
