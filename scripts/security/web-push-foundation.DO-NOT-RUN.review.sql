@@ -188,6 +188,12 @@ CREATE POLICY "members create own executive events"
     AND member_id=auth.uid()
   );
 
+-- Browser roles should have only the table capabilities used by the Agent OS.
+-- Read-state changes are intentionally routed through the narrow RPC below,
+-- not direct UPDATE access.
+REVOKE ALL ON TABLE public.executive_events FROM anon, authenticated;
+GRANT SELECT,INSERT ON TABLE public.executive_events TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.queue_member_event_push()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -347,6 +353,15 @@ BEGIN
       AND cmd='INSERT'
   ) THEN
     RAISE EXCEPTION 'Self-only executive event insert policy missing';
+  END IF;
+  IF has_table_privilege('anon','public.executive_events','SELECT')
+     OR has_table_privilege('anon','public.executive_events','INSERT')
+     OR has_table_privilege('authenticated','public.executive_events','UPDATE')
+     OR has_table_privilege('authenticated','public.executive_events','DELETE')
+     OR has_table_privilege('authenticated','public.executive_events','TRUNCATE')
+     OR NOT has_table_privilege('authenticated','public.executive_events','SELECT')
+     OR NOT has_table_privilege('authenticated','public.executive_events','INSERT') THEN
+    RAISE EXCEPTION 'Unexpected executive_events table privileges; abort';
   END IF;
   IF has_function_privilege('anon',register_oid,'EXECUTE')
      OR NOT has_function_privilege('authenticated',register_oid,'EXECUTE')
