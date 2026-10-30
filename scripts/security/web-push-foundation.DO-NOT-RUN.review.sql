@@ -36,7 +36,7 @@ CREATE OR REPLACE FUNCTION public.register_my_push_subscription(
 ) RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public,auth
+SET search_path=''
 AS $function$
 DECLARE
   subscription_id uuid;
@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION public.remove_my_push_subscription(
 ) RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public,auth
+SET search_path=''
 AS $function$
 DECLARE changed integer := 0;
 BEGIN
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION public.emit_direct_message_notification()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public
+SET search_path=''
 AS $function$
 DECLARE sender_name text;
 BEGIN
@@ -192,7 +192,7 @@ CREATE OR REPLACE FUNCTION public.queue_member_event_push()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public
+SET search_path=''
 AS $function$
 DECLARE valid_cross_member boolean := false;
 BEGIN
@@ -241,7 +241,7 @@ CREATE OR REPLACE FUNCTION public.claim_push_notification_batch(
 ) RETURNS SETOF public.push_notification_outbox
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public
+SET search_path=''
 AS $function$
 BEGIN
   RETURN QUERY
@@ -272,7 +272,7 @@ CREATE OR REPLACE FUNCTION public.queue_member_event_email()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public,auth
+SET search_path=''
 AS $function$
 DECLARE
   destination text;
