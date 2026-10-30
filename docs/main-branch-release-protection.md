@@ -57,3 +57,21 @@ Do not mark PR #183 ready for merge and do not begin the production database cut
 ## Why this is a production blocker
 
 The Agent/Founder OS cutover changes both frontend behavior and database privileges. With an unprotected `main`, a direct push or unchecked merge could trigger the Netlify production pipeline without the required database/rollback sequence. Branch protection is therefore part of the release control, not an optional repository preference.
+
+## One-command setup
+
+For a repository administrator with a GitHub token that has repository-administration permission:
+
+```bash
+GH_TOKEN='<admin-capable token>' bash scripts/github/apply-main-release-protection.sh
+```
+
+The script applies the required `main` protection and immediately verifies it.
+
+To verify later without changing settings:
+
+```bash
+GH_TOKEN='<admin-capable token>' bash scripts/github/verify-main-release-protection.sh
+```
+
+Do not commit the token, store it in source files, or place it in public logs.
