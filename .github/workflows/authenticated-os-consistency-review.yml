@@ -28,25 +28,31 @@ on:
       - 'release-check/**'
       - 'founder-features/**'
       - 'founder-diagnostics/**'
+      - 'workspace/**'
       - 'assets/css/dominionstar-auth-os-v2.css'
       - 'assets/css/dominionstar-agent-nav-shell.css'
       - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
       - 'assets/js/member-dashboard.js'
       - 'assets/js/agent-journey.js'
       - 'assets/js/agent-learning.js'
-      - 'assets/js/notifications-center.js'
-      - 'assets/js/release-check.js'\n      - 'assets/js/founder-control.js'
-      - 'netlify/functions/founder-data.mjs'
-      - 'tests/authenticated-os-consistency-review.test.mjs'\n      - 'tests/founder-os-integrity-review.test.mjs'
-      - 'workspace/**'
       - 'assets/js/agent-tool-gate.js'
-      - 'assets/js/dominionstar-os.js'
-      - 'tests/workspace-retirement-review.test.mjs'
-      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
-      - 'tests/direct-message-integrity-review.test.mjs'
-      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
-      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/release-check.js'
+      - 'assets/js/founder-control.js'
       - 'assets/js/community-chat.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/qa-center.js'
+      - 'assets/js/founder-diagnostics.js'
+      - 'netlify/functions/founder-data.mjs'
+      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/founder-os-integrity-review.test.mjs'
+      - 'tests/workspace-retirement-review.test.mjs'
+      - 'tests/direct-message-integrity-review.test.mjs'
+      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
       - '_headers'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   pull_request:
@@ -76,25 +82,31 @@ on:
       - 'release-check/**'
       - 'founder-features/**'
       - 'founder-diagnostics/**'
+      - 'workspace/**'
       - 'assets/css/dominionstar-auth-os-v2.css'
       - 'assets/css/dominionstar-agent-nav-shell.css'
       - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
       - 'assets/js/member-dashboard.js'
       - 'assets/js/agent-journey.js'
       - 'assets/js/agent-learning.js'
-      - 'assets/js/notifications-center.js'
-      - 'assets/js/release-check.js'\n      - 'assets/js/founder-control.js'
-      - 'netlify/functions/founder-data.mjs'
-      - 'tests/authenticated-os-consistency-review.test.mjs'\n      - 'tests/founder-os-integrity-review.test.mjs'
-      - 'workspace/**'
       - 'assets/js/agent-tool-gate.js'
-      - 'assets/js/dominionstar-os.js'
-      - 'tests/workspace-retirement-review.test.mjs'
-      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
-      - 'tests/direct-message-integrity-review.test.mjs'
-      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
-      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/release-check.js'
+      - 'assets/js/founder-control.js'
       - 'assets/js/community-chat.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/qa-center.js'
+      - 'assets/js/founder-diagnostics.js'
+      - 'netlify/functions/founder-data.mjs'
+      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/founder-os-integrity-review.test.mjs'
+      - 'tests/workspace-retirement-review.test.mjs'
+      - 'tests/direct-message-integrity-review.test.mjs'
+      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
       - '_headers'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   workflow_dispatch:
@@ -104,6 +116,7 @@ permissions:
 
 jobs:
   verify:
+    name: Verify authenticated Agent and Founder OS
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -111,27 +124,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Syntax
+
+      - name: JavaScript syntax
         run: |
           node --check assets/js/dominionstar-agent-nav-shell.js
+          node --check assets/js/dominionstar-os.js
           node --check assets/js/member-dashboard.js
           node --check assets/js/agent-journey.js
           node --check assets/js/agent-learning.js
-          node --check assets/js/notifications-center.js
-          node --check assets/js/release-check.js\n          node --check assets/js/founder-control.js
           node --check assets/js/agent-tool-gate.js
-          node --check assets/js/dominionstar-os.js
+          node --check assets/js/notifications-center.js
+          node --check assets/js/release-check.js
+          node --check assets/js/founder-control.js
+          node --check assets/js/community-chat.js
+          node --check assets/js/direct-messages.js
+          node --check assets/js/professional-profile.js
+          node --check assets/js/qa-center.js
+          node --check assets/js/founder-diagnostics.js
           node --check founder-dashboard/founder-dashboard.js
           node --check netlify/functions/founder-data.mjs
-      - name: Authenticated OS consistency
-        run: node --test tests/authenticated-os-consistency-review.test.mjs
-      - name: Notification and security regression
+
+      - name: Authenticated OS regressions
+        run: |
+          node --test tests/authenticated-os-consistency-review.test.mjs
+          node --test tests/founder-os-integrity-review.test.mjs
+          node --test tests/workspace-retirement-review.test.mjs
+          node --test tests/direct-message-integrity-review.test.mjs
+          node --test tests/agent-founder-rpc-hardening-review.test.mjs
+
+      - name: Notification compatibility regression
         run: |
           node --test tests/notification-push-readability-review.test.mjs
           node --test tests/web-push-foundation-review.test.mjs
-      - name: No production deployment
+          node --test tests/notification-rpc-hardening-review.test.mjs
+
+      - name: Review SQL remains inert
         run: |
-          if grep -nE '^[[:space:]]+(netlify deploy --prod|supabase db push|apply_migration)' .github/workflows/authenticated-os-consistency-review.yml; then
-            echo "Production deployment command found in review workflow" >&2
+          grep -Fq 'DO NOT RUN' scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql
+          if grep -nE '^[[:space:]]+(netlify deploy --prod|supabase db push|apply_migration|psql )' .github/workflows/authenticated-os-consistency-review.yml; then
+            echo "Production mutation command found in review workflow" >&2
             exit 1
           fi
