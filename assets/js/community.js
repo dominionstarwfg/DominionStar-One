@@ -6,8 +6,6 @@
   const form = document.getElementById('communityForm');
   const result = document.getElementById('communityResult');
   const connection = document.getElementById('communityConnection');
-  const notificationForm = document.getElementById('notificationForm');
-  const notificationResult = document.getElementById('notificationResult');
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
@@ -97,34 +95,6 @@
     await loadMessages();
   });
 
-  const prefResult = await supabase
-    .from('notification_preferences')
-    .select('*')
-    .eq('user_id',session.user.id)
-    .maybeSingle();
-
-  if (prefResult.data) {
-    notificationForm.founder_updates.checked = prefResult.data.founder_updates;
-    notificationForm.community_mentions.checked = prefResult.data.community_mentions;
-    notificationForm.email_digest.value = prefResult.data.email_digest;
-  }
-
-  notificationForm.addEventListener('submit', async event => {
-    event.preventDefault();
-
-    const { error } = await supabase
-      .from('notification_preferences')
-      .upsert({
-        user_id:session.user.id,
-        founder_updates:notificationForm.founder_updates.checked,
-        community_mentions:notificationForm.community_mentions.checked,
-        email_digest:notificationForm.email_digest.value,
-        updated_at:new Date().toISOString()
-      });
-
-    notificationResult.textContent = error ? error.message : 'Notification preferences saved.';
-    notificationResult.className = `member-message show ${error ? 'error' : 'success'}`;
-  });
 
   const channel = supabase
     .channel('dominionstar-community')
