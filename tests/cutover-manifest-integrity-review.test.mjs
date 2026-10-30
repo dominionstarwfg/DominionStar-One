@@ -16,6 +16,7 @@ const entries=[
   ['scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql','546a446844903492f2bfa04823e0cb26dbabd54e'],
   ['scripts/security/web-push-foundation.DO-NOT-RUN.review.sql','e25d5bf2d7ca6ba0c2f8b4143a256a5e5db91553'],
   ['scripts/security/agent-os-postcutover-verify.READ-ONLY.review.sql','2bfa9f1a171cd2a987af573bead31176e47c2d65'],
+  ['scripts/security/agent-os-emergency-rollback-preflight.READ-ONLY.review.sql','98652c171e6a8f5b98d107ec4442c9775e8869e2'],
   ['scripts/security/agent-os-emergency-compatibility-rollback.DO-NOT-RUN.review.sql','0fb6cf26fd8011f6f775593c6da8269f62c44560']
 ];
 
