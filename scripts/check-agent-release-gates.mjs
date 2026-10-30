@@ -18,10 +18,16 @@ const packageLockPath=join(publicRoot,'package-lock.json');
 
 check(existsSync(packageLockPath),
   'package-lock.json is missing; server dependency graph is not reproducible');
+const packageLock=JSON.parse(safeRead(publicRoot,'package-lock.json'));
+check(packageLock.lockfileVersion===3,'package-lock.json must use lockfileVersion 3');
 for(const dependency of ['@supabase/supabase-js','resend','web-push']){
   const version=String(packageJson.dependencies?.[dependency]||'');
   check(/^\d+\.\d+\.\d+$/.test(version),
     dependency+' must be pinned to an exact version');
+  check(packageLock.packages?.['']?.dependencies?.[dependency]===version,
+    dependency+' root lock dependency does not match package.json');
+  check(packageLock.packages?.['node_modules/'+dependency]?.version===version,
+    dependency+' resolved lock version does not match package.json');
 }
 
 // Neither OAuth nor identity linking can be released with incomplete provider,
