@@ -57,6 +57,12 @@ on:
       - 'scripts/security/communication-call-lifecycle.DO-NOT-RUN.review.sql'
       - 'tests/communication-call-lifecycle-review.test.mjs'
       - 'assets/js/global-call-manager.js'
+      - 'scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-os-production-preflight.READ-ONLY.review.sql'
+      - 'scripts/security/agent-os-postcutover-verify.READ-ONLY.review.sql'
+      - 'tests/notification-email-opt-in-cutover-review.test.mjs'
+      - 'tests/production-cutover-review.test.mjs'
+      - 'docs/agent-os-production-cutover-20261029.md'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   pull_request:
     branches:
@@ -156,6 +162,8 @@ jobs:
           node --test tests/direct-message-integrity-review.test.mjs
           node --test tests/agent-founder-rpc-hardening-review.test.mjs
           node --test tests/communication-call-lifecycle-review.test.mjs
+          node --test tests/notification-email-opt-in-cutover-review.test.mjs
+          node --test tests/production-cutover-review.test.mjs
 
       - name: Notification compatibility regression
         run: |
@@ -167,6 +175,7 @@ jobs:
         run: |
           grep -Fq 'DO NOT RUN' scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql
           grep -Fq 'DO NOT RUN' scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql
           if grep -nE '^[[:space:]]+(netlify deploy --prod|supabase db push|apply_migration|psql )' .github/workflows/authenticated-os-consistency-review.yml; then
             echo "Production mutation command found in review workflow" >&2
             exit 1
