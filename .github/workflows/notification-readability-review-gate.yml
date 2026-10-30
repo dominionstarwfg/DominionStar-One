@@ -25,6 +25,30 @@ on:
       - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
       - 'tests/**'
       - '.github/workflows/notification-readability-review-gate.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'assets/js/communication-engine.js'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/notification-feature-flags.js'
+      - 'assets/css/member-dashboard-readability-v2.css'
+      - 'account-settings/**'
+      - 'member-dashboard/**'
+      - 'direct-messages/**'
+      - 'netlify/functions/push-public-key.mjs'
+      - 'netlify/functions/process-push-outbox.mjs'
+      - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'package.json'
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'sw.js'
+      - 'supabase/member-email-notifications.sql'
+      - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
+      - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
+      - 'tests/**'
+      - '.github/workflows/notification-readability-review-gate.yml'
   workflow_dispatch:
 
 permissions:
