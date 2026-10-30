@@ -38,10 +38,11 @@
   const stopLoop = kind => { const id=state.loops.get(kind); if(id) clearInterval(id); state.loops.delete(kind); };
   const stopAll = () => [...state.loops.keys()].forEach(stopLoop);
   const safeActionUrl = candidate => {
-    if (typeof candidate !== 'string' || !candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\\\')) return '/notifications/';
+    if (typeof candidate !== 'string') return '/notifications/';
     try {
       const parsed=new URL(candidate,window.location.origin);
-      return parsed.origin===window.location.origin ? `${parsed.pathname}${parsed.search}${parsed.hash}` : '/notifications/';
+      if(parsed.origin!==window.location.origin)return '/notifications/';
+      return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/notifications/';
     } catch(_error) { return '/notifications/'; }
   };
   const toast = ({title,body='',type='info',actionUrl=''}) => {
