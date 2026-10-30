@@ -1,0 +1,59 @@
+name: DominionStar — Production Release Control Review
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production-release-control-review.yml'
+      - '.github/workflows/authenticated-os-consistency-review.yml'
+      - '.github/workflows/notification-readability-review-gate.yml'
+      - '.github/workflows/review-public-build-package.yml'
+      - 'docs/agent-os-production-cutover-20261029.md'
+      - 'docs/agent-os-cutover-manifest-20261030.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-main-protection:
+    name: Verify main release controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect main branch protection metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPOSITORY/branches/main")"
+          printf '%s' "$response" > /tmp/main-branch.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/main-branch.json','utf8'));
+          if(data.protected!==true){
+            console.error('RELEASE_BLOCKED: main branch protection is disabled.');
+            process.exit(1);
+          }
+          const contexts=new Set([
+            ...(data.protection?.required_status_checks?.contexts||[]),
+            ...((data.protection?.required_status_checks?.checks||[]).map(x=>x.context).filter(Boolean))
+          ]);
+          const required=[
+            'Verify authenticated Agent and Founder OS',
+            'Verify Agent OS notification and readability review',
+            'Build & validate review package — never deploy'
+          ];
+          const missing=required.filter(name=>!contexts.has(name));
+          if(missing.length){
+            console.error('RELEASE_BLOCKED: required main status checks are not enforced: '+missing.join(', '));
+            process.exit(1);
+          }
+          console.log('MAIN_RELEASE_CONTROLS_OK');
+          NODE
+
+      - name: Confirm review workflows cannot deploy production
+        run: |
+          echo "This workflow performs release-control inspection only."
