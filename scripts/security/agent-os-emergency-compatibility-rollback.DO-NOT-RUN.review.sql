@@ -1,4 +1,5 @@
--- REVIEW ONLY — EMERGENCY COMPATIBILITY ROLLBACK.
+-- REVIEW ONLY — DO NOT RUN WITHOUT EXPLICIT PRODUCTION ROLLBACK APPROVAL.
+-- EMERGENCY COMPATIBILITY ROLLBACK.
 -- Use only if production code must be rolled back to the pre-cutover Agent OS
 -- AFTER the hardening migrations have already been applied.
 -- This intentionally restores only the minimum authenticated-browser behavior
