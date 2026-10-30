@@ -33,7 +33,7 @@ test('Local daypart greeting identifies the authenticated member and shows crede
 });
 test('Branding remains unnumbered and no unsupported stock photo is shown',()=>{
   assert.match(html,/DominionStar Executive OS/);
-  assert.doesNotMatch(html,/>Executive OS</);
+  assert.doesNotMatch(html,/\b20[3]0\b/);
   assert.doesNotMatch(html,/id="dashboardAvatar"[^>]*src="\/assets\/logo\.jpeg"/);
   assert.doesNotMatch(html,/id="heroProfileAvatar"[^>]*src=/);
 });
