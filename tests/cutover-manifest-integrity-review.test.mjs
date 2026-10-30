@@ -44,7 +44,7 @@ test('manifest preserves frozen migration order and execution refusal conditions
     assert.ok(at>previous,'Manifest order drift: '+path);
     previous=at;
   }
-  assert.match(manifest,/final approved PR head[\\s\\S]{0,40}must be recorded/i);
+  assert.match(manifest,/final approved PR head[\s\S]{0,40}must be recorded/i);
   assert.match(manifest,/branch is behind/);
   assert.match(manifest,/communication call is ringing or connected/);
   assert.match(manifest,/email outbox has a row in/);
