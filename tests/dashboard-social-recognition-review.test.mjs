@@ -5,7 +5,7 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 const dashboard=read('member-dashboard/index.html');
 const member=read('assets/js/member-dashboard.js');
-const social=read('assets/js/dashboard-social-2030.js');
+const social=read('assets/js/dashboard-social.js');
 const community=read('assets/js/community-hub.js');
 const founder=read('assets/js/founder-admin.js');
 const founderHtml=read('founder-control/index.html');
