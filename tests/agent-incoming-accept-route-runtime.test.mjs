@@ -11,7 +11,7 @@ const acceptCode=source.slice(from,to);
 const viewCode=source.slice(source.indexOf('  async function openConversation(memberId) {'),source.indexOf("\n  select.addEventListener('change'"));
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done});return {promise,resolve}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-const incoming=()=>({type:'offer',from:'caller',to:'recipient',
+const incoming=()=>({type:'offer',from:'caller',to:'recipient',callId:'call-1',
  description:{type:'offer',sdp:'v=0\r\nmock SDP'},callType:'audio'});
 
 function setup({initialView='other',channel='other',mediaGate=null,navigationGate=null,channelFailure=false}={}){
@@ -35,6 +35,7 @@ function setup({initialView='other',channel='other',mediaGate=null,navigationGat
    peers.push(peer);return peer;
   },
   localVideo:{},setSendStatus:(t)=>events.push('error:'+t),
+  answerTrustedCallRecord:async id=>{events.push('trusted-answer:'+id);return true},
   showCallOverlay(){events.push('overlay')},
   updateCallStatus(){},
   console:{warn(){}}
@@ -45,7 +46,7 @@ function setup({initialView='other',channel='other',mediaGate=null,navigationGat
     ",callPartnerId="+JSON.stringify(channel)+
     ",callAccepting=false,callDialing=false,peerConnection=null,"+
     "localStream=null,callStartedAt=0,pendingOffer="+JSON.stringify(offer)+
-    ",incomingCallTimer=1,activeCallType='audio';",
+    ",incomingCallTimer=1,activeCallType='audio',activeCallRecordId='';",
   "const openConversation=async memberId=>{events.push('open:'+memberId);"+
     "activeMemberId=memberId;if(navigationGate)await navigationGate.promise;};",
   "const ensureCallChannel=async memberId=>{events.push('channel:'+memberId);"+
@@ -70,6 +71,7 @@ test('Accepting a call from another agent subscribes to the caller pair after na
  assert.equal(h.state().callPartnerId,'caller');
  assert.equal(h.state().callAccepting,false);
  assert.equal(h.peers.length,1);
+ assert.ok(h.events.includes('trusted-answer:call-1'));
 });
 
 test('Same selected chat still selects the correct caller signaling channel',async()=>{
