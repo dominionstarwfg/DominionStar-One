@@ -23,7 +23,7 @@ CREATE OR REPLACE FUNCTION public.mark_my_executive_notifications_read(
 ) RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path=public,auth
+SET search_path=''
 AS $function$
 DECLARE
   changed integer := 0;
