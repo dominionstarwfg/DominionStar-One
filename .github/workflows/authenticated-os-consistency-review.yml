@@ -42,6 +42,8 @@ on:
       - 'assets/js/agent-tool-gate.js'
       - 'assets/js/dominionstar-os.js'
       - 'tests/workspace-retirement-review.test.mjs'
+      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
+      - 'tests/direct-message-integrity-review.test.mjs'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   workflow_dispatch:
 
