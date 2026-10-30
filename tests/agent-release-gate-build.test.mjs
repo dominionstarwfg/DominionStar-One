@@ -20,9 +20,7 @@ const prepare=()=>{
  }
  for(const path of sources) copyFileSync(join(root,path),join(dir,path));
  copyFileSync(join(root,'package.json'),join(dir,'package.json'));
- // Unit fixture represents a reproducible packaged build. The production
- // repository itself must still carry a real npm-generated lockfile.
- writeFileSync(join(dir,'package-lock.json'),'{}\n');
+ copyFileSync(join(root,'package-lock.json'),join(dir,'package-lock.json'));
  return dir;
 };
 const verify=dir=>execFileSync(process.execPath,[guard,dir],{encoding:'utf8',timeout:7000});
