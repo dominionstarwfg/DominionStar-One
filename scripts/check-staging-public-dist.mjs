@@ -1,4 +1,4 @@
-import {readFileSync,existsSync,statSync} from 'node:fs';
+import {readFileSync,existsSync,statSync,readdirSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -32,6 +32,24 @@ if(!/^\/journey\s+\/journey\/\s+301!/m.test(redirects))
 for(const banned of ['meet-desktop','scripts','supabase','tests','.git','.github','netlify.toml','package.json','package-lock.json','.env','.env.production']){
   if(existsSync(path.join(dist,banned)))fail('Nonpublic source in staged package: '+banned);
 }
+
+// Branding invariant: the retired year label must never ship in a public path
+// or text-bearing web asset. This checks the assembled package, not only source.
+const textExtensions=new Set(['.html','.css','.js','.mjs','.json','.xml','.txt','.svg','.webmanifest']);
+const walk=(dir,prefix='')=>{
+  for(const entry of readdirSync(dir,{withFileTypes:true})){
+    const relative=prefix?prefix+'/'+entry.name:entry.name;
+    if(/2030/i.test(relative))fail('Retired year branding in packaged path: '+relative);
+    const absolute=path.join(dir,entry.name);
+    if(entry.isDirectory()){walk(absolute,relative);continue}
+    if(!entry.isFile())continue;
+    if(textExtensions.has(path.extname(entry.name).toLowerCase())){
+      const content=readFileSync(absolute,'utf8');
+      if(/2030/i.test(content))fail('Retired year branding in packaged content: '+relative);
+    }
+  }
+};
+walk(dist);
 
 const pages=[
   'index.html','member-dashboard/index.html','member-login/index.html',
