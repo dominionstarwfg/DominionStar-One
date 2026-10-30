@@ -63,7 +63,7 @@ function incoming({status='approved',agentCode='DS123',denied=false,lookupFailur
   window,client,incomingCall,incomingAvatar:{},incomingName:{},incomingType:{},
   session:{user:{id:'recipient'}},members:[{id:'caller',display_name:'Caller'},{id:'another',display_name:'Another agent'}],
   setAvatarElement(){},startCallDuration(){},updateCallStatus(){},
-  recordMissedCall:async (...args)=>missed.push(args),
+  recordCallOutcome:async (...args)=>missed.push(args),
   callChannel:{on(_type,_event,handler){listener=handler}},
   callStatus:{},callHeaderStatus:{},
  };
@@ -76,6 +76,7 @@ function incoming({status='approved',agentCode='DS123',denied=false,lookupFailur
     let callPartnerId='caller';
     let activeCallType='audio';
     let callStartedAt=0;
+    let activeCallRecordId='';
     let peerConnection=null;
     const callInboxName=id=>'inbox:'+id;
     const callChannelConfig=()=>({config:{private:true}});
@@ -148,12 +149,13 @@ test('Outgoing call timeout belongs to the original connection, not a rapid redi
   },
   showCallOverlay(){},
   sendCallSignal:async signal=>{signals.push(signal)},
-  recordMissedCall:async (...args)=>missed.push(args),
+  startTrustedCallRecord:async()=>'',recordCallOutcome:async (...args)=>missed.push(args),
   setSendStatus:(message)=>errors.push(message)
  };
  const code=`(() => {
    let activeMemberId='caller',callPartnerId='caller',peerConnection=null,
-       localStream=null,callDialing=false,activeCallAnswered=false,outgoingCallTimer=null,callStartedAt=0;
+       localStream=null,callDialing=false,activeCallAnswered=false,outgoingCallTimer=null,callStartedAt=0,
+       activeCallRecordId='';
    const endActiveCall=async()=>{peerConnection=null};
    ${startCallCode}
    return {startCall,redial:()=>{peerConnection=null;outgoingCallTimer=null},
@@ -188,7 +190,7 @@ test('Declining an incoming call switches from another conversation channel firs
    setAttribute(name,value){ui.push(name+':'+value)}
   },
   declineCall:{addEventListener(_event,fn){handler=fn}},
-  recordMissedCall:async(id,type)=>events.push('missed:'+id+':'+type)
+  recordCallOutcome:async(id,type)=>events.push('missed:'+id+':'+type)
  };
  const code=`(() => {
    let pendingOffer={from:'new-caller',callType:'video'};
