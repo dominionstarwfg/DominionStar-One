@@ -2,58 +2,173 @@
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /founder-control/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /founder-features/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /founder-appointments/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /professional-profile/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /digital-card/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /appointments/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /community/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /release-check/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 
 /qa-center/*
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/account-settings/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/direct-messages/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/community-chat/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/community-center/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/member-directory/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/recognition/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/notifications/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/mindset-center/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/agent-journey/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/agent-learning/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/founder-dashboard/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/founder-email/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/founder-diagnostics/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/workspace/drive/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/workspace/tasks/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
