@@ -25,6 +25,12 @@ on:
       - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
       - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
       - 'tests/**'
+      - 'scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-os-production-preflight.READ-ONLY.review.sql'
+      - 'scripts/security/agent-os-postcutover-verify.READ-ONLY.review.sql'
+      - 'tests/notification-email-opt-in-cutover-review.test.mjs'
+      - 'tests/production-cutover-review.test.mjs'
+      - 'docs/agent-os-production-cutover-20261029.md'
       - '.github/workflows/notification-readability-review-gate.yml'
   pull_request:
     branches:
