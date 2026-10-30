@@ -4,8 +4,8 @@
   "version": "6.4.1",
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
-    "resend": "^4.1.2",
+    "@supabase/supabase-js": "2.118.0",
+    "resend": "4.8.0",
     "web-push": "3.6.7"
   }
 }
