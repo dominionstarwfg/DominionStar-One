@@ -69,6 +69,7 @@ Do not execute production cutover when any of these are true:
 - a communication call is ringing or connected,
 - the email outbox has a row in `processing`,
 - PR review gates are not green,
+- main branch protection is disabled or the three release checks are not required,
 - branch is behind `main`,
 - the final approved PR head has not been recorded,
 - any migration Git blob SHA differs from this manifest,
