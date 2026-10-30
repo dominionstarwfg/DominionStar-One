@@ -40,7 +40,8 @@ function setup({active=false,dialing=false,ringing=false,mediaWait=null}={}){
   createPeerConnection:()=>({addTrack(){},createOffer:async()=>({type:'offer',sdp:'sample'}),
    setLocalDescription:async()=>{},close(){}}),
   showCallOverlay(){},sendCallSignal:async()=>events.push('sent-to:'+state().callPartnerId),
-  recordMissedCall:async()=>{},clearInterval(){},clearTimeout(){},
+  startTrustedCallRecord:async()=>'',finishTrustedCallRecord:async()=>null,
+  recordCallOutcome:async()=>{},clearInterval(){},clearTimeout(){},
   setTimeout(){return 1},
   stopScreenShare:async()=>{},
   console:{warn(){}}
@@ -51,7 +52,7 @@ function setup({active=false,dialing=false,ringing=false,mediaWait=null}={}){
    'peerConnection='+(active?"{close(){}}":"null")+
    ',pendingOffer='+(ringing?"{from:'caller'}":"null")+
    ',localStream=null,activeCallAnswered=false,outgoingCallTimer=null,'+
-   'incomingCallTimer=null,callDurationTimer=null,callStartedAt=0,callMinimized=false;'+
+   "incomingCallTimer=null,callDurationTimer=null,callStartedAt=0,callMinimized=false,activeCallRecordId='';"+
    "let globalOutgoingCallChannel=null,activeCallType='audio';"+
    viewBlock+endBlock+startBlock+
    "return {view:openConversation,end:endActiveCall,start:startCall,"+
