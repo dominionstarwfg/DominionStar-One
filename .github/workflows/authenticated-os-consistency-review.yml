@@ -44,6 +44,10 @@ on:
       - 'tests/workspace-retirement-review.test.mjs'
       - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
       - 'tests/direct-message-integrity-review.test.mjs'
+      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
+      - 'assets/js/community-chat.js'
+      - '_headers'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   workflow_dispatch:
 
