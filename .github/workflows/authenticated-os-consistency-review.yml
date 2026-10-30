@@ -67,6 +67,10 @@ on:
       - 'docs/agent-os-cutover-manifest-20261030.md'
       - 'tests/cutover-manifest-integrity-review.test.mjs'
       - 'scripts/security/agent-os-emergency-rollback-preflight.READ-ONLY.review.sql'
+      - 'scripts/github/apply-main-release-protection.sh'
+      - 'scripts/github/verify-main-release-protection.sh'
+      - 'tests/main-branch-release-protection-review.test.mjs'
+      - 'docs/main-branch-release-protection.md'
       - '.github/workflows/authenticated-os-consistency-review.yml'
   pull_request:
     branches:
@@ -169,6 +173,7 @@ jobs:
           node --test tests/notification-email-opt-in-cutover-review.test.mjs
           node --test tests/production-cutover-review.test.mjs
           node --test tests/cutover-manifest-integrity-review.test.mjs
+          node --test tests/main-branch-release-protection-review.test.mjs
 
       - name: Notification compatibility regression
         run: |
