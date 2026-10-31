@@ -820,3 +820,33 @@
   .dsos-executive .dsos-feed-intro{display:block}
   .dsos-executive .dsos-feed-identity{margin-top:12px;max-width:none}
 }
+
+
+.dsos-executive .dsos-composer-field{display:block;min-width:0}
+.dsos-executive .dsos-composer-field textarea{
+  width:100%;min-height:45px;max-height:190px;resize:vertical;padding:12px 16px;
+  border:1px solid #d8e2eb;border-radius:22px;background:#f7f9fb;color:#173550;
+  font:500 14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease
+}
+.dsos-executive .dsos-composer-field textarea::placeholder{color:#63798f;opacity:1}
+.dsos-executive .dsos-composer-field textarea:focus{
+  outline:none;border-color:#9ebbd1;background:#fff;box-shadow:0 0 0 3px rgba(56,112,155,.12)
+}
+.dsos-executive .dsos-composer-actions{display:flex;align-items:center;gap:7px}
+.dsos-executive .dsos-composer-publish{
+  display:none;border:0;border-radius:10px;background:linear-gradient(135deg,#f6d779,#ddb04e);
+  color:#102f4d;padding:9px 14px;font-size:12.5px;font-weight:850;cursor:pointer
+}
+.dsos-executive .dsos-feed-composer.is-expanded .dsos-composer-publish{display:inline-flex}
+.dsos-executive .dsos-composer-publish:disabled{opacity:.55;cursor:progress}
+.dsos-executive .dsos-composer-status{
+  grid-column:2/-1;min-height:0;margin:0 4px;color:#687f94;font-size:11.5px;line-height:1.45
+}
+.dsos-executive .dsos-composer-status:empty{display:none}
+.dsos-executive .dsos-composer-status[data-state="error"]{color:#a23445}
+.dsos-executive .dsos-composer-status[data-state="success"]{color:#256f58}
+@media(max-width:760px){
+  .dsos-executive .dsos-composer-actions{grid-column:2;justify-self:start}
+  .dsos-executive .dsos-composer-status{grid-column:1/-1}
+}
