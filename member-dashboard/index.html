@@ -98,17 +98,24 @@
 
       <section class="dsos-layout dsos-feed-layout">
         <div class="dsos-primary">
-          <section id="dsosSocialGateway" class="dsos-social-gateway dsos-feed-composer member-hidden" aria-label="Create a community post">
+          <form id="feedComposerForm" class="dsos-social-gateway dsos-feed-composer member-hidden" aria-label="Create a community post">
             <span class="dsos-composer-avatar" aria-hidden="true">
               <img id="feedComposerAvatar" class="member-hidden" alt="">
               <span id="feedComposerInitials" class="dsos-avatar-initials">DS</span>
             </span>
-            <a class="dsos-composer-prompt" href="/community/#communityPostForm">Share with your network</a>
-            <a class="dsos-composer-attach" href="/community/#communityMediaDraft" aria-label="Attach a file to a community post">
-              <svg class="ds30-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5 12 20.5a6 6 0 0 1-8.5-8.5l9.8-9.8a4 4 0 0 1 5.7 5.7l-9.9 9.9a2 2 0 0 1-2.8-2.8l9.2-9.2"/></svg>
-              <span>Attach</span>
-            </a>
-          </section>
+            <label class="dsos-composer-field" for="feedComposerBody">
+              <span class="dsos-screenreader">Share with your network</span>
+              <textarea id="feedComposerBody" name="body" rows="1" maxlength="2000" placeholder="Share with your network" required></textarea>
+            </label>
+            <div class="dsos-composer-actions">
+              <a class="dsos-composer-attach" href="/community/#communityMediaDraft" aria-label="Open Community media draft">
+                <svg class="ds30-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5 12 20.5a6 6 0 0 1-8.5-8.5l9.8-9.8a4 4 0 0 1 5.7 5.7l-9.9 9.9a2 2 0 0 1-2.8-2.8l9.2-9.2"/></svg>
+                <span>Attach</span>
+              </a>
+              <button id="feedComposerPublish" class="dsos-composer-publish" type="submit">Post</button>
+            </div>
+            <p id="feedComposerStatus" class="dsos-composer-status" role="status" aria-live="polite"></p>
+          </form>
 
           <section id="pendingMemberContent" class="member-panel dsos-pending-feed-state">
             <p class="eyebrow">Pending approval</p>
