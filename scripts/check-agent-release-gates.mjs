@@ -39,15 +39,17 @@ check(!/googleSignIn\s*:\s*true\b|googleIdentityLinking\s*:\s*true\b/.test(flags
  'Google feature enablement found in shipped flags');
 check(/Object\.freeze\s*\(/.test(flags),'Google feature configuration is no longer immutable');
 
-// True closed-browser push and trusted database-authored message events require
-// a coordinated production SQL + Netlify secret release. Keep both off until
-// that release is explicitly authorized and verified.
-check(/trustedMessageEvents\s*:\s*false\b/.test(notificationFlags),
-  'Trusted message-event notifications are no longer disabled');
+// Trusted database-authored message events are enabled only after the core
+// production database cutover and verification. Closed-browser Web Push stays
+// disabled until VAPID/server secrets are configured and separately released.
+check(/trustedMessageEvents\s*:\s*true\b/.test(notificationFlags),
+  'Trusted message-event notifications are not enabled');
+check(!/trustedMessageEvents\s*:\s*false\b/.test(notificationFlags),
+  'Trusted message-event notifications unexpectedly reverted to compatibility mode');
 check(/webPush\s*:\s*false\b/.test(notificationFlags),
   'Closed-browser Web Push is no longer disabled');
-check(!/trustedMessageEvents\s*:\s*true\b|webPush\s*:\s*true\b/.test(notificationFlags),
-  'Notification production gate enabled in distributable flags');
+check(!/webPush\s*:\s*true\b/.test(notificationFlags),
+  'Closed-browser Web Push enabled before its separate production release');
 check(/Object\.freeze\s*\(/.test(notificationFlags),
   'Notification feature configuration is no longer immutable');
 
@@ -98,4 +100,4 @@ for(const file of files){
    'Private calling enabled in '+rel);
 }
 console.log('DOMINIONSTAR_AGENT_RELEASE_GATES_OK');
-console.log('Protected default: Google sign-in OFF, identity linking OFF, private calling v2 OFF, trusted message events OFF, Web Push OFF');
+console.log('Protected default: Google sign-in OFF, identity linking OFF, private calling v2 OFF, trusted message events ON, Web Push OFF');
