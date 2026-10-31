@@ -38,6 +38,8 @@
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
+    ['My Journey','/agent-journey/','journey'],
+    ['Learning','/agent-learning/','book'],
     ['Aurora','/member-dashboard/?open=aurora','sparkles'],
     ['My Profile','/professional-profile/','user'],
     ['Agent Settings','/account-settings/','settings']
