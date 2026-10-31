@@ -38,7 +38,7 @@ test('every authenticated Agent and Founder surface loads the unified OS contrac
   }
 });
 
-test('dashboard no longer ejects members to public Journey or top-level learning pages',()=>{
+test('dashboard routes growth work only to authenticated OS stages',()=>{
   const dashboard=read('member-dashboard/index.html');
   assert.doesNotMatch(dashboard,/href="\/journey\/"/);
   assert.doesNotMatch(dashboard,/href="\/academy\/"/);
@@ -46,9 +46,8 @@ test('dashboard no longer ejects members to public Journey or top-level learning
   assert.doesNotMatch(dashboard,/href="\/leadership\/"/);
   assert.doesNotMatch(dashboard,/href="\/financial-services\/"/);
   assert.match(dashboard,/href="\/agent-journey\/"/);
-  assert.match(dashboard,/href="\/agent-learning\/#training"/);
-  assert.match(dashboard,/href="\/agent-learning\/#leadership"/);
-  assert.match(dashboard,/href="\/agent-learning\/#financial-development"/);
+  assert.match(dashboard,/href="\/agent-learning\/"/);
+  assert.doesNotMatch(dashboard,/Featured learning|Professional resources/);
 });
 
 test('Agent Journey uses the live milestone schema rather than stale label field',()=>{
