@@ -10,6 +10,12 @@ on:
       - 'assets/js/direct-messages.js'
       - 'assets/js/global-call-manager.js'
       - 'assets/js/notification-feature-flags.js'
+      - 'scripts/build-public-netlify.sh'
+      - 'financial-services/**'
+      - 'join/**'
+      - 'consultation/**'
+      - 'schedule/**'
+      - 'assets/js/dominionstar-geography.js'
       - 'public-release.json'
   workflow_dispatch:
 
@@ -35,6 +41,10 @@ jobs:
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/global-call-manager.js" -o production-smoke/global-calls.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/notification-feature-flags.js" -o production-smoke/notification-flags.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/public-release.json" -o production-smoke/release.json
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/schedule/" -o production-smoke/schedule.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/consultation/" -o production-smoke/consultation.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/financial-services/" -o production-smoke/financial-services.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/dominionstar-geography.js" -o production-smoke/geography.js
       - name: Match published routes to approved web release features
         shell: bash
         run: |
@@ -48,5 +58,13 @@ jobs:
           grep -Fq 'trustedMessageEvents:true' production-smoke/notification-flags.js
           grep -Fq 'webPush:false' production-smoke/notification-flags.js
           grep -Fq 'V10-quality-gate-2026-10-17' production-smoke/release.json
+          grep -Fq 'data-ds-country' production-smoke/schedule.html
+          grep -Fq 'data-ds-region' production-smoke/schedule.html
+          grep -Fq 'data-ds-timezone' production-smoke/schedule.html
+          grep -Fq 'data-ds-country' production-smoke/consultation.html
+          grep -Fq 'data-ds-geography' production-smoke/financial-services.html
+          grep -Fq 'America/New_York' production-smoke/geography.js
+          grep -Fq 'Canada' production-smoke/geography.js
+          echo 'PUBLIC_GEOGRAPHY_SMOKE_OK: country, region, time-zone, and jurisdiction assets found on production domain.'
           echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS, browser-call source, and trusted-message flag state found on production domain.'
           echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
