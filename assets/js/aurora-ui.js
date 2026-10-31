@@ -1,6 +1,13 @@
 window.DSAurora = (() => {
   const route = location.pathname.toLowerCase();
 
+  const focusedAgentWorkspaceSelector=[
+    '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
+    '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
+    '#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp'
+  ].join(',');
+  const isFocusedAgentWorkspace=()=>Boolean(document.querySelector(focusedAgentWorkspaceSelector));
+
   function routeArea() {
     if (route.includes('community') || route.includes('message') || route.includes('notification')) return 'community';
     if (route.includes('appointment') || route.includes('calendar')) return 'appointments';
@@ -41,6 +48,7 @@ window.DSAurora = (() => {
   }
 
   function addCommandStrip() {
+    if (isFocusedAgentWorkspace()) return;
     if (document.querySelector('.aurora-command-strip')) return;
 
     const main = document.querySelector('.member-dashboard');
@@ -101,6 +109,7 @@ window.DSAurora = (() => {
   }
 
   function addMemberBriefing() {
+    if (isFocusedAgentWorkspace()) return;
     const dashboard = document.querySelector('main.member-dashboard');
     const header = dashboard?.querySelector('.member-dashboard-header');
     const identity = dashboard?.querySelector('.aurora-executive-identity');
