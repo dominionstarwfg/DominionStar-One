@@ -76,6 +76,15 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/public-site-production-smoke.yml'
+      - 'scripts/test-public-geography.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - 'financial-services/**'
+      - 'consultation/**'
+      - 'schedule/**'
+      - 'join/**'
+      - 'assets/css/dominionstar-public-v5.css'
+      - 'assets/js/dominionstar-geography.js'
       - 'scripts/check-agent-release-gates.mjs'
       - 'assets/js/notification-feature-flags.js'
       - 'member-dashboard/**'

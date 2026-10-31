@@ -41,6 +41,8 @@ required_paths=(
   "mentorship/index.html"
   "assets/css/dominionstar-public-v5.css"
   "assets/js/dominionstar-public-v5.js"
+  "assets/js/dominionstar-geography.js"
+  "scripts/test-public-geography.mjs"
   "scripts/test-aurora-executive.mjs"
   "netlify/functions/aurora-chat.mjs"
   "assets/ds-public-hero.jpg"
@@ -86,6 +88,7 @@ done
 # Review-only Aurora JS syntax + capability/UX safety contract.
 node --check "$ROOT/assets/js/dominionstar-public-v5.js"
 node "$ROOT/scripts/test-aurora-executive.mjs"
+node "$ROOT/scripts/test-public-geography.mjs"
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
@@ -219,6 +222,24 @@ for rel in join/index.html schedule/index.html consultation/index.html; do
     exit 45
   fi
 done
+
+# Region and appointment-time-zone quality gate: enforce form and educational UI contract.
+for rel in schedule/index.html consultation/index.html; do
+  grep -Fq 'data-ds-country' "$DIST/$rel"
+  grep -Fq 'data-ds-region' "$DIST/$rel"
+  grep -Fq 'data-ds-timezone' "$DIST/$rel"
+  grep -Fq 'name="time-zone"' "$DIST/$rel"
+  grep -Fq 'dominionstar-geography.js' "$DIST/$rel"
+done
+grep -Fq 'data-ds-region' "$DIST/join/index.html"
+grep -Fq 'data-ds-geography' "$DIST/financial-services/index.html"
+for rel in financial-services/life-insurance/index.html financial-services/long-term-care/index.html; do
+  grep -Fq 'data-ds-geography' "$DIST/$rel"
+  grep -Fq 'data-ds-regulator-link' "$DIST/$rel"
+  grep -Fq 'dominionstar-geography.js' "$DIST/$rel"
+done
+grep -Fq 'dominionstar-geography.js' "$DIST/financial-services/index.html"
+grep -Fq 'America/New_York' "$DIST/assets/js/dominionstar-geography.js"
 
 # Source-of-truth lead capture: three static Netlify forms must retain campaign fields.
 for rel in join/index.html schedule/index.html consultation/index.html; do
