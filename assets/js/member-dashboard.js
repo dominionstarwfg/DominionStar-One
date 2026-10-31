@@ -488,7 +488,7 @@
       await supabase.rpc('community_notify_mentions', {
         target_message_id:insert.data.id,
         message_body:body.slice(0,2000)
-      }).catch(() => {});
+      });
 
       feedComposerBody.value = '';
       feedComposerBody.rows = 1;
