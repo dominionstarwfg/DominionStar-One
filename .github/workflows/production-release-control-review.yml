@@ -22,38 +22,105 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Inspect main branch protection metadata
+      - name: Inspect main release protection
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          response="$(curl --fail-with-body --silent             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPOSITORY/branches/main")"
-          printf '%s' "$response" > /tmp/main-branch.json
+
+          api_get() {
+            local url="$1"
+            curl --fail-with-body --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$url"
+          }
+
+          api_get "https://api.github.com/repos/$REPOSITORY/branches/main" > /tmp/main-branch.json
+          api_get "https://api.github.com/repos/$REPOSITORY/rulesets" > /tmp/rulesets.json
+
           node - <<'NODE'
           const fs=require('fs');
-          const data=JSON.parse(fs.readFileSync('/tmp/main-branch.json','utf8'));
-          if(data.protected!==true){
-            console.error('RELEASE_BLOCKED: main branch protection is disabled.');
+          const cp=require('child_process');
+
+          const branch=JSON.parse(fs.readFileSync('/tmp/main-branch.json','utf8'));
+          const summaries=JSON.parse(fs.readFileSync('/tmp/rulesets.json','utf8'));
+
+          if(branch.protected!==true){
+            console.error('RELEASE_BLOCKED: main is not protected.');
             process.exit(1);
           }
-          const contexts=new Set([
-            ...(data.protection?.required_status_checks?.contexts||[]),
-            ...((data.protection?.required_status_checks?.checks||[]).map(x=>x.context).filter(Boolean))
-          ]);
-          const required=[
+
+          const requiredChecks=[
             'Verify authenticated Agent and Founder OS',
             'Verify Agent OS notification and readability review',
-            'Build & validate review package — never deploy'
+            'Build & validate review package — never deploy',
+            'Verify main release controls'
           ];
-          const missing=required.filter(name=>!contexts.has(name));
-          if(missing.length){
-            console.error('RELEASE_BLOCKED: required main status checks are not enforced: '+missing.join(', '));
+
+          const classicContexts=new Set([
+            ...(branch.protection?.required_status_checks?.contexts||[]),
+            ...((branch.protection?.required_status_checks?.checks||[]).map(x=>x.context).filter(Boolean))
+          ]);
+
+          const classicHasAll=requiredChecks.every(name=>classicContexts.has(name));
+          const classicStrict=branch.protection?.required_status_checks?.enforcement_level &&
+            branch.protection.required_status_checks.enforcement_level!=='off';
+
+          let rulesetMatch=null;
+          for(const summary of summaries){
+            if(summary.target!=='branch' || summary.enforcement!=='active') continue;
+
+            const raw=cp.execFileSync('curl',[
+              '--fail-with-body','--silent','--show-error',
+              '-H',`Authorization: Bearer ${process.env.GH_TOKEN}`,
+              '-H','Accept: application/vnd.github+json',
+              '-H','X-GitHub-Api-Version: 2022-11-28',
+              `https://api.github.com/repos/${process.env.REPOSITORY}/rulesets/${summary.id}`
+            ],{encoding:'utf8'});
+
+            const detail=JSON.parse(raw);
+            const includesDefault=(detail.conditions?.ref_name?.include||[]).includes('~DEFAULT_BRANCH');
+            if(!includesDefault) continue;
+
+            const types=new Set((detail.rules||[]).map(r=>r.type));
+            const pr=(detail.rules||[]).find(r=>r.type==='pull_request');
+            const status=(detail.rules||[]).find(r=>r.type==='required_status_checks');
+            const contexts=new Set(
+              status?.parameters?.required_status_checks?.map(x=>x.context).filter(Boolean)||[]
+            );
+
+            const valid=
+              types.has('deletion') &&
+              types.has('non_fast_forward') &&
+              !!pr &&
+              pr.parameters?.required_review_thread_resolution===true &&
+              !!status &&
+              status.parameters?.strict_required_status_checks_policy===true &&
+              status.parameters?.do_not_enforce_on_create===false &&
+              requiredChecks.every(name=>contexts.has(name));
+
+            if(valid){
+              rulesetMatch={id:detail.id,name:detail.name,contexts:[...contexts]};
+              break;
+            }
+          }
+
+          if(!(rulesetMatch || (classicHasAll && classicStrict))){
+            console.error('RELEASE_BLOCKED: main is protected, but required DominionStar release controls are not fully enforced.');
+            console.error('Classic contexts:', [...classicContexts].join(', ') || '(none)');
             process.exit(1);
           }
-          console.log('MAIN_RELEASE_CONTROLS_OK');
+
+          if(rulesetMatch){
+            console.log(`MAIN_RELEASE_CONTROLS_OK via active ruleset: ${rulesetMatch.name} (#${rulesetMatch.id})`);
+          }else{
+            console.log('MAIN_RELEASE_CONTROLS_OK via classic branch protection');
+          }
           NODE
 
-      - name: Confirm review workflows cannot deploy production
+      - name: Confirm review workflow is inspection-only
         run: |
           echo "This workflow performs release-control inspection only."
