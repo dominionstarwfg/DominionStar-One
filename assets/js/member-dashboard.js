@@ -446,7 +446,7 @@
     }
   }
 
-  const feedComposerForm = document.getElementById('feedComposerForm');
+  const feedComposerForm = document.getElementById('dsosSocialGateway');
   const feedComposerBody = document.getElementById('feedComposerBody');
   const feedComposerPublish = document.getElementById('feedComposerPublish');
   const feedComposerStatus = document.getElementById('feedComposerStatus');
