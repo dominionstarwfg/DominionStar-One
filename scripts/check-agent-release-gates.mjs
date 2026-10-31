@@ -1,4 +1,5 @@
 // DominionStar web Agent Dashboard release guard (build-time only).
+// Live production smoke validates the trusted-message flag state.
 // This is not a replacement for production RLS, OAuth and real-browser QA.
 import {readFileSync, readdirSync, statSync, existsSync} from 'node:fs';
 import {resolve, join, relative, dirname} from 'node:path';
