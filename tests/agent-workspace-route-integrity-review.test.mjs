@@ -20,13 +20,17 @@ const pages=[
   'account-settings/index.html'
 ];
 const mainNav=[
-  ['Home','/member-dashboard/'],
+  ['Feed','/member-dashboard/'],
   ['Messages','/direct-messages/'],
   ['Meet','/meet/'],
+  ['Notifications','/notifications/'],
   ['Community','/community/'],
   ['Calendar','/appointments/'],
   ['Team Members','/member-directory/'],
   ['Recognition','/recognition/'],
+  ['My Journey','/agent-journey/'],
+  ['Learning','/agent-learning/'],
+  ['Aurora','/member-dashboard/?open=aurora'],
   ['My Profile','/professional-profile/'],
   ['Agent Settings','/account-settings/']
 ];
@@ -60,7 +64,7 @@ test('All ten core authenticated pages link only to existing internal routes and
   assert.ok(reviewed>=180,`Unexpectedly few route/asset references checked: ${reviewed}`);
 });
 
-test('Dashboard and shared navigation use exactly the same nine core destinations',()=>{
+test('Dashboard and shared navigation use the same focused OS destinations',()=>{
   const dashboard=read('member-dashboard/index.html');
   const shell=read('assets/js/dominionstar-agent-nav-shell.js');
   const nav=dashboard.match(/<nav class="dsos-nav"[\s\S]*?<\/nav>/)?.[0];
@@ -98,7 +102,7 @@ test('Dashboard does not visibly label itself with an unsupported year',()=>{
 });
 
 
-test('Public Journey remains public while the dashboard uses the authenticated Agent Journey',()=>{
+test('Public Journey remains public while Agent Journey is a focused authenticated stage',()=>{
   const redirects=read('_redirects');
   const build=read('scripts/build-public-netlify.sh');
   assert.match(redirects,/^\/journey \/journey\/ 301!/m);
@@ -107,8 +111,10 @@ test('Public Journey remains public while the dashboard uses the authenticated A
   assert.match(read('journey/index.html'),/The DominionStar Journey/);
   assert.match(read('agent-journey/index.html'),/id="agentJourneyApp"/);
   const dashboard=read('member-dashboard/index.html');
-  assert.match(dashboard,/href="\/agent-journey\/">Continue Journey/);
-  assert.doesNotMatch(dashboard,/href="\/journey\/">Continue Journey/);
+  assert.match(dashboard,/href="\/agent-journey\/"/);
+  assert.match(dashboard,/<span>My Journey<\/span>/);
+  assert.doesNotMatch(dashboard,/href="\/journey\/"/);
+  assert.doesNotMatch(dashboard,/Continue Journey|Featured learning|Professional resources/);
   assert.match(build,/test -s "\$DIST\/journey\/index\.html"/);
 });
 
