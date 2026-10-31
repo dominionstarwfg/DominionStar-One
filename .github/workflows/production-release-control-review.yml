@@ -5,6 +5,8 @@ on:
     branches:
       - main
     paths:
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'assets/js/notification-feature-flags.js'
       - '.github/workflows/production-release-control-review.yml'
       - '.github/workflows/authenticated-os-consistency-review.yml'
       - '.github/workflows/notification-readability-review-gate.yml'

@@ -76,6 +76,8 @@ on:
     branches:
       - main
     paths:
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'assets/js/notification-feature-flags.js'
       - 'member-dashboard/**'
       - 'professional-profile/**'
       - 'account-settings/**'

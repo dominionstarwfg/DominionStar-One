@@ -20,11 +20,11 @@ const pages=[
   read('direct-messages/index.html')
 ];
 
-test('closed-browser push is fail-closed until coordinated release',()=>{
+test('trusted message events are active while closed-browser push remains fail-closed',()=>{
   assert.match(flags,/Object\.freeze\s*\(/);
-  assert.match(flags,/trustedMessageEvents:false/);
+  assert.match(flags,/trustedMessageEvents:true/);
   assert.match(flags,/webPush:false/);
-  assert.match(releaseGate,/trustedMessageEvents\\s\*:\\s\*false/);
+  assert.match(releaseGate,/trustedMessageEvents\\s\*:\\s\*true/);
   assert.match(releaseGate,/webPush\\s\*:\\s\*false/);
   for(const page of pages){
     const flagsAt=page.indexOf('notification-feature-flags.js');
