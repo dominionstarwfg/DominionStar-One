@@ -15,7 +15,7 @@ const nav=read('assets/js/dominionstar-os.js');
 const sharedNav=read('assets/js/dominionstar-agent-nav-shell.js');
 
 test('Greeting does not assume returning visitor and displays the first name',()=>{
-  assert.match(dashboard,/<h1><span id="heroGreeting">Good day<\/span>, <span id="heroMemberName">Member<\/span>\.<\/h1>/);
+  assert.match(dashboard,/class="dsos-feed-greeting"><span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName">Member<\/strong>/);
   assert.doesNotMatch(dashboard,/Welcome back/);
   assert.match(member,/profile\.preferred_name \|\| profile\.full_name/);
   for(const text of ['Good morning','Good afternoon','Good evening'])assert.ok(member.includes(text));
