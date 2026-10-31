@@ -36,6 +36,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/public-site-production-smoke.yml'
       - 'scripts/test-public-geography.mjs'
       - 'scripts/build-public-netlify.sh'
       - 'financial-services/**'
