@@ -727,3 +727,96 @@
  .dsos-executive .ds30-social-post,
  .dsos-executive .ds30-post-actions button{transition:none}
 }
+
+
+/* Executive OS stage architecture — Home is a focused social feed, not a landing page. */
+.dsos-executive .dsos-page{max-width:1220px;padding-top:22px}
+.dsos-executive .dsos-feed-intro{
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  margin:0 auto 18px;max-width:920px;padding:4px 2px 0;color:#17344f
+}
+.dsos-executive .dsos-feed-intro .eyebrow{margin:0 0 4px;color:#9a6a28;font-size:11px;letter-spacing:.12em}
+.dsos-executive .dsos-feed-intro h1{
+  margin:0;color:#102f4d;font:760 clamp(28px,3vw,38px)/1.1 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  letter-spacing:-.045em
+}
+.dsos-executive .dsos-feed-greeting{margin:7px 0 0;color:#5a7188;font-size:14px;line-height:1.55}
+.dsos-executive .dsos-feed-greeting strong{color:#183d61}
+.dsos-executive .dsos-feed-identity{
+  display:flex;align-items:center;gap:10px;min-width:230px;max-width:310px;
+  padding:9px 12px;border:1px solid #dce5ed;border-radius:14px;background:#fff;
+  box-shadow:0 7px 22px rgba(20,48,76,.06);text-decoration:none
+}
+.dsos-executive .dsos-feed-avatar{
+  position:relative;display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;
+  overflow:hidden;border:2px solid #d8bc86;border-radius:50%;background:linear-gradient(145deg,#315e86,#2d8b8e)
+}
+.dsos-executive .dsos-feed-avatar img,
+.dsos-executive .dsos-composer-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.dsos-executive .dsos-feed-identity>span:last-child{display:grid;min-width:0}
+.dsos-executive .dsos-feed-identity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#173550;font-size:13.5px}
+.dsos-executive .dsos-feed-identity small{color:#687f94;font-size:11.5px;line-height:1.35}
+.dsos-executive .dsos-feed-layout{display:block!important;max-width:920px;margin:0 auto}
+.dsos-executive .dsos-feed-layout>.dsos-primary{display:grid;gap:14px}
+.dsos-executive .dsos-feed-composer{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;
+  padding:12px 14px;border-radius:16px
+}
+.dsos-executive .dsos-composer-avatar{
+  position:relative;display:grid;place-items:center;overflow:hidden;
+  width:46px;height:46px;border:2px solid #d7bf91;border-radius:50%;
+  background:linear-gradient(145deg,#315e86,#2d8b8e);color:#fff
+}
+.dsos-executive .dsos-composer-prompt{
+  display:flex;align-items:center;min-height:45px;padding:0 16px;border:1px solid #d8e2eb;
+  border-radius:999px;background:#f7f9fb;color:#556d83;text-decoration:none;font-size:14px
+}
+.dsos-executive .dsos-composer-prompt:hover{background:#f0f5f9;border-color:#c7d5e1;color:#244f76}
+.dsos-executive .dsos-composer-attach{
+  display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:11px;
+  color:#315c7c;text-decoration:none;font-size:12.5px;font-weight:760
+}
+.dsos-executive .dsos-composer-attach:hover{background:#edf4fa}
+.dsos-executive .dsos-composer-attach .ds30-icon{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.dsos-executive .dsos-feed-panel{
+  padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important
+}
+.dsos-executive .dsos-feed-heading{padding:6px 2px 4px}
+.dsos-executive .dsos-feed-heading h2{font-size:20px;color:#173550}
+.dsos-executive .dsos-feed-heading .text-link{
+  color:#215d8f;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px
+}
+.dsos-executive .dsos-pinned-announcement{margin:6px 0 14px}
+.dsos-executive .dsos-pinned-update{
+  padding:18px 20px;border:1px solid #e1d0ad;border-left:4px solid #c99d50;border-radius:15px;
+  background:linear-gradient(180deg,#fffdf9,#fff);box-shadow:0 8px 24px rgba(20,48,76,.055)
+}
+.dsos-executive .dsos-pinned-update-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.dsos-executive .dsos-pinned-label{
+  display:inline-flex;padding:4px 8px;border-radius:999px;background:#fff0cf;color:#7c541c;
+  font-size:10.5px;font-weight:850;letter-spacing:.06em;text-transform:uppercase
+}
+.dsos-executive .dsos-pinned-update small{color:#71859a;font-size:11.5px}
+.dsos-executive .dsos-pinned-update h3{margin:0 0 7px;color:#173550;font-size:17px}
+.dsos-executive .dsos-pinned-update p{margin:0;color:#445f78;font-size:14px;line-height:1.7;white-space:pre-line}
+.dsos-executive .dsos-inline-link,
+.dsos-executive .ds30-post-copy a{
+  color:#1767a4!important;text-decoration:underline!important;text-underline-offset:3px!important;
+  text-decoration-thickness:1px!important;font-weight:700
+}
+.dsos-executive .dsos-feed-stream{display:grid;gap:14px}
+.dsos-executive .ds30-social-post{
+  border:1px solid #dce5ed;border-radius:16px;background:#fff;
+  box-shadow:0 8px 26px rgba(20,48,76,.055)
+}
+.dsos-executive .dsos-pending-feed-state{max-width:680px;margin:20px auto}
+@media(max-width:760px){
+  .dsos-executive .dsos-feed-intro{align-items:flex-start}
+  .dsos-executive .dsos-feed-identity{min-width:0;max-width:240px}
+  .dsos-executive .dsos-feed-composer{grid-template-columns:auto minmax(0,1fr)}
+  .dsos-executive .dsos-composer-attach{grid-column:2;justify-self:start;padding:5px 8px}
+}
+@media(max-width:560px){
+  .dsos-executive .dsos-feed-intro{display:block}
+  .dsos-executive .dsos-feed-identity{margin-top:12px;max-width:none}
+}
