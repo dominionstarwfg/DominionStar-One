@@ -30,13 +30,15 @@
   if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
 
   const agentItems=[
-    ['Home','/member-dashboard/','home'],
+    ['Feed','/member-dashboard/','home'],
     ['Messages','/direct-messages/','message'],
     ['Meet','/meet/','video'],
+    ['Notifications','/notifications/','bell'],
     ['Community','/community/','community'],
     ['Calendar','/appointments/','calendar'],
     ['Team Members','/member-directory/','users'],
     ['Recognition','/recognition/','trophy'],
+    ['Aurora','/member-dashboard/?open=aurora','sparkles'],
     ['My Profile','/professional-profile/','user'],
     ['Agent Settings','/account-settings/','settings']
   ];
@@ -49,13 +51,15 @@
     ['Feature Controls','/founder-features/','sliders'],
     ['Diagnostics','/founder-diagnostics/','pulse'],
     ['Release Check','/release-check/','shield'],
-    ['Member View','/member-dashboard/','home']
+    ['Member Feed','/member-dashboard/','home']
   ];
   const items=founderMode?founderItems:agentItems;
 
   const shapes={
     home:'<path d="m3 10 9-7 9 7v11H3V10Zm6 11v-7h6v7"/>',
     message:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+    sparkles:'<path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3ZM19 18l.6 1.4L21 20l-1.4.6L19 22l-.6-1.4L17 20l1.4-.6L19 18Z"/>',
     video:'<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
     community:'<path d="M7 9h10M7 13h7"/><path d="M20.5 12a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 20.5 12Z"/>',
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
