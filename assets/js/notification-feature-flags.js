@@ -1,4 +1,4 @@
 window.DOMINIONSTAR_NOTIFICATION_FEATURES=Object.freeze({
-  trustedMessageEvents:false,
+  trustedMessageEvents:true,
   webPush:false
 });
