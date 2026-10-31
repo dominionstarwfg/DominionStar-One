@@ -5,6 +5,14 @@ on:
     branches:
       - main
     paths:
+      - 'scripts/test-public-geography.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - 'financial-services/**'
+      - 'consultation/**'
+      - 'schedule/**'
+      - 'join/**'
+      - 'assets/css/dominionstar-public-v5.css'
+      - 'assets/js/dominionstar-geography.js'
       - 'scripts/check-agent-release-gates.mjs'
       - 'assets/js/notification-feature-flags.js'
       - '.github/workflows/production-release-control-review.yml'
