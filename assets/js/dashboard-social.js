@@ -83,7 +83,7 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        const text=description.length>360 ? description.slice(0,360)+'…' : description;
+        const text=description.length>900 ? description.slice(0,900)+'…' : description;
         const stats=counts.get(String(post.id))||{};
         const likeCount=readableCount(stats.likes||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
@@ -115,7 +115,7 @@
           </header>
           ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
           <p class="ds30-post-copy">${linkify(text)}</p>
-          ${description.length>360?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span>${likeCount} ${stats.likes===1?'like':'likes'}</span>
             <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
@@ -142,7 +142,7 @@
     };
     const refresh = async () => {
       const current=++revision;
-      const result=await client.rpc('list_community_feed',{result_limit:5});
+      const result=await client.rpc('list_community_feed',{result_limit:20});
       if(current!==revision)return;
       if(result.error)throw result.error;
       posts=asPosts(result.data).filter(p=>p && p.id);
