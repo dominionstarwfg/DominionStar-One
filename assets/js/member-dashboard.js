@@ -446,6 +446,70 @@
     }
   }
 
+  const feedComposerForm = document.getElementById('feedComposerForm');
+  const feedComposerBody = document.getElementById('feedComposerBody');
+  const feedComposerPublish = document.getElementById('feedComposerPublish');
+  const feedComposerStatus = document.getElementById('feedComposerStatus');
+
+  const setFeedComposerStatus = (message, type='') => {
+    if (!feedComposerStatus) return;
+    feedComposerStatus.textContent = message;
+    feedComposerStatus.dataset.state = type;
+  };
+
+  feedComposerForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (status !== 'approved' || !feedComposerBody || !feedComposerPublish) return;
+    const body = feedComposerBody.value.trim();
+    if (!body) {
+      setFeedComposerStatus('Write something before posting.', 'error');
+      feedComposerBody.focus();
+      return;
+    }
+
+    feedComposerPublish.disabled = true;
+    feedComposerPublish.textContent = 'Posting…';
+    setFeedComposerStatus('Publishing to your network…', 'pending');
+
+    try {
+      const insert = await supabase
+        .from('community_messages')
+        .insert({
+          user_id:user.id,
+          title:null,
+          body:body.slice(0,2000),
+          post_type:'discussion',
+          is_pinned:false
+        })
+        .select('id')
+        .single();
+      if (insert.error) throw insert.error;
+
+      await supabase.rpc('community_notify_mentions', {
+        target_message_id:insert.data.id,
+        message_body:body.slice(0,2000)
+      }).catch(() => {});
+
+      feedComposerBody.value = '';
+      feedComposerBody.rows = 1;
+      await loadDashboardCommunity();
+      setFeedComposerStatus('Posted to your network.', 'success');
+    } catch (error) {
+      setFeedComposerStatus(error?.message || 'Your post could not be published.', 'error');
+    } finally {
+      feedComposerPublish.disabled = false;
+      feedComposerPublish.textContent = 'Post';
+    }
+  });
+
+  feedComposerBody?.addEventListener('focus', () => {
+    feedComposerBody.rows = Math.max(feedComposerBody.rows, 3);
+    feedComposerForm?.classList.add('is-expanded');
+  });
+  feedComposerBody?.addEventListener('input', () => {
+    if (feedComposerBody.value.trim()) feedComposerForm?.classList.add('is-expanded');
+  });
+
   // Never trust a notification payload URL as an href without same-origin checks.
   const safeNotificationHref = candidate => {
     if (typeof candidate !== 'string' ||
