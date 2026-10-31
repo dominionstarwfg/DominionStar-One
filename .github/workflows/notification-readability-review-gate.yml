@@ -36,6 +36,14 @@ on:
     branches:
       - main
     paths:
+      - 'scripts/test-public-geography.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - 'financial-services/**'
+      - 'consultation/**'
+      - 'schedule/**'
+      - 'join/**'
+      - 'assets/css/dominionstar-public-v5.css'
+      - 'assets/js/dominionstar-geography.js'
       - 'assets/js/communication-engine.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/member-dashboard.js'
