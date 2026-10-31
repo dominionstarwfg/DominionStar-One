@@ -9,6 +9,7 @@ on:
       - 'member-login/**'
       - 'assets/js/direct-messages.js'
       - 'assets/js/global-call-manager.js'
+      - 'assets/js/notification-feature-flags.js'
       - 'public-release.json'
   workflow_dispatch:
 
@@ -32,6 +33,7 @@ jobs:
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-dashboard/" -o production-smoke/dashboard.html
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/direct-messages.js" -o production-smoke/messages.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/global-call-manager.js" -o production-smoke/global-calls.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/notification-feature-flags.js" -o production-smoke/notification-flags.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/public-release.json" -o production-smoke/release.json
       - name: Match published routes to approved web release features
         shell: bash
@@ -43,6 +45,8 @@ jobs:
           grep -Fq 'let callAccepting = false' production-smoke/messages.js
           grep -Fq 'await ensureCallChannel(callerId)' production-smoke/messages.js
           grep -Fq 'acceptedFromGlobal:true, acceptedAt:Date.now()' production-smoke/global-calls.js
+          grep -Fq 'trustedMessageEvents:true' production-smoke/notification-flags.js
+          grep -Fq 'webPush:false' production-smoke/notification-flags.js
           grep -Fq 'V10-quality-gate-2026-10-17' production-smoke/release.json
-          echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS and browser-call source found on production domain.'
+          echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS, browser-call source, and trusted-message flag state found on production domain.'
           echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
