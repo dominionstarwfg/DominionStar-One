@@ -156,12 +156,11 @@ form.addEventListener('submit',async e=>{
     const sent=await client.from('community_chat_messages').insert({
       user_id:session.user.id,
       body
-    });
+    }).select('id').single();
 
-    if(!sent.error&&emailPref.checked){
-      await client.rpc('queue_community_email_notifications',{
-        sender_id:session.user.id,
-        chat_body:body
+    if(!sent.error&&emailPref.checked&&sent.data?.id){
+      await client.rpc('queue_community_message_email',{
+        target_message_id:sent.data.id
       });
     }
 

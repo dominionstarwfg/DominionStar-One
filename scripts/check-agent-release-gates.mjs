@@ -1,6 +1,6 @@
 // DominionStar web Agent Dashboard release guard (build-time only).
 // This is not a replacement for production RLS, OAuth and real-browser QA.
-import {readFileSync, readdirSync, statSync} from 'node:fs';
+import {readFileSync, readdirSync, statSync, existsSync} from 'node:fs';
 import {resolve, join, relative, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -9,9 +9,26 @@ const publicRoot=resolve(process.argv[2] || join(sourceRoot,'public-dist'));
 const safeRead=(root,path)=>readFileSync(join(root,path),'utf8');
 const check=(ok,reason)=>{if(!ok)throw new Error('AGENT_RELEASE_BLOCKED: '+reason)};
 const flags=safeRead(publicRoot,'assets/js/member-login-google-flags.js');
+const notificationFlags=safeRead(publicRoot,'assets/js/notification-feature-flags.js');
 const messages=safeRead(publicRoot,'assets/js/direct-messages.js');
 const receiver=safeRead(publicRoot,'assets/js/global-call-manager.js');
 const policy=safeRead(sourceRoot,'scripts/security/agent-call-realtime-v2.DO-NOT-RUN.review.sql');
+const packageJson=JSON.parse(safeRead(publicRoot,'package.json'));
+const packageLockPath=join(publicRoot,'package-lock.json');
+
+check(existsSync(packageLockPath),
+  'package-lock.json is missing; server dependency graph is not reproducible');
+const packageLock=JSON.parse(safeRead(publicRoot,'package-lock.json'));
+check(packageLock.lockfileVersion===3,'package-lock.json must use lockfileVersion 3');
+for(const dependency of ['@supabase/supabase-js','resend','web-push']){
+  const version=String(packageJson.dependencies?.[dependency]||'');
+  check(/^\d+\.\d+\.\d+$/.test(version),
+    dependency+' must be pinned to an exact version');
+  check(packageLock.packages?.['']?.dependencies?.[dependency]===version,
+    dependency+' root lock dependency does not match package.json');
+  check(packageLock.packages?.['node_modules/'+dependency]?.version===version,
+    dependency+' resolved lock version does not match package.json');
+}
 
 // Neither OAuth nor identity linking can be released with incomplete provider,
 // redirect and RLS end-to-end validation. Review and update this gate in an
@@ -21,6 +38,18 @@ check(/googleIdentityLinking\s*:\s*false\b/.test(flags),'Google identity linking
 check(!/googleSignIn\s*:\s*true\b|googleIdentityLinking\s*:\s*true\b/.test(flags),
  'Google feature enablement found in shipped flags');
 check(/Object\.freeze\s*\(/.test(flags),'Google feature configuration is no longer immutable');
+
+// True closed-browser push and trusted database-authored message events require
+// a coordinated production SQL + Netlify secret release. Keep both off until
+// that release is explicitly authorized and verified.
+check(/trustedMessageEvents\s*:\s*false\b/.test(notificationFlags),
+  'Trusted message-event notifications are no longer disabled');
+check(/webPush\s*:\s*false\b/.test(notificationFlags),
+  'Closed-browser Web Push is no longer disabled');
+check(!/trustedMessageEvents\s*:\s*true\b|webPush\s*:\s*true\b/.test(notificationFlags),
+  'Notification production gate enabled in distributable flags');
+check(/Object\.freeze\s*\(/.test(notificationFlags),
+  'Notification feature configuration is no longer immutable');
 
 // Both call clients must opt in together and must not silently change the
 // currently shipping legacy channel names. Private v2 stays off until RLS is
@@ -69,4 +98,4 @@ for(const file of files){
    'Private calling enabled in '+rel);
 }
 console.log('DOMINIONSTAR_AGENT_RELEASE_GATES_OK');
-console.log('Protected default: Google sign-in OFF, identity linking OFF, private calling v2 OFF');
+console.log('Protected default: Google sign-in OFF, identity linking OFF, private calling v2 OFF, trusted message events OFF, Web Push OFF');

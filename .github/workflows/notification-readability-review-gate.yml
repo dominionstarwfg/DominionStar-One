@@ -1,0 +1,115 @@
+name: DominionStar — Notification & Readability Review Gate
+
+on:
+  push:
+    branches:
+      - review/notification-readability-20261029
+    paths:
+      - 'assets/js/communication-engine.js'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/notification-feature-flags.js'
+      - 'assets/css/member-dashboard-readability-v2.css'
+      - 'account-settings/**'
+      - 'member-dashboard/**'
+      - 'direct-messages/**'
+      - 'netlify/functions/push-public-key.mjs'
+      - 'netlify/functions/process-push-outbox.mjs'
+      - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'sw.js'
+      - 'supabase/member-email-notifications.sql'
+      - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
+      - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
+      - 'tests/**'
+      - 'scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-os-production-preflight.READ-ONLY.review.sql'
+      - 'scripts/security/agent-os-postcutover-verify.READ-ONLY.review.sql'
+      - 'tests/notification-email-opt-in-cutover-review.test.mjs'
+      - 'tests/production-cutover-review.test.mjs'
+      - 'docs/agent-os-production-cutover-20261029.md'
+      - '.github/workflows/notification-readability-review-gate.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'assets/js/communication-engine.js'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/notification-feature-flags.js'
+      - 'assets/css/member-dashboard-readability-v2.css'
+      - 'account-settings/**'
+      - 'member-dashboard/**'
+      - 'direct-messages/**'
+      - 'netlify/functions/push-public-key.mjs'
+      - 'netlify/functions/process-push-outbox.mjs'
+      - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/check-agent-release-gates.mjs'
+      - 'sw.js'
+      - 'supabase/member-email-notifications.sql'
+      - 'scripts/security/notification-read-state.DO-NOT-RUN.review.sql'
+      - 'scripts/security/web-push-foundation.DO-NOT-RUN.review.sql'
+      - 'tests/**'
+      - '.github/workflows/notification-readability-review-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify Agent OS notification and readability review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify npm lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: JavaScript syntax
+        run: |
+          node --check assets/js/communication-engine.js
+          node --check assets/js/account-settings.js
+          node --check assets/js/member-dashboard.js
+          node --check assets/js/direct-messages.js
+          node --check assets/js/notification-feature-flags.js
+          node --check scripts/check-agent-release-gates.mjs
+          node --check sw.js
+          node --check netlify/functions/push-public-key.mjs
+          node --check netlify/functions/process-push-outbox.mjs
+          node --check netlify/functions/scheduled-push-outbox.mjs
+      - name: Targeted notification regression
+        run: |
+          node --test tests/notification-push-readability-review.test.mjs
+          node --test tests/web-push-foundation-review.test.mjs
+          node --test tests/agent-notification-meet-isolation-runtime.test.mjs
+          node --test tests/security-email-outbox-privilege-gate.test.mjs
+          node --test tests/notification-rpc-hardening-review.test.mjs
+      - name: Full Node regression suite
+        shell: bash
+        run: |
+          shopt -s nullglob
+          tests=(tests/*.test.mjs)
+          if (( ${#tests[@]} == 0 )); then
+            echo "No Node tests found" >&2
+            exit 1
+          fi
+          node --test "${tests[@]}"
+      - name: Assert production SQL remains gated
+        shell: bash
+        run: |
+          grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/web-push-foundation.DO-NOT-RUN.review.sql
+          if grep -R --line-number -E '^[[:space:]]+(supabase db|psql .*notification-read-state|psql .*web-push-foundation|apply_migration)' .github/workflows; then
+            echo "Production database mutation command found in review workflow" >&2
+            exit 1
+          fi

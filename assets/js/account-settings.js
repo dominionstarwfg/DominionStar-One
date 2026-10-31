@@ -30,6 +30,7 @@
    return;
  }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
+ await window.CommunicationEngine?.init?.({client:db,session}).catch(()=>{});
  const tabs=[...document.querySelectorAll('[data-settings-tab]')];
  tabs.forEach(b=>b.onclick=()=>{
    tabs.forEach(x=>x.classList.toggle('active',x===b));
@@ -40,7 +41,7 @@
  const initialTab=location.hash.slice(1);
  tabs.find(t=>t.dataset.settingsTab===initialTab)?.click();
  let settings=session.user.user_metadata?.dominionstar_settings||{};
- const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:true,community:true,appointments:true,browser:false,sound:true}};
+ const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:false,community:false,appointments:true,browser:false,sound:true}};
  const state={appearance:{...defaults.appearance,...settings.appearance},privacy:{...defaults.privacy,...settings.privacy},notifications:{...defaults.notifications,...settings.notifications}};
  try{const r=await db.from('notification_preferences').select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled').eq('user_id',session.user.id).maybeSingle();if(r.data)Object.assign(state.notifications,{emailEnabled:r.data.email_enabled,announcements:r.data.announcements_email_enabled,messages:r.data.messages_email_enabled,community:r.data.community_email_enabled,appointments:r.data.appointments_email_enabled})}catch(_){}
  state.notifications.browser=localStorage.getItem('ds_browser_notifications')==='on';state.notifications.sound=localStorage.getItem('ds_comm_sounds')!=='off';$('theme').value=state.appearance.theme;$('textSize').value=state.appearance.textSize;
@@ -111,7 +112,39 @@
  const toggle=(section,result)=>(input,key)=>{const before=!input.checked;state[section][key]=input.checked;saveMetadata(section,{...state[section]},result).then(ok=>{if(!ok){input.checked=before;state[section][key]=before}})};
  row('systemSwitches','reduceMotion','Reduce motion','Limit non-essential animation.',state.appearance.reduceMotion,toggle('appearance','systemResult'));
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
- [['emailEnabled','Email delivery','Use my verified email for selected alerts.'],['announcements','Founder announcements','Official platform announcements.'],['appointments','Appointment reminders','Reminders for scheduled appointments.'],['browser','Browser alerts','Show alerts on this device.'],['sound','Notification sounds','Play a sound for priority notifications.']].forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{const before=!i.checked;if(k==='browser'&&i.checked){const permission=await window.CommunicationEngine?.requestPermission?.();if(permission!=='granted'){i.checked=false;status('notificationsResult','Browser permission was not granted.','error');return}}state.notifications[k]=i.checked;if(!await saveNotification()){i.checked=before;state.notifications[k]=before}}));
+ const webPushReady=window.DOMINIONSTAR_NOTIFICATION_FEATURES?.webPush===true;
+ const notificationRows=[
+   ['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],
+   ['announcements','Founder & critical announcements','Email important official platform announcements.'],
+   ['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],
+   ['browser',webPushReady?'Push notifications':'Browser alerts',webPushReady?'Show DominionStar system notifications on this device, including when the dashboard is closed.':'Show system alerts on this device while DominionStar is open.'],
+   ['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']
+ ];
+ notificationRows.forEach(x=>row('notificationSwitches',...x,state.notifications[x[0]],async(i,k)=>{
+   const before=!i.checked;
+   try{
+     if(k==='browser'){
+       if(i.checked){
+         const permission=await window.CommunicationEngine?.requestPermission?.();
+         if(permission!=='granted')throw new Error('Browser notification permission was not granted.');
+         if(webPushReady){
+           const push=await window.CommunicationEngine?.enablePushSubscription?.();
+           if(push?.status!=='subscribed')throw new Error('This device could not register for push notifications.');
+         }
+       }else{
+         await window.CommunicationEngine?.disablePushSubscription?.();
+       }
+     }
+     state.notifications[k]=i.checked;
+     if(!await saveNotification())throw new Error('Notification preference verification failed.');
+   }catch(error){
+     i.checked=before;
+     state.notifications[k]=before;
+     if(k==='browser'&&before)await window.CommunicationEngine?.enablePushSubscription?.().catch(()=>{});
+     if(k==='browser'&&!before)await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});
+     status('notificationsResult',error?.message||'Could not update notifications.','error');
+   }
+ }));
  [['directoryVisible','Member directory','Show my approved profile in the member directory.'],['onlineVisible','Online presence','Let approved members see when I am online.'],['allowMessages','Member messages','Allow approved members to message me.']].forEach(x=>row('privacySwitches',...x,state.privacy[x[0]],toggle('privacy','securityResult')));
  const saveAppearance=async()=>{
    const before={...state.appearance};
@@ -129,5 +162,5 @@
  };
  $('theme').onchange=saveAppearance;
  $('textSize').onchange=saveAppearance;
- $('testSound').onclick=()=>window.CommunicationEngine?.play?.('priority');$('passwordForm').onsubmit=async e=>{e.preventDefault();if($('newPassword').value!==$('confirmPassword').value){status('securityResult','Passwords do not match.','error');return}status('securityResult','Updating password…','saving');const r=await db.auth.updateUser({password:$('newPassword').value});status('securityResult',r.error?r.error.message:'Password updated ✓',r.error?'error':'saved');if(!r.error)e.target.reset()};$('signOutOtherSessions').onclick=async()=>{status('sessionsResult','Signing out…','saving');const r=await db.auth.signOut({scope:'global'});if(r.error)status('sessionsResult',r.error.message,'error');else location.href='/member-login/'};
+ $('testSound').onclick=()=>window.CommunicationEngine?.play?.('priority');$('passwordForm').onsubmit=async e=>{e.preventDefault();if($('newPassword').value!==$('confirmPassword').value){status('securityResult','Passwords do not match.','error');return}status('securityResult','Updating password…','saving');const r=await db.auth.updateUser({password:$('newPassword').value});status('securityResult',r.error?r.error.message:'Password updated ✓',r.error?'error':'saved');if(!r.error)e.target.reset()};$('signOutOtherSessions').onclick=async()=>{status('sessionsResult','Signing out…','saving');await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});const r=await db.auth.signOut({scope:'global'});if(r.error)status('sessionsResult',r.error.message,'error');else location.href='/member-login/'};
 })();

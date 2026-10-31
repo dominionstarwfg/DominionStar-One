@@ -150,9 +150,29 @@
       return null;
     }
 
-    renderHealth(result.data);
+    const payload={...result.data,checks:{...(result.data?.checks||{})}};
+    if(Object.prototype.hasOwnProperty.call(payload.checks,'notifications')){
+      payload.checks.legacy_member_notifications=payload.checks.notifications;
+      delete payload.checks.notifications;
+    }
+
+    const [executiveEvents,notificationPreferences]=await Promise.all([
+      client.from('executive_events').select('id',{count:'exact',head:true}),
+      client.from('notification_preferences').select('user_id',{count:'exact',head:true})
+    ]);
+    payload.checks.executive_notifications=!executiveEvents.error;
+    payload.checks.notification_preferences=!notificationPreferences.error;
+
+    const values=Object.values(payload.checks);
+    const passed=values.filter(Boolean).length;
+    payload.total=values.length;
+    payload.passed=passed;
+    payload.score=Math.round((passed/Math.max(values.length,1))*100);
+    payload.status=payload.score===100?'healthy':payload.score>=80?'warning':'critical';
+
+    renderHealth(payload);
     await loadActivity();
-    return result.data;
+    return payload;
   }
 
   byId('runSelfTest').addEventListener('click', runSelfTest);

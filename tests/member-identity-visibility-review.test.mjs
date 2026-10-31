@@ -6,7 +6,7 @@ const dashboard=read('member-dashboard/index.html');
 const dashboardJs=read('assets/js/member-dashboard.js');
 const community=read('community/index.html');
 const communityJs=read('assets/js/community-hub.js');
-const social=read('assets/js/dashboard-social-2030.js');
+const social=read('assets/js/dashboard-social.js');
 test('Verified dashboard identity has greeting, name, profile image and contract level in top bar and hero',()=>{
  for(const id of ['heroMemberName','heroProfileAvatar','heroProfileInitials','heroContractLevel','heroFoundingBadge','topbarMemberName','dashboardAvatar','dashboardAvatarInitials','topbarContractLevel','topbarFoundingBadge']){
    assert.ok(dashboard.includes('id="'+id+'"'),id+' missing');

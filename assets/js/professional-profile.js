@@ -45,7 +45,7 @@
 
   function renderProfile() {
     const displayName = profile.full_name || session.user.user_metadata?.full_name || session.user.email;
-    const email = profile.email || session.user.email || '';
+    const email = session.user.email || profile.email || '';
 
     setText('profileDisplayName', displayName);
     setText('profileDisplayRank', profile.rank || 'TA');
@@ -125,7 +125,7 @@
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    show('Saving changes…', 'info');
+    show('Saving profile changes…', 'info');
 
     const file = photoInput.files[0];
     let avatarPath = currentAvatarPath;
@@ -155,19 +155,11 @@
     }
 
     const requestedEmail = form.email.value.trim().toLowerCase();
-    const currentEmail = session.user.email?.toLowerCase();
+    const currentEmail = session.user.email?.toLowerCase() || '';
 
-    if (requestedEmail && requestedEmail !== currentEmail) {
-      const emailUpdate = await supabase.auth.updateUser({ email: requestedEmail });
-      if (emailUpdate.error) {
-        if (file && avatarPath !== previousPath) {
-          await supabase.storage.from('member-avatars').remove([avatarPath]);
-        }
-        show(`Email change failed: ${emailUpdate.error.message}`, 'error');
-        return;
-      }
-    }
-
+    // Save the profile record first. Email authentication is a separate
+    // confirmation workflow and must not be allowed to partially precede a
+    // failed contact/profile update.
     const update = await supabase.rpc('update_own_contact_profile', {
       new_full_name: form.full_name.value,
       new_phone: form.phone.value,
@@ -199,11 +191,21 @@
     await loadAvatar(currentAvatarPath);
     renderProfile();
 
-    show(
-      requestedEmail !== currentEmail
-        ? 'Profile saved. Check your email to confirm the address change.'
-        : 'Profile changes saved.',
-      'success'
-    );
+    if (requestedEmail && requestedEmail !== currentEmail) {
+      show('Profile saved. Requesting the email change…', 'info');
+      const emailUpdate = await supabase.auth.updateUser({ email: requestedEmail });
+      if (emailUpdate.error) {
+        show(
+          `Profile saved, but the email change could not be started: ${emailUpdate.error.message}`,
+          'warning'
+        );
+        return;
+      }
+      show('Profile saved. Check your email to confirm the address change.', 'success');
+      return;
+    }
+
+    show('Profile changes saved.', 'success');
   });
+
 })();

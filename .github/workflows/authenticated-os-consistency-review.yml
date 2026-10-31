@@ -1,0 +1,193 @@
+name: DominionStar — Authenticated OS Consistency Gate
+
+on:
+  push:
+    branches:
+      - review/notification-readability-20261029
+    paths:
+      - 'member-dashboard/**'
+      - 'professional-profile/**'
+      - 'account-settings/**'
+      - 'direct-messages/**'
+      - 'community/**'
+      - 'community-chat/**'
+      - 'community-center/**'
+      - 'appointments/**'
+      - 'member-directory/**'
+      - 'recognition/**'
+      - 'notifications/**'
+      - 'digital-card/**'
+      - 'mindset-center/**'
+      - 'agent-journey/**'
+      - 'agent-learning/**'
+      - 'founder-control/**'
+      - 'founder-dashboard/**'
+      - 'founder-appointments/**'
+      - 'founder-email/**'
+      - 'qa-center/**'
+      - 'release-check/**'
+      - 'founder-features/**'
+      - 'founder-diagnostics/**'
+      - 'workspace/**'
+      - 'assets/css/dominionstar-auth-os-v2.css'
+      - 'assets/css/dominionstar-agent-nav-shell.css'
+      - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/agent-journey.js'
+      - 'assets/js/agent-learning.js'
+      - 'assets/js/agent-tool-gate.js'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/release-check.js'
+      - 'assets/js/founder-control.js'
+      - 'assets/js/community-chat.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/qa-center.js'
+      - 'assets/js/founder-diagnostics.js'
+      - 'netlify/functions/founder-data.mjs'
+      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/founder-os-integrity-review.test.mjs'
+      - 'tests/workspace-retirement-review.test.mjs'
+      - 'tests/direct-message-integrity-review.test.mjs'
+      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
+      - '_headers'
+      - 'scripts/security/communication-call-lifecycle.DO-NOT-RUN.review.sql'
+      - 'tests/communication-call-lifecycle-review.test.mjs'
+      - 'assets/js/global-call-manager.js'
+      - 'scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-os-production-preflight.READ-ONLY.review.sql'
+      - 'scripts/security/agent-os-postcutover-verify.READ-ONLY.review.sql'
+      - 'tests/notification-email-opt-in-cutover-review.test.mjs'
+      - 'tests/production-cutover-review.test.mjs'
+      - 'docs/agent-os-production-cutover-20261029.md'
+      - 'scripts/security/agent-os-emergency-compatibility-rollback.DO-NOT-RUN.review.sql'
+      - 'docs/agent-os-cutover-manifest-20261030.md'
+      - 'tests/cutover-manifest-integrity-review.test.mjs'
+      - 'scripts/security/agent-os-emergency-rollback-preflight.READ-ONLY.review.sql'
+      - 'scripts/github/apply-main-release-protection.sh'
+      - 'scripts/github/verify-main-release-protection.sh'
+      - 'tests/main-branch-release-protection-review.test.mjs'
+      - 'docs/main-branch-release-protection.md'
+      - '.github/workflows/authenticated-os-consistency-review.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'member-dashboard/**'
+      - 'professional-profile/**'
+      - 'account-settings/**'
+      - 'direct-messages/**'
+      - 'community/**'
+      - 'community-chat/**'
+      - 'community-center/**'
+      - 'appointments/**'
+      - 'member-directory/**'
+      - 'recognition/**'
+      - 'notifications/**'
+      - 'digital-card/**'
+      - 'mindset-center/**'
+      - 'agent-journey/**'
+      - 'agent-learning/**'
+      - 'founder-control/**'
+      - 'founder-dashboard/**'
+      - 'founder-appointments/**'
+      - 'founder-email/**'
+      - 'qa-center/**'
+      - 'release-check/**'
+      - 'founder-features/**'
+      - 'founder-diagnostics/**'
+      - 'workspace/**'
+      - 'assets/css/dominionstar-auth-os-v2.css'
+      - 'assets/css/dominionstar-agent-nav-shell.css'
+      - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
+      - 'assets/js/member-dashboard.js'
+      - 'assets/js/agent-journey.js'
+      - 'assets/js/agent-learning.js'
+      - 'assets/js/agent-tool-gate.js'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/release-check.js'
+      - 'assets/js/founder-control.js'
+      - 'assets/js/community-chat.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/qa-center.js'
+      - 'assets/js/founder-diagnostics.js'
+      - 'netlify/functions/founder-data.mjs'
+      - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/founder-os-integrity-review.test.mjs'
+      - 'tests/workspace-retirement-review.test.mjs'
+      - 'tests/direct-message-integrity-review.test.mjs'
+      - 'tests/agent-founder-rpc-hardening-review.test.mjs'
+      - '_headers'
+      - '.github/workflows/authenticated-os-consistency-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify authenticated Agent and Founder OS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript syntax
+        run: |
+          node --check assets/js/dominionstar-agent-nav-shell.js
+          node --check assets/js/dominionstar-os.js
+          node --check assets/js/member-dashboard.js
+          node --check assets/js/agent-journey.js
+          node --check assets/js/agent-learning.js
+          node --check assets/js/agent-tool-gate.js
+          node --check assets/js/notifications-center.js
+          node --check assets/js/release-check.js
+          node --check assets/js/founder-control.js
+          node --check assets/js/community-chat.js
+          node --check assets/js/direct-messages.js
+          node --check assets/js/global-call-manager.js
+          node --check assets/js/professional-profile.js
+          node --check assets/js/qa-center.js
+          node --check assets/js/founder-diagnostics.js
+          node --check founder-dashboard/founder-dashboard.js
+          node --check netlify/functions/founder-data.mjs
+
+      - name: Authenticated OS regressions
+        run: |
+          node --test tests/authenticated-os-consistency-review.test.mjs
+          node --test tests/founder-os-integrity-review.test.mjs
+          node --test tests/workspace-retirement-review.test.mjs
+          node --test tests/direct-message-integrity-review.test.mjs
+          node --test tests/agent-founder-rpc-hardening-review.test.mjs
+          node --test tests/communication-call-lifecycle-review.test.mjs
+          node --test tests/notification-email-opt-in-cutover-review.test.mjs
+          node --test tests/production-cutover-review.test.mjs
+          node --test tests/cutover-manifest-integrity-review.test.mjs
+          node --test tests/main-branch-release-protection-review.test.mjs
+
+      - name: Notification compatibility regression
+        run: |
+          node --test tests/notification-push-readability-review.test.mjs
+          node --test tests/web-push-foundation-review.test.mjs
+          node --test tests/notification-rpc-hardening-review.test.mjs
+
+      - name: Review SQL remains inert
+        run: |
+          grep -Fq 'DO NOT RUN' scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/notification-email-opt-in-reset.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/agent-os-emergency-compatibility-rollback.DO-NOT-RUN.review.sql
+          if grep -nE '^[[:space:]]+(netlify deploy --prod|supabase db push|apply_migration|psql )' .github/workflows/authenticated-os-consistency-review.yml; then
+            echo "Production mutation command found in review workflow" >&2
+            exit 1
+          fi

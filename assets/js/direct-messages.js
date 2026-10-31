@@ -166,6 +166,7 @@
   let screenStream = null;
   let originalVideoTrack = null;
   let callPartnerId = '';
+  let activeCallRecordId = '';
   let callStartedAt = 0;
   let incomingCallTimer = null;
   let outgoingCallTimer = null;
@@ -192,6 +193,47 @@
     } catch {}
   };
 
+
+  const missingRpc = error => {
+    const code=String(error?.code||'');
+    const message=String(error?.message||'').toLowerCase();
+    return code==='PGRST202' || message.includes('could not find the function') || message.includes('function')&&message.includes('schema cache');
+  };
+
+  const startTrustedCallRecord = async (memberId, callType) => {
+    const result=await client.rpc('start_my_communication_call',{
+      target_recipient_id:memberId,
+      target_call_type:callType
+    });
+    if(result.error){
+      if(missingRpc(result.error))return '';
+      throw result.error;
+    }
+    return typeof result.data==='string' ? result.data : '';
+  };
+
+  const answerTrustedCallRecord = async callId => {
+    if(!callId)return null;
+    const result=await client.rpc('answer_my_communication_call',{target_call_id:callId});
+    if(result.error){
+      if(missingRpc(result.error))return null;
+      throw result.error;
+    }
+    return Boolean(result.data);
+  };
+
+  const finishTrustedCallRecord = async (callId,outcome) => {
+    if(!callId)return null;
+    const result=await client.rpc('finish_my_communication_call',{
+      target_call_id:callId,
+      target_outcome:outcome
+    });
+    if(result.error){
+      if(missingRpc(result.error))return null;
+      throw result.error;
+    }
+    return Boolean(result.data);
+  };
 
   const showCallToast = (title, detail) => {
     if (!callToastRegion) return;
@@ -220,28 +262,62 @@
     }
   };
 
-  const recordMissedCall = async (memberId, callType, direction = 'incoming') => {
+  const recordCallOutcome = async (
+    memberId,
+    callType,
+    direction='incoming',
+    outcome='missed',
+    callId=activeCallRecordId
+  ) => {
     const member = members.find(item => item.id === memberId);
     const name = member?.display_name || 'DominionStar member';
     const label = callType === 'video' ? 'video call' : 'audio call';
-    const body = direction === 'incoming'
+    const missedBody = direction === 'incoming'
       ? `Missed ${label} from ${name}`
       : `${name} did not answer your ${label}`;
+    const declinedBody = direction === 'incoming'
+      ? `You declined the ${label} from ${name}`
+      : `${name} declined your ${label}`;
+    const body = outcome === 'declined' ? declinedBody : missedBody;
+    const title = outcome === 'declined' ? 'Call declined' : 'Missed call';
 
+    let trusted = null;
     try {
-      await client.from('direct_messages').insert({
-        sender_id:direction === 'incoming' ? memberId : session.user.id,
-        recipient_id:direction === 'incoming' ? session.user.id : memberId,
-        body:`[call-event]missed|${callType}|${body}`
-      });
+      trusted = await finishTrustedCallRecord(callId,outcome);
     } catch (error) {
-      console.warn('Missed call message could not be stored:', error);
+      console.warn('Trusted call outcome could not be stored:', error);
     }
 
-    await publishCallEvent('call.missed', memberId, callType, 'Missed call', body);
-    showCallToast('Missed call', body);
+    // Pre-migration fallback: a caller may still write their own call-event
+    // message. Never impersonate the remote caller for an incoming call.
+    if(trusted===null && direction==='outgoing'){
+      try {
+        const result=await client.from('direct_messages').insert({
+          sender_id:session.user.id,
+          recipient_id:memberId,
+          body:`[call-event]${outcome}|${callType}|${body}`
+        });
+        if(result.error)throw result.error;
+      } catch (error) {
+        console.warn('Fallback call history could not be stored:', error);
+      }
+      await publishCallEvent(
+        outcome==='declined'?'call.declined':'call.missed',
+        memberId,callType,title,body
+      );
+    }else if(trusted===null){
+      // Incoming fallback remains visual/local only. The old implementation
+      // attempted sender_id=memberId from this browser, which RLS rejects and
+      // would be impersonation if it were ever allowed.
+      await publishCallEvent(
+        outcome==='declined'?'call.declined':'call.missed',
+        memberId,callType,title,body
+      );
+    }
 
-    if ('Notification' in window && Notification.permission === 'granted') {
+    showCallToast(title,body);
+
+    if ('Notification' in window && Notification.permission === 'granted' && outcome==='missed') {
       new Notification('Missed DominionStar call', {
         body,
         icon:'/assets/logo.jpeg'
@@ -529,12 +605,16 @@
 
     await loadMessageExtras((result.data || []).map(message => message.id));
     renderMessages(result.data || []);
-    await client
-      .from('direct_messages')
-      .update({read_at:new Date().toISOString()})
-      .eq('sender_id',activeMemberId)
-      .eq('recipient_id',session.user.id)
-      .is('read_at',null);
+    const readResult=await client.rpc('mark_my_direct_messages_read',{
+      target_other_member_id:activeMemberId
+    });
+    if(readResult.error&&missingRpc(readResult.error)){
+      await client.from('direct_messages')
+        .update({read_at:new Date().toISOString()})
+        .eq('sender_id',activeMemberId)
+        .eq('recipient_id',session.user.id)
+        .is('read_at',null);
+    }
 
     await loadConversationSummaries();
     renderMembers(search?.value);
@@ -606,10 +686,16 @@
     if (action === 'edit') {
       const updatedBody = prompt('Edit your message:',selectedMessage.body);
       if (updatedBody && updatedBody.trim() && updatedBody.trim() !== selectedMessage.body) {
-        const result = await client.from('direct_messages')
-          .update({body:updatedBody.trim()})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
+        let result = await client.rpc('edit_my_direct_message',{
+          target_message_id:selectedMessage.id,
+          target_body:updatedBody.trim()
+        });
+        if(result.error&&missingRpc(result.error)){
+          result=await client.from('direct_messages')
+            .update({body:updatedBody.trim(),updated_at:new Date().toISOString()})
+            .eq('id',selectedMessage.id)
+            .eq('sender_id',session.user.id);
+        }
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message updated ✓');
@@ -619,10 +705,15 @@
     }
     if (action === 'delete') {
       if (confirm('Delete this message for everyone?')) {
-        const result = await client.from('direct_messages')
-          .update({is_deleted:true})
-          .eq('id',selectedMessage.id)
-          .eq('sender_id',session.user.id);
+        let result = await client.rpc('delete_my_direct_message',{
+          target_message_id:selectedMessage.id
+        });
+        if(result.error&&missingRpc(result.error)){
+          result=await client.from('direct_messages')
+            .update({is_deleted:true,updated_at:new Date().toISOString()})
+            .eq('id',selectedMessage.id)
+            .eq('sender_id',session.user.id);
+        }
         if (result.error) setSendStatus(result.error.message,'error');
         else {
           setSendStatus('Message deleted');
@@ -839,7 +930,13 @@
       incomingCall.setAttribute('aria-hidden','true');
       window.CommunicationEngine?.stopAll();
       window.CommunicationEngine?.play('missed_call');
-      await recordMissedCall(ringingOffer.from, ringingOffer.callType || 'audio', 'incoming');
+      await recordCallOutcome(
+        ringingOffer.from,
+        ringingOffer.callType || 'audio',
+        'incoming',
+        'missed',
+        ringingOffer.callId || ''
+      );
     }, 30000);
   };
 
@@ -912,14 +1009,18 @@
 
       if (payload.type === 'hangup') {
         if (!peerConnection && dismissIncomingCallOffer(payload.from)) return;
-        if (!activeCallAnswered && peerConnection && callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
+        if (!activeCallAnswered && peerConnection && callPartnerId) {
+          await recordCallOutcome(callPartnerId,activeCallType,'outgoing','missed',activeCallRecordId);
+        }
         await endActiveCall(false);
       }
       if (payload.type === 'decline') {
         window.CommunicationEngine?.stopAll();
         window.CommunicationEngine?.play('call_declined');
         updateCallStatus('Call declined');
-        if (callPartnerId) await recordMissedCall(callPartnerId, activeCallType, 'outgoing');
+        if (callPartnerId) {
+          await recordCallOutcome(callPartnerId,activeCallType,'outgoing','declined',activeCallRecordId);
+        }
         setTimeout(() => endActiveCall(false), 900);
       }
     });
@@ -1061,7 +1162,13 @@
       activeCallAnswered = false;
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      await sendCallSignal({type:'offer', description:offer, callType});
+      activeCallRecordId=await startTrustedCallRecord(dialedMember,callType);
+      await sendCallSignal({
+        type:'offer',
+        description:offer,
+        callType,
+        callId:activeCallRecordId || undefined
+      });
       // Keep the connection identity: a previous timeout must never end a
       // newer call to the same agent after a rapid redial.
       const dialedPeer = peerConnection;
@@ -1069,7 +1176,7 @@
       outgoingCallTimer = setTimeout(async () => {
         if (!dialedPeer || peerConnection !== dialedPeer || activeCallAnswered || callPartnerId !== dialedMember) return;
         outgoingCallTimer = null;
-        await recordMissedCall(dialedMember, callType, 'outgoing');
+        await recordCallOutcome(dialedMember,callType,'outgoing','missed',activeCallRecordId);
         await sendCallSignal({type:'hangup'});
         await endActiveCall(false);
       }, 30000);
@@ -1100,6 +1207,7 @@
       await ensureCallChannel(callerId);
       if (pendingOffer !== acceptedOffer) return;
       activeCallType = acceptedOffer.callType || 'audio';
+      activeCallRecordId = acceptedOffer.callId || '';
 
       const requestedStream = await navigator.mediaDevices.getUserMedia({
         audio:true,
@@ -1122,7 +1230,12 @@
       if (pendingOffer !== acceptedOffer) { await endActiveCall(false); return; }
       showCallOverlay(caller, activeCallType);
       updateCallStatus('Connecting…');
-      await sendCallSignal({type:'answer', description:answer});
+      await sendCallSignal({
+        type:'answer',
+        description:answer,
+        callId:activeCallRecordId || undefined
+      });
+      await answerTrustedCallRecord(activeCallRecordId);
       incomingCall.classList.add('member-hidden');
       pendingOffer = null;
     } catch (error) {
@@ -1138,6 +1251,12 @@
   };
 
   const endActiveCall = async notify => {
+    const endingCallId=activeCallRecordId;
+    const endingOutcome=activeCallAnswered ? 'ended' : (notify ? 'cancelled' : '');
+    if(endingCallId && endingOutcome){
+      try { await finishTrustedCallRecord(endingCallId,endingOutcome); }
+      catch(error){ console.warn('Call finalization failed:',error); }
+    }
     clearTimeout(incomingCallTimer);
     incomingCallTimer = null;
     clearTimeout(outgoingCallTimer);
@@ -1161,6 +1280,7 @@
     callDurationTimer = null;
     callStartedAt = 0;
     activeCallAnswered = false;
+    activeCallRecordId = '';
     callMinimized = false;
     activeCallBar?.classList.add('member-hidden');
     activeCallBar?.setAttribute('aria-hidden','true');
@@ -1237,7 +1357,13 @@
       const declinedOffer = pendingOffer;
       await ensureCallChannel(declinedOffer.from);
       await sendCallSignal({type:'decline'});
-      await recordMissedCall(declinedOffer.from, declinedOffer.callType || 'audio', 'incoming');
+      await recordCallOutcome(
+        declinedOffer.from,
+        declinedOffer.callType || 'audio',
+        'incoming',
+        'declined',
+        declinedOffer.callId || ''
+      );
     }
     incomingCall.classList.add('member-hidden');
     incomingCall.setAttribute('aria-hidden','true');
@@ -1311,15 +1437,20 @@
     window.CommunicationEngine?.play('message_sent');
     setSendStatus('Message sent ✓');
 
-    if (window.ExecutiveCore) {
+    // Until the coordinated production database release is complete, retain
+    // the current browser-authored event path. The trusted database trigger
+    // replaces this block only when the release flag is explicitly enabled.
+    if (window.DOMINIONSTAR_NOTIFICATION_FEATURES?.trustedMessageEvents !== true && window.ExecutiveCore) {
       try {
-        const recipient = members.find(member => member.id === activeMemberId);
-        const senderName = session.user.user_metadata?.display_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'a DominionStar member';
+        const senderName=session.user.user_metadata?.display_name ||
+          session.user.user_metadata?.full_name ||
+          session.user.email?.split('@')[0] ||
+          'a DominionStar member';
         await window.ExecutiveCore.publish('message.received', {
           member_id:activeMemberId,
           actor_id:session.user.id,
           title:`New message from ${senderName}`,
-          description:String(body).replace(/^\[reply\][\s\S]*?\n---\n/, '').slice(0, 180),
+          description:String(body).replace(/^\[reply\][\s\S]*?\n---\n/, '').slice(0,180),
           payload:{
             sender_id:session.user.id,
             conversation_member_id:session.user.id,
@@ -1327,7 +1458,7 @@
           }
         });
       } catch (error) {
-        console.warn('Executive event publish failed:', error);
+        console.warn('Executive event publish failed:',error);
       }
     }
 

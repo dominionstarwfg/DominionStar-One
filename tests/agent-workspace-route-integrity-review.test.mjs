@@ -98,14 +98,17 @@ test('Dashboard does not visibly label itself with an unsupported year',()=>{
 });
 
 
-test('Journey roadmap is not intercepted by a stale public Opportunity redirect',()=>{
+test('Public Journey remains public while the dashboard uses the authenticated Agent Journey',()=>{
   const redirects=read('_redirects');
   const build=read('scripts/build-public-netlify.sh');
   assert.match(redirects,/^\/journey \/journey\/ 301!/m);
   assert.doesNotMatch(redirects,/^\/journey\/\s+\/opportunity\//m);
   assert.doesNotMatch(redirects,/^\/journey\s+\/opportunity\//m);
   assert.match(read('journey/index.html'),/The DominionStar Journey/);
-  assert.match(read('member-dashboard/index.html'),/href="\/journey\/">Continue Journey/);
+  assert.match(read('agent-journey/index.html'),/id="agentJourneyApp"/);
+  const dashboard=read('member-dashboard/index.html');
+  assert.match(dashboard,/href="\/agent-journey\/">Continue Journey/);
+  assert.doesNotMatch(dashboard,/href="\/journey\/">Continue Journey/);
   assert.match(build,/test -s "\$DIST\/journey\/index\.html"/);
 });
 

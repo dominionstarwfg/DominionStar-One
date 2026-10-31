@@ -56,6 +56,18 @@
     });
   });
   document.getElementById('closeDsosAi')?.addEventListener('click', hideAll);
+
+  // Legacy Workspace Aurora links now land on the authoritative dashboard
+  // assistant rather than a second prototype assistant.
+  const launchParams=new URLSearchParams(location.search);
+  if(launchParams.get('open')==='aurora'){
+    setTimeout(()=>{
+      showPanel(aiPanel,null);
+      document.getElementById('dsosAiInput')?.focus();
+      history.replaceState(null,'',location.pathname+location.hash);
+    },0);
+  }
+
   backdrop?.addEventListener('click', hideAll);
   document.addEventListener('keydown', e => e.key === 'Escape' && hideAll());
 
@@ -64,7 +76,7 @@
     ['Messages','/direct-messages/','Private member conversations'],
     ['Meet','/meet/','Join a video meeting'],
     ['Community','/community/','Posts and announcements'],
-    ['Training','/academy/','Learning and development'],
+    ['Training','/agent-learning/#training','Learning and development'],
     ['Calendar','/appointments/','Appointments and meetings'],
     ['Team Members','/member-directory/','Connect with approved members'],
     ['Recognition','/recognition/','Member advancement announcements'],

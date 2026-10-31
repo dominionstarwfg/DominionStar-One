@@ -42,7 +42,7 @@
         ['Community comments',data.community_comments],
         ['Community chat',data.community_chat_messages],
         ['Appointments',data.member_appointments],
-        ['Notifications',data.member_notifications],
+        ['Legacy notification compatibility',data.member_notifications],
         ['Feature flags',data.feature_flags],
         ['Email outbox',data.email_outbox],
         ['Email settings',data.email_settings]
@@ -73,6 +73,24 @@
       document.getElementById('qaRealtime').textContent=String(data.realtime_table_count||0);
     }
 
+    const executiveNotifications=await client
+      .from('executive_events')
+      .select('id',{count:'exact',head:true});
+    checks.push({
+      name:'Executive notifications',
+      ok:!executiveNotifications.error,
+      detail:executiveNotifications.error?.message || `${executiveNotifications.count||0} events visible`
+    });
+
+    const notificationPreferences=await client
+      .from('notification_preferences')
+      .select('user_id',{count:'exact',head:true});
+    checks.push({
+      name:'Notification preferences',
+      ok:!notificationPreferences.error,
+      detail:notificationPreferences.error?.message || `${notificationPreferences.count||0} preference records visible`
+    });
+
     const relationships=await client.rpc('dominionstar_relationship_health');
     if(relationships.error){
       checks.push({
@@ -93,7 +111,7 @@
     const v65=await client.rpc('dominionstar_v65_health');
     if(v65.error){
       checks.push({
-        name:'V6.5 stable data layer',
+        name:'Legacy compatibility layer',
         ok:false,
         detail:v65.error.message
       });
@@ -143,9 +161,9 @@
     const evidence=[
       {name:'Identity and access',items:['Member profiles','Browser Supabase configuration','Current browser session']},
       {name:'Community and communication',items:['Community posts','Community comments','Community chat']},
-      {name:'Appointments and notifications',items:['Appointments','Notifications','Realtime publication']},
+      {name:'Appointments and notifications',items:['Appointments','Executive notifications','Notification preferences','Realtime publication']},
       {name:'Email delivery',items:['Email outbox','Email settings','Failed email deliveries']},
-      {name:'Data integrity',items:['Database relationships','V6.5 stable data layer']}
+      {name:'Data integrity',items:['Database relationships','Legacy compatibility layer']}
     ];
     verification.innerHTML=evidence.map(group=>{
       const related=checks.filter(check=>group.items.includes(check.name));
@@ -161,8 +179,35 @@
   document.getElementById('runQaChecks').addEventListener('click',runChecks);
 
   document.getElementById('testNotification').addEventListener('click',async()=>{
-    const r=await client.rpc('dominionstar_test_notification');
-    alert(r.error?r.error.message:'Test notification created. Open Notification Center to confirm it.');
+    const button=document.getElementById('testNotification');
+    button.disabled=true;
+    button.textContent='Creating test…';
+    try{
+      const created=await client.from('executive_events').insert({
+        event_type:'qa.notification_test',
+        member_id:session.user.id,
+        actor_id:session.user.id,
+        title:'DominionStar QA Test',
+        description:'The current Executive OS notification stream is working.',
+        payload:{action_url:'/notifications/',qa_test:true},
+        priority:'high'
+      }).select('id').single();
+      if(created.error)throw created.error;
+
+      const verify=await client.from('executive_events')
+        .select('id,event_type')
+        .eq('id',created.data.id)
+        .eq('member_id',session.user.id)
+        .maybeSingle();
+      if(verify.error||!verify.data)throw new Error('The QA notification could not be verified after creation.');
+
+      alert('Executive notification created and verified. Open Notification Center to confirm delivery.');
+    }catch(error){
+      alert(error?.message||'The Executive notification test failed.');
+    }finally{
+      button.disabled=false;
+      button.textContent='Create Test Notification';
+    }
   });
 
   await runChecks();

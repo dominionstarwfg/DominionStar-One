@@ -40,14 +40,19 @@
       profile.error?.message || `${profile.data?.full_name || 'Member'} · ${profile.data?.rank || 'TA'}`);
 
     const founder = await client.rpc('is_dominionstar_founder');
-    add('Founder permission check', !founder.error,
-      founder.error?.message || (founder.data ? 'Founder recognized.' : 'Standard member recognized.'));
+    add('Founder permission check', !founder.error && founder.data===true,
+      founder.error?.message || (founder.data ? 'Founder recognized.' : 'Founder access required.'));
+    if(founder.error || founder.data!==true){
+      rerun.disabled=true;
+      target.insertAdjacentHTML('beforeend','<article class="system-check-row fail"><strong>✕ Access restricted</strong><span>Release Check is available only in the Founder OS.</span></article>');
+      return;
+    }
 
     const modules = [
       ['Appointments','member_appointments'],
       ['Community posts','community_messages'],
       ['Community comments','community_comments'],
-      ['Notifications','member_notifications']
+      ['Executive notifications','executive_events']
     ];
 
     for (const [label, table] of modules) {

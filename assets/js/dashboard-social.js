@@ -1,4 +1,4 @@
-/* DominionStar Executive OS 2030 — authenticated, approved-member social actions.
+/* DominionStar Executive OS — authenticated, approved-member social actions.
  * Review branch only. Existing RPCs/table policies remain the security authority.
  */
 (() => {

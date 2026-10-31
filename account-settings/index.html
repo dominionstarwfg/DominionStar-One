@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-1">
   <link rel="stylesheet" href="/assets/css/account-google-identity-review.css?v=review-1">
   <link rel="stylesheet" href="/assets/css/agent-settings-boundary-review.css?v=review-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-auth-os-v2.css?v=review-1">
 </head>
   <body class="founder-body">
     <main class="member-dashboard settings-center">
@@ -81,6 +82,7 @@
             <section class="settings-panel" data-settings-panel="notifications">
               <p class="eyebrow">Notifications</p>
               <h2>Choose what reaches you</h2>
+              <p class="settings-panel-note">Push alerts can use a DominionStar sound. Email is reserved for the categories you choose rather than every platform notification.</p>
               <div id="notificationSwitches"></div>
               <button id="testSound" class="btn btn-outline" type="button">
                 Test notification sound
@@ -174,7 +176,8 @@
     <script src="/assets/js/supabase-config.js"></script>
     <script src="/assets/js/data-layer.js"></script>
     <script src="/assets/js/member-auth.js"></script>
-    <script src="/assets/js/communication-engine.js"></script>
+    <script src="/assets/js/notification-feature-flags.js?v=review-1"></script>
+<script src="/assets/js/communication-engine.js"></script>
     <script src="/assets/js/account-settings.js?v=2026.08.12-rc12.24.1"></script>
     <script src="/assets/js/member-login-google-flags.js?v=review-2"></script>
     <script src="/assets/js/account-google-identity-review.js?v=review-1"></script>

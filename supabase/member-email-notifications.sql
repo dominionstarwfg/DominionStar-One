@@ -8,20 +8,53 @@ create table if not exists public.notification_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   email_enabled boolean not null default true,
   announcements_email_enabled boolean not null default true,
-  messages_email_enabled boolean not null default true,
-  community_email_enabled boolean not null default true,
+  messages_email_enabled boolean not null default false,
+  community_email_enabled boolean not null default false,
   appointments_email_enabled boolean not null default true,
   meeting_room_email_enabled boolean not null default true,
   updated_at timestamptz not null default now()
 );
 alter table public.notification_preferences add column if not exists email_enabled boolean not null default true;
 alter table public.notification_preferences add column if not exists announcements_email_enabled boolean not null default true;
-alter table public.notification_preferences add column if not exists messages_email_enabled boolean not null default true;
-alter table public.notification_preferences add column if not exists community_email_enabled boolean not null default true;
+alter table public.notification_preferences add column if not exists messages_email_enabled boolean not null default false;
+alter table public.notification_preferences add column if not exists community_email_enabled boolean not null default false;
+alter table public.notification_preferences alter column messages_email_enabled set default false;
+alter table public.notification_preferences alter column community_email_enabled set default false;
 alter table public.notification_preferences add column if not exists appointments_email_enabled boolean not null default true;
 alter table public.notification_preferences add column if not exists meeting_room_email_enabled boolean not null default true;
 alter table public.notification_preferences add column if not exists updated_at timestamptz not null default now();
 alter table public.notification_preferences enable row level security;
+
+-- Read state is intentionally changed through a narrow RPC instead of granting
+-- members broad UPDATE access to executive_events. The function can change
+-- only read_at and only for the signed-in member's own rows.
+create or replace function public.mark_my_executive_notifications_read(
+  target_event_id uuid default null
+) returns integer
+language plpgsql
+security definer
+set search_path=public,auth
+as $
+declare
+  changed integer := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'Authenticated member required';
+  end if;
+
+  update public.executive_events
+     set read_at=coalesce(read_at,now())
+   where member_id=auth.uid()
+     and read_at is null
+     and (target_event_id is null or id=target_event_id);
+
+  get diagnostics changed = row_count;
+  return changed;
+end $;
+revoke execute on function public.mark_my_executive_notifications_read(uuid)
+  from PUBLIC, anon;
+grant execute on function public.mark_my_executive_notifications_read(uuid)
+  to authenticated;
 drop policy if exists "members read own notification preferences" on public.notification_preferences;
 create policy "members read own notification preferences" on public.notification_preferences for select to authenticated using (user_id=auth.uid());
 drop policy if exists "members create own notification preferences" on public.notification_preferences;
@@ -68,10 +101,10 @@ begin
   if found and not prefs.email_enabled then return new; end if;
   allowed := case
     when new.event_type like 'meeting.%' then coalesce(prefs.meeting_room_email_enabled,true)
-    when new.event_type like 'message.%' or new.event_type='call.missed' then coalesce(prefs.messages_email_enabled,true)
+    when new.event_type like 'message.%' or new.event_type='call.missed' then coalesce(prefs.messages_email_enabled,false)
     when new.event_type like 'appointment.%' then coalesce(prefs.appointments_email_enabled,true)
     when new.event_type like 'announcement.%' or new.event_type like 'founder.%' then coalesce(prefs.announcements_email_enabled,true)
-    when new.event_type like 'community.%' then coalesce(prefs.community_email_enabled,true)
+    when new.event_type like 'community.%' then coalesce(prefs.community_email_enabled,false)
     else new.priority in ('high','critical')
   end;
   if not allowed then return new; end if;

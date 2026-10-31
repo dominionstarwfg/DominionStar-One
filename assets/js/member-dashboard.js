@@ -230,7 +230,7 @@
   await supabase.rpc('ensure_default_milestones', { target_user_id: user.id });
   const { data: milestones } = await supabase
     .from('member_milestones')
-    .select('milestone_key,milestone_label,completed')
+    .select('milestone_key,title,completed')
     .eq('user_id', user.id)
     .order('milestone_key');
 
@@ -265,7 +265,7 @@
   }
 
   if (nextMilestone) {
-    const missionLabel = nextMilestone.milestone_label || 'Complete your next milestone';
+    const missionLabel = nextMilestone.title || 'Complete your next milestone';
     if (journeyCurrentMission) journeyCurrentMission.textContent = missionLabel;
     if (journeyMissionStatus) {
       journeyMissionStatus.textContent =
@@ -555,6 +555,17 @@
     if (dashboardSession) await window.CommunicationEngine?.init({client:supabase, session:dashboardSession});
   }
 
+  // Re-read the member's notification drawer after a live event arrives so
+  // the bell, unread count, preview, and drawer all agree without a refresh.
+  let notificationRefreshTimer;
+  window.addEventListener('dominionstar:notification', () => {
+    clearTimeout(notificationRefreshTimer);
+    notificationRefreshTimer=setTimeout(() => {
+      loadExecutiveActivity().catch(()=>{});
+    }, 120);
+  });
+  window.addEventListener('beforeunload',()=>clearTimeout(notificationRefreshTimer),{once:true});
+
   // Panel visibility is controlled exclusively by dominionstar-os.js.
   // Keeping a single controller prevents the backdrop from remaining visible
   // after another click handler accidentally hides the drawer.
@@ -563,11 +574,9 @@
     if (!item) return;
     const notificationId = item.dataset.notificationId;
     if (notificationId) {
-      await supabase
-        .from('executive_events')
-        .update({ read_at:new Date().toISOString() })
-        .eq('id', notificationId)
-        .eq('member_id', user.id);
+      await supabase.rpc('mark_my_executive_notifications_read',{
+        target_event_id:notificationId
+      });
     }
   });
 
@@ -577,18 +586,19 @@
       const button = document.getElementById('markNotificationsRead');
       button.disabled = true;
       button.textContent = 'Marking…';
-      await supabase
-        .from('executive_events')
-        .update({ read_at:new Date().toISOString() })
-        .eq('member_id', user.id)
-        .is('read_at', null);
+      await supabase.rpc('mark_my_executive_notifications_read',{
+        target_event_id:null
+      });
       button.disabled = false;
       button.textContent = 'Mark all read';
       await loadExecutiveActivity();
     }
   );
 
-  logout?.addEventListener('click', () => window.DSAuth.signOut());
+  logout?.addEventListener('click', async () => {
+    await window.CommunicationEngine?.disablePushSubscription?.().catch(()=>{});
+    await window.DSAuth.signOut();
+  });
 
   feedbackForm?.addEventListener('submit', async event => {
     event.preventDefault();
