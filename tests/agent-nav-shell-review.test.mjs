@@ -32,13 +32,17 @@ test('Member shell mounts only into authenticated app roots and never bypasses t
 
 test('Simple labels, SVGs and exact routes match executive approval',()=>{
  for(const [label,route] of [
-  ['Home','/member-dashboard/'],
+  ['Feed','/member-dashboard/'],
   ['Messages','/direct-messages/'],
   ['Meet','/meet/'],
+  ['Notifications','/notifications/'],
   ['Community','/community/'],
   ['Calendar','/appointments/'],
   ['Team Members','/member-directory/'],
   ['Recognition','/recognition/'],
+  ['My Journey','/agent-journey/'],
+  ['Learning','/agent-learning/'],
+  ['Aurora','/member-dashboard/?open=aurora'],
   ['My Profile','/professional-profile/'],
   ['Agent Settings','/account-settings/']
  ]){
