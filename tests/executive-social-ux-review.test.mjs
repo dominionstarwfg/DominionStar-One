@@ -58,7 +58,7 @@ test('Approved agents see one Feed stage without duplicated profile statistics',
   assert.ok(feedAt>0,'feed should be present');
   assert.doesNotMatch(dashboard,/class="dsos-profile-card"|class="dsos-metrics"|Quick actions|System status|Account health/);
   assert.match(dashboard,/id="dsosCommunitySection" class="[^"]*member-hidden"/);
-  assert.match(dashboard,/id="feedComposerForm"/);
+  assert.match(dashboard,/id="dsosSocialGateway"/);
   assert.match(dashboardScript,/status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);
   assert.match(dashboardScript,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
 });
