@@ -11,39 +11,42 @@ const os = read('assets/js/dominionstar-os.js');
 
 const htmlIds = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 
-test('Executive OS dashboard preserves core existing application hooks', () => {
+test('Executive OS Feed preserves only the hooks required by focused Home', () => {
   assert.equal(new Set(htmlIds).size, htmlIds.length, 'All IDs must remain unique');
   for (const hook of [
-    'dsosSidebar', 'dsosMenu', 'memberName', 'memberGreeting', 'heroGreeting',
-    'heroMemberName', 'founderControlLink', 'memberLogout', 'memberStatus',
-    'memberRank', 'memberEmail', 'memberAgentCode', 'journeyPercent',
-    'journeyProgressBar', 'dashboardIdentityName', 'dashboardNextAppointment',
-    'dashboardCommunityPreview', 'activityAnnouncements', 'activityMessages',
-    'activityNotifications', 'notificationBell', 'notificationPanel',
-    'notificationList', 'openNotificationsMetric', 'pendingMemberContent',
-    'approvedMemberContent', 'memberFeedbackForm', 'executiveTimeline',
-    'refreshExecutiveTimeline', 'dashboardPresenceSelect', 'dashboardPresenceDot',
-    'dsosSearchPanel', 'dsosAiPanel', 'dsosBackdrop',
-    'dsosNotificationPreview', 'dsosFloatingAurora'
+    'dsosSidebar','dsosMenu','memberName','memberGreeting','heroGreeting','heroMemberName',
+    'founderControlLink','memberLogout','dashboardAvatar','dashboardAvatarInitials',
+    'heroProfileAvatar','heroProfileInitials','feedComposerForm','feedComposerAvatar',
+    'feedComposerBody','feedComposerPublish','dashboardCommunityPreview',
+    'notificationBell','notificationCount','pendingMemberContent','dsosCommunitySection',
+    'dashboardPresenceSelect','dashboardPresenceDot','dsosSearchPanel','dsosAiPanel','dsosBackdrop'
   ]) {
-    assert.ok(htmlIds.includes(hook), 'Missing existing DOM hook ' + hook);
+    assert.ok(htmlIds.includes(hook), 'Missing required Feed hook ' + hook);
+  }
+  for (const removed of [
+    'memberStatus','memberRank','memberEmail','memberAgentCode','journeyPercent',
+    'dashboardIdentityName','dashboardNextAppointment','activityAnnouncements','activityMessages',
+    'activityNotifications','openNotificationsMetric','approvedMemberContent','memberFeedbackForm',
+    'executiveTimeline','refreshExecutiveTimeline','dsosNotificationPreview','runMemberAudit'
+  ]) {
+    assert.ok(!htmlIds.includes(removed), 'Legacy Home module must stay off Feed: ' + removed);
   }
   for (const script of ['member-auth.js','member-dashboard.js','dominionstar-os.js',
                         'executive-core.js','presence-engine.js']) {
     assert.ok(html.includes('/assets/js/' + script), 'Missing functional script ' + script);
   }
-  assert.match(os, /notificationBell/);
+  assert.match(html,/href="\/notifications\/"/);
 });
 
-test('Balanced Executive visual system remains isolated from other site pages', () => {
+test('Executive visual system isolates a centered Feed stage from other site pages', () => {
   assert.match(html, /class="dsos-body dsos-executive"/);
   assert.match(html, /member-dashboard-executive\.css/);
   assert.match(css, /\.dsos-body\.dsos-executive/);
   assert.match(css, /background:linear-gradient\(180deg,#102b4c/);
-  assert.match(css, /grid-template-columns:minmax\(0,1\.75fr\)/);
-  assert.match(css, /@media\(max-width:900px\)/);
-  assert.match(css, /@media\(max-width:730px\)/);
-  assert.match(css, /@media\(max-width:460px\)/);
+  assert.match(css, /\.dsos-feed-layout\{display:block!important;max-width:920px/);
+  assert.match(css, /\.dsos-feed-intro/);
+  assert.match(css, /@media\(max-width:760px\)/);
+  assert.match(css, /@media\(max-width:560px\)/);
 });
 
 test('Community social gateway is present but hidden until approved', () => {
@@ -82,12 +85,11 @@ test('Notification deep links reject untrusted external and executable URLs', ()
   assert.match(js, /safeNotificationHref\(item\.payload\?\.action_url\)/);
 });
 
-test('No new Supabase writes or mock agent counts in Executive OS layout', () => {
+test('Feed does not render fabricated dashboard metrics', () => {
   assert.doesNotMatch(html, /Visual preview|No live member data|placeholder members/i);
-  assert.doesNotMatch(html, /id="activityMessages">[1-9]/);
-  assert.doesNotMatch(html, /id="activityNotifications">[1-9]/);
-  assert.match(html, /id="activityMessages">—/);
-  assert.match(html, /id="activityNotifications">—/);
+  assert.doesNotMatch(html, /id="activityMessages"|id="activityNotifications"|id="activityAnnouncements"/);
+  assert.match(html, /id="dashboardCommunityPreview"/);
+  assert.match(html, /id="feedComposerForm"/);
 });
 
 test('Dashboard health audit only claims route and interface checks', () => {
