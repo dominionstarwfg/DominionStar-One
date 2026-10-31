@@ -38,8 +38,8 @@ test('privilege-revoking migrations have a frozen post-deploy order',()=>{
   assert.match(plan,/Do not reorder #1–#5/);
 });
 
-test('trusted message events and Web Push stay disabled in the review candidate',()=>{
-  assert.match(flags,/trustedMessageEvents:false/);
+test('post-cutover release enables trusted message events while Web Push stays disabled',()=>{
+  assert.match(flags,/trustedMessageEvents:true/);
   assert.match(flags,/webPush:false/);
   assert.match(plan,/trustedMessageEvents: false → true/);
   assert.match(plan,/webPush: false/);
