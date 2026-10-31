@@ -16,7 +16,7 @@ test('Executive OS Feed preserves only the hooks required by focused Home', () =
   for (const hook of [
     'dsosSidebar','dsosMenu','memberName','memberGreeting','heroGreeting','heroMemberName',
     'founderControlLink','memberLogout','dashboardAvatar','dashboardAvatarInitials',
-    'heroProfileAvatar','heroProfileInitials','feedComposerForm','feedComposerAvatar',
+    'heroProfileAvatar','heroProfileInitials','dsosSocialGateway','feedComposerAvatar',
     'feedComposerBody','feedComposerPublish','dashboardCommunityPreview',
     'notificationBell','notificationCount','pendingMemberContent','dsosCommunitySection',
     'dashboardPresenceSelect','dashboardPresenceDot','dsosSearchPanel','dsosAiPanel','dsosBackdrop'
@@ -89,7 +89,7 @@ test('Feed does not render fabricated dashboard metrics', () => {
   assert.doesNotMatch(html, /Visual preview|No live member data|placeholder members/i);
   assert.doesNotMatch(html, /id="activityMessages"|id="activityNotifications"|id="activityAnnouncements"/);
   assert.match(html, /id="dashboardCommunityPreview"/);
-  assert.match(html, /id="feedComposerForm"/);
+  assert.match(html, /id="dsosSocialGateway"/);
 });
 
 test('Dashboard health audit only claims route and interface checks', () => {
