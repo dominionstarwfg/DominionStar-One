@@ -9,6 +9,9 @@ test('member dashboard is a focused Feed stage, not an all-modules landing page'
   assert.match(html,/>Feed<\/span>/);
   assert.match(html,/href="\/notifications\/"/);
   assert.match(html,/Share with your network/);
+  assert.match(html,/id="dsosSocialGateway"[^>]*<span|id="dsosSocialGateway"/);
+  assert.match(html,/id="feedComposerBody"/);
+  assert.match(html,/id="feedComposerPublish"/);
   assert.match(html,/id="feedComposerAvatar"/);
   assert.match(html,/id="dashboardCommunityPreview"/);
   for(const stale of [
@@ -35,10 +38,13 @@ test('authenticated workspaces do not inject landing-page briefing chrome',()=>{
   assert.match(css,/\.member-directory-card\{[\s\S]*background:#fff!important/);
 });
 
-test('feed uses real profile-avatar resolution and a non-preview post count',()=>{
+test('feed uses real profile avatars, direct posting, visible links, and a non-preview post count',()=>{
   const dashboard=read('assets/js/member-dashboard.js');
   const social=read('assets/js/dashboard-social.js');
   assert.match(dashboard,/\['feedComposerAvatar','feedComposerInitials'\]/);
-  assert.match(dashboard,/id="dsos-inline-link"|class="dsos-inline-link"/);
+  assert.match(dashboard,/class="dsos-inline-link"/);
+  assert.match(dashboard,/document\.getElementById\('dsosSocialGateway'\)/);
+  assert.match(dashboard,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
+  assert.match(dashboard,/community_notify_mentions/);
   assert.match(social,/result_limit:20/);
 });
