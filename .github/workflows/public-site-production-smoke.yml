@@ -8,6 +8,15 @@ on:
       - 'member-dashboard/**'
       - 'member-login/**'
       - 'assets/js/direct-messages.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/member-directory.js'
+      - 'assets/css/dominionstar-cinematic-os.css'
+      - 'professional-profile/**'
+      - 'member-directory/**'
+      - 'appointments/**'
+      - 'recognition/**'
+      - 'agent-learning/**'
+      - 'account-settings/**'
       - 'assets/js/global-call-manager.js'
       - 'assets/js/notification-feature-flags.js'
       - 'scripts/build-public-netlify.sh'
@@ -38,6 +47,15 @@ jobs:
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-login/" -o production-smoke/login.html
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-dashboard/" -o production-smoke/dashboard.html
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/direct-messages.js" -o production-smoke/messages.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/css/dominionstar-cinematic-os.css" -o production-smoke/cinematic.css
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/professional-profile/" -o production-smoke/profile.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/professional-profile.js" -o production-smoke/profile.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/member-directory/" -o production-smoke/directory.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/member-directory.js" -o production-smoke/directory.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/appointments/" -o production-smoke/appointments.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/recognition/" -o production-smoke/recognition.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/agent-learning/" -o production-smoke/learning.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/account-settings/" -o production-smoke/settings.html
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/global-call-manager.js" -o production-smoke/global-calls.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/notification-feature-flags.js" -o production-smoke/notification-flags.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/public-release.json" -o production-smoke/release.json
@@ -52,6 +70,23 @@ jobs:
           grep -Fq 'No Family Left Behind' production-smoke/home.html
           grep -Fq 'class="login2-form"' production-smoke/login.html
           grep -Fq 'Agent Settings' production-smoke/dashboard.html
+          grep -Fq 'profile-avatar-fallback' production-smoke/cinematic.css
+          grep -Fq 'recognition-post' production-smoke/cinematic.css
+          grep -Fq 'agent-learning-card' production-smoke/cinematic.css
+          grep -Fq 'appointment-center-grid' production-smoke/cinematic.css
+          grep -Fq 'ds-agent-meet-bridge' production-smoke/cinematic.css
+          grep -Fq 'id="profileAvatarInitials"' production-smoke/profile.html
+          grep -Fq 'id="profileAvatarPreview" class="member-hidden"' production-smoke/profile.html
+          ! grep -Fq 'id="profileAvatarPreview" src="/assets/logo.jpeg"' production-smoke/profile.html
+          grep -Fq 'showAvatarFallback' production-smoke/profile.js
+          grep -Fq "from('member-avatars')" production-smoke/profile.js
+          grep -Fq 'dominionstar-cinematic-os.css' production-smoke/directory.html
+          grep -Fq 'member-directory-fallback' production-smoke/directory.js
+          grep -Fq 'wireAvatarFallbacks(grid)' production-smoke/directory.js
+          grep -Fq 'dominionstar-cinematic-os.css' production-smoke/appointments.html
+          grep -Fq 'dominionstar-cinematic-os.css' production-smoke/recognition.html
+          grep -Fq 'dominionstar-cinematic-os.css' production-smoke/learning.html
+          grep -Fq 'dominionstar-cinematic-os.css' production-smoke/settings.html
           grep -Fq 'let callAccepting = false' production-smoke/messages.js
           grep -Fq 'await ensureCallChannel(callerId)' production-smoke/messages.js
           grep -Fq 'acceptedFromGlobal:true, acceptedAt:Date.now()' production-smoke/global-calls.js
@@ -66,5 +101,6 @@ jobs:
           grep -Fq 'America/New_York' production-smoke/geography.js
           grep -Fq 'Canada' production-smoke/geography.js
           echo 'PUBLIC_GEOGRAPHY_SMOKE_OK: country, region, time-zone, and jurisdiction assets found on production domain.'
+          echo 'AGENT_OS_PRODUCTION_SMOKE_OK: cinematic workspaces and resilient member identity assets found on production domain.'
           echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS, browser-call source, and trusted-message flag state found on production domain.'
           echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
