@@ -4,19 +4,18 @@ import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('member dashboard is an executive landing stage with a real social feed',()=>{
+test('member dashboard is an executive landing stage and Feed is a separate workspace',()=>{
   const html=read('member-dashboard/index.html');
-  assert.match(html,/>Feed<\/span>/);
+  assert.match(html,/>Dashboard<\/span>/);
+  assert.match(html,/href="\/feed\/"/);
   assert.match(html,/href="\/notifications\/"/);
   assert.match(html,/Welcome back to DominionStar Executive OS/);
   assert.match(html,/class="dsx-overview"/);
   assert.match(html,/id="dashboardNextAppointment"/);
   assert.match(html,/id="journeyPercent"/);
-  assert.match(html,/id="dsosSocialGateway"[^>]*<span|id="dsosSocialGateway"/);
-  assert.match(html,/id="feedComposerBody"/);
-  assert.match(html,/id="feedComposerPublish"/);
-  assert.match(html,/id="feedComposerAvatar"/);
-  assert.match(html,/id="dashboardCommunityPreview"/);
+  assert.match(html,/class="dsx-dashboard-hub"/);
+  assert.match(html,/id="dashboardPulsePosts"/);
+  assert.doesNotMatch(html,/id="dsosSocialGateway"|id="feedComposerBody"|id="dashboardCommunityPreview"/);
   for(const stale of [
     'Professional identity','System status','Account health',
     'Featured learning','Professional resources','Help improve DominionStar',
@@ -28,7 +27,8 @@ test('member dashboard is an executive landing stage with a real social feed',()
 
 test('shared Agent OS rail exposes focused workspaces',()=>{
   const shell=read('assets/js/dominionstar-agent-nav-shell.js');
-  assert.match(shell,/\['Feed','\/member-dashboard\/','home'\]/);
+  assert.match(shell,/\['Dashboard','\/member-dashboard\/','home'\]/);
+  assert.match(shell,/\['Feed','\/feed\/','feed'\]/);
   assert.match(shell,/\['Notifications','\/notifications\/','bell'\]/);
   assert.match(shell,/\['Aurora','\/member-dashboard\/\?open=aurora','sparkles'\]/);
 });
@@ -41,13 +41,15 @@ test('authenticated workspaces do not inject landing-page briefing chrome',()=>{
   assert.match(css,/\.member-directory-card\{[\s\S]*background:#fff!important/);
 });
 
-test('feed uses real profile avatars, direct posting, visible links, and a non-preview post count',()=>{
-  const dashboard=read('assets/js/member-dashboard.js');
+test('dedicated Feed uses real profile avatars and existing authenticated social writes',()=>{
+  const feed=read('feed/index.html');
+  const feedJs=read('assets/js/feed.js');
   const social=read('assets/js/dashboard-social.js');
-  assert.match(dashboard,/\['feedComposerAvatar','feedComposerInitials'\]/);
-  assert.match(dashboard,/class="dsos-inline-link"/);
-  assert.match(dashboard,/document\.getElementById\('dsosSocialGateway'\)/);
-  assert.match(dashboard,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(dashboard,/community_notify_mentions/);
+  assert.match(feed,/id="feedPageAvatar"/);
+  assert.match(feed,/id="feedPageInitials"/);
+  assert.match(feed,/id="feedPageComposer"/);
+  assert.match(feedJs,/createSignedUrl\(profile\.avatar_path,3600\)/);
+  assert.match(feedJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
+  assert.match(feedJs,/community_notify_mentions/);
   assert.match(social,/result_limit:20/);
 });
