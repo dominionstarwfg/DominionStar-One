@@ -154,14 +154,13 @@
   // Missing, revoked or broken photos show member initials, never a company logo.
   const initials = fullName.split(/\s+/).filter(Boolean)
     .slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
-  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials','feedComposerInitials']) {
+  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials']) {
     setIdentityText(id, initials);
   }
   const avatarPairs = [
     ['dashboardAvatar','dashboardAvatarInitials'],
     ['heroProfileAvatar','heroProfileInitials'],
-    ['dashboardIdentityAvatar','dashboardIdentityInitials'],
-    ['feedComposerAvatar','feedComposerInitials']
+    ['dashboardIdentityAvatar','dashboardIdentityInitials']
   ];
   const renderAvatar = signedUrl => {
     for (const [imageId,fallbackId] of avatarPairs) {
@@ -315,19 +314,6 @@
     if (journeyContinueButton) journeyContinueButton.textContent = 'Review Journey';
   }
 
-  const pendingContent = document.getElementById('pendingMemberContent');
-  const socialGateway = document.getElementById('dsosSocialGateway');
-  const communitySection = document.getElementById('dsosCommunitySection');
-  if (status === 'approved') {
-    socialGateway?.classList.remove('member-hidden');
-    communitySection?.classList.remove('member-hidden');
-    pendingContent?.classList.add('member-hidden');
-  } else {
-    pendingContent?.classList.remove('member-hidden');
-    socialGateway?.classList.add('member-hidden');
-    communitySection?.classList.add('member-hidden');
-  }
-
   // First-visit-safe greeting: use the member's current local clock, not a
   // stored visit count or a potentially stale login flag.
   const greetingHour = new Date().getHours();
@@ -433,91 +419,6 @@
     }
   }
 
-
-  async function loadDashboardCommunity() {
-    const target = document.getElementById('dashboardCommunityPreview');
-    if (!target) return;
-    try {
-      if (!window.DSDashboardSocial?.mount) {
-        throw new Error('Social feed module is unavailable.');
-      }
-      // Only approved members arrive here; server RLS is still authoritative.
-      await withTimeout(window.DSDashboardSocial.mount({
-        client: supabase,
-        memberId: user.id,
-        target
-      }));
-    } catch (error) {
-      target.innerHTML = '<div class="dashboard-empty-compact dashboard-load-error">' +
-        '<strong>Community feed could not load.</strong><p>' +
-        escapeHtml(error.message) + '</p>' +
-        '<a href="/community/">Open Community →</a></div>';
-    }
-  }
-
-  const feedComposerForm = document.getElementById('dsosSocialGateway');
-  const feedComposerBody = document.getElementById('feedComposerBody');
-  const feedComposerPublish = document.getElementById('feedComposerPublish');
-  const feedComposerStatus = document.getElementById('feedComposerStatus');
-
-  const setFeedComposerStatus = (message, type='') => {
-    if (!feedComposerStatus) return;
-    feedComposerStatus.textContent = message;
-    feedComposerStatus.dataset.state = type;
-  };
-
-  feedComposerForm?.addEventListener('submit', async event => {
-    event.preventDefault();
-    if (status !== 'approved' || !feedComposerBody || !feedComposerPublish) return;
-    const body = feedComposerBody.value.trim();
-    if (!body) {
-      setFeedComposerStatus('Write something before posting.', 'error');
-      feedComposerBody.focus();
-      return;
-    }
-
-    feedComposerPublish.disabled = true;
-    feedComposerPublish.textContent = 'Posting…';
-    setFeedComposerStatus('Publishing to your network…', 'pending');
-
-    try {
-      const insert = await supabase
-        .from('community_messages')
-        .insert({
-          user_id:user.id,
-          title:null,
-          body:body.slice(0,2000),
-          post_type:'discussion',
-          is_pinned:false
-        })
-        .select('id')
-        .single();
-      if (insert.error) throw insert.error;
-
-      await supabase.rpc('community_notify_mentions', {
-        target_message_id:insert.data.id,
-        message_body:body.slice(0,2000)
-      });
-
-      feedComposerBody.value = '';
-      feedComposerBody.rows = 1;
-      await loadDashboardCommunity();
-      setFeedComposerStatus('Posted to your network.', 'success');
-    } catch (error) {
-      setFeedComposerStatus(error?.message || 'Your post could not be published.', 'error');
-    } finally {
-      feedComposerPublish.disabled = false;
-      feedComposerPublish.textContent = 'Post';
-    }
-  });
-
-  feedComposerBody?.addEventListener('focus', () => {
-    feedComposerBody.rows = Math.max(feedComposerBody.rows, 3);
-    feedComposerForm?.classList.add('is-expanded');
-  });
-  feedComposerBody?.addEventListener('input', () => {
-    if (feedComposerBody.value.trim()) feedComposerForm?.classList.add('is-expanded');
-  });
 
   // Never trust a notification payload URL as an href without same-origin checks.
   const safeNotificationHref = candidate => {
@@ -729,7 +630,6 @@
   await Promise.allSettled([
     loadAnnouncements(),
     loadDashboardAppointments(),
-    status === 'approved' ? loadDashboardCommunity() : Promise.resolve(),
     loadExecutiveActivity()
   ]);
 
