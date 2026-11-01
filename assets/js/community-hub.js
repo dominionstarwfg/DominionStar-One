@@ -236,12 +236,9 @@
         <p class="community-post-body">${linkify(post.body)}</p>
 
         <div class="community-reaction-row">
-          \${['like','celebrate','support','insightful'].map(reaction=>{
+          ${['like','celebrate','support','insightful'].map(reaction=>{
             const active=reactions.some(item=>item.user_id===session.user.id&&item.reaction===reaction);
-            return \`
-            <button class="community-reaction-button \${active?'is-active':''}" data-reaction="\${reaction}" type="button" aria-pressed="\${active?'true':'false'}">
-              \${reactionLabel(reaction)} <b>\${reactionCounts[reaction]}</b>
-            </button>\`;
+            return '<button class="community-reaction-button '+(active?'is-active':'')+'" data-reaction="'+reaction+'" type="button" aria-pressed="'+(active?'true':'false')+'">'+reactionLabel(reaction)+' <b>'+reactionCounts[reaction]+'</b></button>';
           }).join('')}
         </div>
         <div class="ds-community-social-actions" role="group" aria-label="Share post">
