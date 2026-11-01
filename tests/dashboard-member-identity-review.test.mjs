@@ -7,13 +7,13 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('member-dashboard/index.html');
 const dashboardJs=read('assets/js/member-dashboard.js');
 const socialJs=read('assets/js/dashboard-social.js');
-const css=read('assets/css/member-dashboard-executive.css');
+const css=read('assets/css/dominionstar-cinematic-os.css');
 
 test('Local daypart greeting identifies the authenticated member and shows credentials above feed',()=>{
   const marker=html.indexOf('id="heroMemberName"');
   assert.ok(marker>0);
   assert.match(html,/<span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName">/);
-  assert.doesNotMatch(html,/Welcome back/);
+  assert.match(html,/Welcome back to DominionStar Executive OS/);
   for(const daypart of ['Good morning','Good afternoon','Good evening']) assert.ok(dashboardJs.includes(daypart),daypart);
   assert.ok(marker<html.indexOf('id="dsosCommunitySection"'));
   for(const hook of ['heroProfileFullName','heroContractLevel','heroProfileAvatar','heroProfileInitials',
@@ -28,7 +28,7 @@ test('Local daypart greeting identifies the authenticated member and shows crede
   assert.match(dashboardJs,/Number\.isInteger\(foundingNumber\)/);
   assert.match(dashboardJs,/profile\.founding_member === true/);
   assert.match(dashboardJs,/classList\.toggle\('member-hidden', !isFoundingMember\)/);
-  assert.match(css,/\.dsos-feed-identity/);
+  assert.match(css,/\.dsx-hero-profile/);
   assert.match(css,/\.dsos-feed-avatar/);
 });
 test('Branding remains unnumbered and no unsupported stock photo is shown',()=>{
