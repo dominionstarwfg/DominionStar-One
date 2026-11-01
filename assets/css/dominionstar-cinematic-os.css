@@ -485,3 +485,317 @@ body.ds-auth-os-page .btn-outline{
   .dsx-overview{grid-template-columns:1fr}
   .dsx-composer-media{padding-left:0}
 }
+
+
+/* ===== Authenticated workspace refinements ===== */
+body.ds-auth-os-page .ds-agent-shell{
+  border-right:1px solid rgba(139,172,211,.20)!important;
+}
+body.ds-auth-os-page .ds-agent-brand-mark{
+  background:linear-gradient(145deg,#151b25,#080d15)!important;
+  border:1px solid rgba(240,193,91,.48)!important;
+  color:var(--dsx-gold)!important;
+  box-shadow:0 0 24px rgba(240,193,91,.12)!important;
+}
+body.ds-auth-os-page .ds-agent-brand-copy strong{color:#fff!important}
+body.ds-auth-os-page .ds-agent-search-trigger kbd{color:#b9c8da!important}
+
+/* Messages */
+body.ds-auth-os-page .dm-os.dm-os-three{
+  width:min(1540px,calc(100vw - 240px));
+  min-height:100vh;
+  margin:0 auto;
+  padding:18px clamp(14px,1.6vw,24px) 26px;
+  box-sizing:border-box;
+  display:grid!important;
+  grid-template-columns:minmax(285px,350px) minmax(440px,1fr) minmax(275px,340px)!important;
+  grid-template-rows:auto minmax(640px,calc(100vh - 165px))!important;
+  gap:14px!important;
+  background:transparent!important;
+}
+body.ds-auth-os-page .dsx-messages-title{
+  grid-column:1/-1;
+  position:relative;
+  overflow:hidden;
+  min-height:112px;
+  padding:22px 26px;
+  border-radius:20px;
+  border:1px solid rgba(144,177,217,.24);
+  background:
+    radial-gradient(circle at 73% 34%,rgba(74,135,208,.28),transparent 28%),
+    radial-gradient(circle at 91% 18%,rgba(240,193,91,.18),transparent 12%),
+    linear-gradient(115deg,rgba(7,24,47,.98),rgba(15,55,94,.92));
+  box-shadow:0 18px 42px rgba(0,0,0,.24);
+}
+body.ds-auth-os-page .dsx-messages-title:after{
+  content:"";position:absolute;right:-70px;bottom:-155px;width:430px;height:250px;
+  border:1px solid rgba(95,154,224,.26);border-radius:50%;
+  box-shadow:0 0 0 28px rgba(95,154,224,.045);
+}
+body.ds-auth-os-page .dsx-messages-title p{
+  margin:0 0 4px;color:#d9b96f!important;font-size:11px!important;font-weight:900;letter-spacing:.18em;text-transform:uppercase;
+}
+body.ds-auth-os-page .dsx-messages-title h1{
+  margin:0;color:#fff!important;font:700 clamp(30px,3vw,44px)/1.05 Georgia,"Times New Roman",serif;
+}
+body.ds-auth-os-page .dsx-messages-title h1 span{color:var(--dsx-gold)}
+body.ds-auth-os-page .dsx-messages-title small{display:block;margin-top:6px;color:#b8c8dc!important;font-size:13px!important}
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  min-width:0!important;
+  border-radius:18px!important;
+  overflow:hidden;
+  border:1px solid rgba(141,174,214,.24)!important;
+  background:linear-gradient(165deg,rgba(17,37,68,.96),rgba(7,23,46,.98))!important;
+  box-shadow:0 18px 38px rgba(0,0,0,.22)!important;
+}
+body.ds-auth-os-page .dm-sidebar-header,
+body.ds-auth-os-page .dm-chat-header{
+  min-height:72px;
+  background:rgba(8,24,47,.86)!important;
+  border-bottom:1px solid rgba(140,173,213,.18)!important;
+}
+body.ds-auth-os-page .dm-sidebar-header strong,
+body.ds-auth-os-page .dm-active-copy strong{color:#fff!important}
+body.ds-auth-os-page .dm-sidebar-header small,
+body.ds-auth-os-page .dm-active-copy small{color:#9fb3cb!important}
+body.ds-auth-os-page .dm-search-wrap{padding:12px!important}
+body.ds-auth-os-page .dm-search-wrap input,
+body.ds-auth-os-page .dm-conversation-search input{
+  background:rgba(8,25,49,.92)!important;color:#fff!important;border-color:rgba(142,175,215,.28)!important
+}
+body.ds-auth-os-page .dm-conversation-list{padding:0 10px 12px!important}
+body.ds-auth-os-page .dm-conversation-item{
+  margin:5px 0!important;border-radius:13px!important;color:#e9f0f8!important;border:1px solid transparent!important;background:transparent!important
+}
+body.ds-auth-os-page .dm-conversation-item:hover,
+body.ds-auth-os-page .dm-conversation-item.active{
+  background:linear-gradient(135deg,rgba(240,193,91,.15),rgba(51,75,108,.28))!important;
+  border-color:rgba(240,193,91,.42)!important;
+  box-shadow:0 0 20px rgba(240,193,91,.08)!important;
+}
+body.ds-auth-os-page .dm-conversation-copy strong{color:#fff!important}
+body.ds-auth-os-page .dm-conversation-copy small{color:#9fb0c4!important}
+body.ds-auth-os-page .dm-avatar,
+body.ds-auth-os-page .dm-member-avatar-large{
+  border-color:rgba(240,193,91,.72)!important;
+  box-shadow:0 0 0 2px rgba(240,193,91,.08)!important;
+  background:#173354!important;color:#f5d489!important;
+}
+body.ds-auth-os-page .dm-thread{
+  background:
+    radial-gradient(circle at 78% 90%,rgba(240,193,91,.07),transparent 32%),
+    linear-gradient(180deg,rgba(7,20,41,.80),rgba(6,18,37,.96))!important;
+}
+body.ds-auth-os-page .dm-welcome span{color:var(--dsx-gold)!important}
+body.ds-auth-os-page .dm-welcome h2{color:#fff!important;font-family:Georgia,"Times New Roman",serif!important}
+body.ds-auth-os-page .dm-welcome p{color:#9fb1c7!important}
+body.ds-auth-os-page .dm-composer{
+  background:rgba(6,19,39,.96)!important;border-top:1px solid rgba(139,172,211,.18)!important
+}
+body.ds-auth-os-page .dm-composer textarea{background:rgba(15,35,64,.92)!important;color:#fff!important}
+body.ds-auth-os-page #dmSendButton,
+body.ds-auth-os-page .dm-composer-icon{
+  border-color:rgba(240,193,91,.34)!important
+}
+body.ds-auth-os-page #dmSendButton{background:linear-gradient(135deg,#f5ce73,#d59b33)!important;color:#241806!important}
+body.ds-auth-os-page .dm-member-profile{
+  background:
+    radial-gradient(circle at 90% 0%,rgba(240,193,91,.14),transparent 28%),
+    linear-gradient(145deg,rgba(26,52,89,.76),rgba(12,29,56,.88))!important;
+  border-bottom:1px solid rgba(142,174,214,.18)!important;
+}
+body.ds-auth-os-page .dm-member-profile h2{color:#fff!important;font-family:Georgia,"Times New Roman",serif!important}
+body.ds-auth-os-page .dm-member-profile p{color:#a8bbd2!important}
+body.ds-auth-os-page .dm-member-facts>div,
+body.ds-auth-os-page .dm-shared-summary{
+  border-color:rgba(142,174,214,.16)!important;color:#dfe7f1!important
+}
+body.ds-auth-os-page .dm-member-facts span,
+body.ds-auth-os-page .dm-shared-summary span{color:#9db0c7!important}
+body.ds-auth-os-page .dm-member-facts strong,
+body.ds-auth-os-page .dm-shared-summary strong{color:#fff!important}
+
+/* Notifications */
+body.ds-auth-os-page .notification-center{
+  width:min(1480px,100%);
+  padding:22px clamp(16px,2.2vw,32px) 60px!important;
+}
+body.ds-auth-os-page .notification-center>header{
+  min-height:150px;
+  background:
+    radial-gradient(circle at 69% 50%,rgba(72,133,208,.32),transparent 28%),
+    radial-gradient(circle at 85% 24%,rgba(240,193,91,.20),transparent 11%),
+    linear-gradient(112deg,rgba(8,25,49,.99),rgba(14,55,94,.95))!important;
+  border-color:rgba(142,176,217,.25)!important;
+  box-shadow:0 20px 48px rgba(0,0,0,.24)!important;
+}
+body.ds-auth-os-page .notification-center>header h1{
+  font-family:Georgia,"Times New Roman",serif!important;
+  font-size:clamp(34px,4vw,52px)!important;
+}
+body.ds-auth-os-page .notification-header-actions .btn-gold{
+  background:linear-gradient(135deg,#f4cd72,#d79e36)!important;color:#261a08!important
+}
+body.ds-auth-os-page #notificationFilters{
+  margin:14px 0!important;
+  padding:7px!important;
+  background:rgba(10,28,54,.88)!important;
+  border:1px solid rgba(141,174,214,.22)!important;
+}
+body.ds-auth-os-page #notificationFilters button{
+  border-radius:999px!important;padding:9px 16px!important;color:#b8c7da!important
+}
+body.ds-auth-os-page #notificationFilters button.active{
+  box-shadow:0 0 22px rgba(240,193,91,.13)!important
+}
+body.ds-auth-os-page .notification-layout{grid-template-columns:minmax(0,1fr) 320px!important;gap:14px!important}
+body.ds-auth-os-page .notification-list{display:grid;gap:10px}
+body.ds-auth-os-page .notification-item{
+  min-height:96px;
+  border:1px solid rgba(142,174,214,.20)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(24,45,77,.90),rgba(10,28,54,.95))!important;
+  color:#eef4fb!important;
+}
+body.ds-auth-os-page .notification-item.unread{
+  border-color:rgba(240,193,91,.48)!important;
+  box-shadow:inset 3px 0 var(--dsx-gold),0 0 24px rgba(240,193,91,.08)!important;
+}
+body.ds-auth-os-page .notification-item strong{color:#fff!important}
+body.ds-auth-os-page .notification-item p,
+body.ds-auth-os-page .notification-item small{color:#adbed2!important}
+body.ds-auth-os-page .notification-item>b{background:#f0c15b!important;color:#251908!important;border-radius:999px!important}
+body.ds-auth-os-page .notification-layout aside{display:grid;gap:12px;align-content:start}
+body.ds-auth-os-page .notification-layout aside .member-panel{border-radius:17px!important;padding:18px!important}
+body.ds-auth-os-page .notification-stat{border-color:rgba(142,174,214,.16)!important}
+body.ds-auth-os-page .notification-stat span{color:#a9bbd0!important}
+body.ds-auth-os-page .notification-stat strong{color:#fff!important}
+
+/* Community */
+body.ds-auth-os-page .community-hub-layout{gap:14px!important}
+body.ds-auth-os-page .community-main-column{min-width:0}
+body.ds-auth-os-page .community-composer-card{
+  background:linear-gradient(150deg,rgba(22,45,79,.94),rgba(9,26,51,.96))!important;
+  border-color:rgba(240,193,91,.26)!important;
+}
+body.ds-auth-os-page .community-composer-heading h2,
+body.ds-auth-os-page .community-feed-header h2{font-family:Georgia,"Times New Roman",serif!important;color:#fff!important}
+body.ds-auth-os-page .dsmedia-author-glyph{border-color:rgba(240,193,91,.70)!important;background:#173354!important;color:#f5d48b!important}
+body.ds-auth-os-page .dsmedia-member-identity strong{color:#fff!important}
+body.ds-auth-os-page .dsmedia-member-credentials span{color:#b7c6d8!important}
+body.ds-auth-os-page .dsmedia-founding-badge{color:#281b08!important;background:#efc566!important}
+body.ds-auth-os-page .dsmedia-draft{background:rgba(8,25,49,.62)!important;border-color:rgba(143,175,214,.20)!important}
+body.ds-auth-os-page .dsmedia-note,
+body.ds-auth-os-page .dsmedia-attach-hint{color:#92a7bf!important}
+body.ds-auth-os-page .community-feed{display:grid;gap:12px!important}
+body.ds-auth-os-page .community-post,
+body.ds-auth-os-page .community-message{
+  background:linear-gradient(155deg,rgba(24,46,78,.92),rgba(9,27,52,.96))!important;
+  color:#eef4fb!important;
+  border:1px solid rgba(143,175,214,.21)!important;
+  border-radius:17px!important;
+  box-shadow:0 16px 34px rgba(0,0,0,.18)!important;
+}
+body.ds-auth-os-page .community-post h2,
+body.ds-auth-os-page .community-post h3,
+body.ds-auth-os-page .community-post strong,
+body.ds-auth-os-page .community-message strong{color:#fff!important}
+body.ds-auth-os-page .community-post p,
+body.ds-auth-os-page .community-message p{color:#bdcadb!important}
+body.ds-auth-os-page .community-sidebar .member-panel{
+  background:
+    radial-gradient(circle at 100% 100%,rgba(240,193,91,.08),transparent 32%),
+    linear-gradient(155deg,rgba(20,42,75,.94),rgba(9,25,49,.96))!important;
+}
+
+/* Member directory */
+body.ds-auth-os-page .directory-filter-bar{
+  background:linear-gradient(145deg,rgba(20,42,75,.92),rgba(9,25,49,.96))!important;
+  border-color:rgba(142,174,214,.22)!important;
+}
+body.ds-auth-os-page .member-directory-grid{gap:14px!important}
+body.ds-auth-os-page .member-directory-card{
+  position:relative;
+  overflow:hidden;
+  min-height:250px;
+  padding:22px!important;
+  border-radius:18px!important;
+  background:
+    radial-gradient(circle at 90% 100%,rgba(240,193,91,.13),transparent 28%),
+    linear-gradient(150deg,rgba(26,49,82,.96),rgba(10,28,54,.98))!important;
+  border:1px solid rgba(143,175,214,.23)!important;
+  box-shadow:0 16px 34px rgba(0,0,0,.20)!important;
+}
+body.ds-auth-os-page .member-directory-card:after{
+  content:"";position:absolute;right:-45px;bottom:-70px;width:180px;height:120px;
+  border:1px solid rgba(240,193,91,.20);border-radius:50%;pointer-events:none;
+}
+body.ds-auth-os-page .member-directory-avatar{
+  width:84px!important;height:84px!important;margin-bottom:12px!important;
+  border:2px solid rgba(240,193,91,.75)!important;
+  box-shadow:0 0 22px rgba(240,193,91,.10)!important;
+  background:#193557!important;color:#f4d28a!important;
+}
+body.ds-auth-os-page .member-directory-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+body.ds-auth-os-page .member-directory-card h2{font-family:Georgia,"Times New Roman",serif!important;color:#fff!important}
+body.ds-auth-os-page .member-directory-card p{color:#f0c15b!important;font-weight:850!important}
+body.ds-auth-os-page .member-directory-card small{color:#9fb1c7!important}
+body.ds-auth-os-page .member-directory-actions .btn:last-child{
+  background:linear-gradient(135deg,#f4cd72,#d69c34)!important;color:#261a08!important;border-color:transparent!important
+}
+
+/* Journey */
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header{
+  min-height:180px;
+  background:
+    radial-gradient(circle at 78% 35%,rgba(68,126,198,.25),transparent 30%),
+    radial-gradient(circle at 89% 20%,rgba(240,193,91,.20),transparent 13%),
+    linear-gradient(115deg,rgba(8,25,49,.99),rgba(15,55,94,.94))!important;
+}
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header h1{
+  font-family:Georgia,"Times New Roman",serif!important;
+  font-size:clamp(32px,4vw,50px)!important;
+}
+body.ds-auth-os-page .agent-journey-overview{gap:14px!important}
+body.ds-auth-os-page .agent-journey-score,
+body.ds-auth-os-page .agent-journey-overview .member-panel{
+  background:linear-gradient(145deg,rgba(24,46,78,.94),rgba(9,27,52,.96))!important;
+}
+body.ds-auth-os-page .agent-journey-score{border-color:rgba(240,193,91,.34)!important}
+body.ds-auth-os-page .agent-journey-score>strong{
+  color:#fff!important;font-family:Georgia,"Times New Roman",serif!important;font-size:50px!important
+}
+body.ds-auth-os-page .agent-journey-track{background:rgba(255,255,255,.10)!important}
+body.ds-auth-os-page .agent-journey-track span{background:linear-gradient(90deg,#f0c15b,#f8df9b)!important}
+body.ds-auth-os-page .agent-journey-item{
+  border-radius:14px!important;
+  border:1px solid rgba(143,175,214,.18)!important;
+  background:rgba(8,25,49,.60)!important;
+}
+body.ds-auth-os-page .agent-journey-item:hover{
+  border-color:rgba(240,193,91,.38)!important;
+  background:rgba(240,193,91,.055)!important;
+}
+body.ds-auth-os-page .agent-journey-item strong{color:#fff!important}
+body.ds-auth-os-page .agent-journey-item span{color:#9fb2c9!important}
+body.ds-auth-os-page .agent-journey-item a{color:#f0c15b!important}
+body.ds-auth-os-page .agent-journey-resources a{
+  background:rgba(8,25,49,.64)!important;border-color:rgba(143,175,214,.18)!important;color:#eef4fb!important
+}
+body.ds-auth-os-page .agent-journey-resources a:hover{border-color:rgba(240,193,91,.40)!important;background:rgba(240,193,91,.055)!important}
+
+@media(max-width:1180px){
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:100%;
+    grid-template-columns:minmax(270px,330px) minmax(0,1fr)!important;
+  }
+  body.ds-auth-os-page .dm-member-panel{display:none!important}
+}
+@media(max-width:820px){
+  body.ds-auth-os-page .dm-os.dm-os-three{display:block!important;padding:12px!important}
+  body.ds-auth-os-page .dsx-messages-title{margin-bottom:12px}
+  body.ds-auth-os-page .dm-sidebar,body.ds-auth-os-page .dm-chat{min-height:70vh}
+  body.ds-auth-os-page .notification-layout{grid-template-columns:1fr!important}
+}
