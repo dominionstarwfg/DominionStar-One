@@ -568,14 +568,20 @@
 
       const announcementsMetric=document.getElementById('activityAnnouncements');
       const messagesMetric=document.getElementById('activityMessages');
-      if (announcementsMetric) announcementsMetric.textContent =
-        announcements.error ? '—' : (announcements.count ?? 0);
-      if (messagesMetric) messagesMetric.textContent =
-        status !== 'approved' || messages.error ? '—' : (messages.count ?? 0);
+      const announcementValue=announcements.error ? '—' : (announcements.count ?? 0);
+      const messageValue=status !== 'approved' || messages.error ? '—' : (messages.count ?? 0);
+      if (announcementsMetric) announcementsMetric.textContent = announcementValue;
+      if (messagesMetric) messagesMetric.textContent = messageValue;
+      const dashboardPulseAnnouncements=document.getElementById('dashboardPulseAnnouncements');
+      const dashboardPulsePosts=document.getElementById('dashboardPulsePosts');
+      if (dashboardPulseAnnouncements) dashboardPulseAnnouncements.textContent=announcementValue;
+      if (dashboardPulsePosts) dashboardPulsePosts.textContent=messageValue;
 
       if (notificationsResult.error) {
         const notificationMetric=document.getElementById('activityNotifications');
         if (notificationMetric) notificationMetric.textContent = '—';
+        const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
+        if (dashboardPulseNotifications) dashboardPulseNotifications.textContent='—';
         notificationCount?.classList.add('member-hidden');
         const panelStatus = document.getElementById('notificationPanelStatus');
         if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
@@ -601,6 +607,8 @@
       window.CommunicationEngine?.setBadge(unread);
       const notificationMetric=document.getElementById('activityNotifications');
       if (notificationMetric) notificationMetric.textContent = unread;
+      const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
+      if (dashboardPulseNotifications) dashboardPulseNotifications.textContent=unread;
 
       if (unread) {
         notificationCount.textContent = unread;
