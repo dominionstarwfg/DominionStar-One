@@ -72,7 +72,8 @@
   document.addEventListener('keydown', e => e.key === 'Escape' && hideAll());
 
   const destinations = [
-    ['Feed','/member-dashboard/','Your professional network'],
+    ['Dashboard','/member-dashboard/','Executive overview and command center'],
+    ['Feed','/feed/','Your professional social network'],
     ['Messages','/direct-messages/','Private member conversations'],
     ['Meet','/meet/','Join a video meeting'],
     ['Notifications','/notifications/','Messages, calls, meetings, and platform updates'],
@@ -102,7 +103,8 @@
 
   const routes = [
     {terms:['message','chat'], label:'Opening Messages.', url:'/direct-messages/'},
-    {terms:['community','post','repost','share','download','copy link','copy text','announcement'], label:'Opening Community and post actions.', url:'/community/'},
+    {terms:['feed','post','repost','share','like','comment','copy link','copy text'], label:'Opening your professional Feed.', url:'/feed/'},
+    {terms:['community','discussion','live chat','announcement'], label:'Opening Community.', url:'/community/'},
     {terms:['training','academy','learn','course'], label:'Opening Training.', url:'/academy/'},
     {terms:['meet','video call'], label:'Opening Meet.', url:'/meet/'},
     {terms:['calendar','appointment'], label:'Opening Calendar.', url:'/appointments/'},
@@ -128,14 +130,14 @@
     reply.className = 'dsos-ai-message';
     reply.innerHTML = match
       ? `${match.label} <a href="${match.url}">Open →</a>`
-      : 'I can open Feed, Messages, Notifications, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
+      : 'I can open Dashboard, Feed, Messages, Notifications, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
     messages.appendChild(reply);
     input.value = '';
     messages.scrollTop = messages.scrollHeight;
   });
 
   const requiredRoutes = [
-    '/member-dashboard/','/direct-messages/','/community/','/academy/',
+    '/member-dashboard/','/feed/','/direct-messages/','/community/','/academy/',
     '/appointments/','/member-directory/','/recognition/',
     '/professional-profile/','/account-settings/'
   ];
