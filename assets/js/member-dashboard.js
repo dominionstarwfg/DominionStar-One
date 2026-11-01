@@ -264,6 +264,8 @@
   const journeyPercentElement = document.getElementById('journeyPercent');
   const journeyCountElement = document.getElementById('journeyCount');
   if (journeyPercentElement) journeyPercentElement.textContent = `${percent}%`;
+  const journeyPercentMirror = document.getElementById('dashboardJourneyPercentMirror');
+  if (journeyPercentMirror) journeyPercentMirror.textContent = `${percent}%`;
   if (journeyCountElement) journeyCountElement.textContent =
     `${completed} of ${totalMilestones} milestones completed`;
   const journeyProgressBar = document.getElementById('journeyProgressBar');
@@ -340,7 +342,7 @@
   if (heroGreeting) heroGreeting.textContent = greetingText;
 
   async function loadAnnouncements() {
-    const target = document.getElementById('feedPinnedAnnouncement');
+    const target = document.getElementById('dashboardAnnouncementPreview');
     if (!target) return;
     const result = await withTimeout(
       supabase
@@ -406,13 +408,20 @@
       const dateText = item.confirmed_start
         ? new Date(item.confirmed_start).toLocaleString()
         : `${item.requested_date || 'Date pending'} · ${item.requested_time_window || 'Time pending'}`;
+      const rawLocation = String(item.meeting_location || '').trim();
+      let joinHref = '';
+      try {
+        const parsed = new URL(rawLocation);
+        if (parsed.protocol === 'https:') joinHref = parsed.href;
+      } catch (_error) { /* Meeting location may be plain text. */ }
 
       target.innerHTML = `
         <article class="dashboard-appointment-preview">
           <span class="appointment-status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>
           <h3>${escapeHtml(String(item.meeting_type || 'Leadership meeting').replace(/-/g,' '))}</h3>
           <p>${escapeHtml(dateText)}</p>
-          <small>${escapeHtml(item.meeting_location || 'Location will be provided after confirmation.')}</small>
+          <small>${joinHref ? 'Online meeting link available' : escapeHtml(rawLocation || 'Location will be provided after confirmation.')}</small>
+          ${joinHref ? '<a class="dsx-join-link" href="'+escapeHtml(joinHref)+'" target="_blank" rel="noopener noreferrer">Join meeting</a>' : ''}
         </article>`;
     } catch (error) {
       target.innerHTML = `
@@ -711,6 +720,7 @@
   // or a visible retry state.
   await Promise.allSettled([
     loadAnnouncements(),
+    loadDashboardAppointments(),
     status === 'approved' ? loadDashboardCommunity() : Promise.resolve(),
     loadExecutiveActivity()
   ]);
