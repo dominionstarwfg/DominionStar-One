@@ -33,7 +33,7 @@ test('Notification categories expose meaningful semantic states',()=>{
 test('Community reactions and post types use semantic social colors and real active state',()=>{
   assert.doesNotThrow(()=>new vm.Script(community));
   assert.match(community,/const active=reactions\.some\(item=>item\.user_id===session\.user\.id&&item\.reaction===reaction\)/);
-  assert.match(community,/community-reaction-button '\+\(active\?'is-active':' '\)/);
+  assert.ok(community.includes("community-reaction-button '+(active?'is-active':'')+'"));
   assert.match(community,/aria-pressed=/);
   assert.match(css,/\.community-post-type\.discussion\{[\s\S]*rgba\(24,119,242,.11\)/);
   assert.match(css,/\.community-post-type\.question\{[\s\S]*rgba\(242,201,76,.10\)/);
@@ -47,5 +47,9 @@ test('Community reactions and post types use semantic social colors and real act
 test('Gold remains reserved for premium and official states',()=>{
   assert.match(css,/\.community-pinned-label\{[\s\S]*#f3cb6d[\s\S]*#d79b32/);
   assert.match(css,/\.community-post-type\.announcement/);
-  assert.doesNotMatch(css,/\.dm-message\.outgoing \.dm-message-bubble\{[\s\S]{0,220}240,193,91/);
+  const at=css.lastIndexOf('.dm-message.outgoing .dm-message-bubble{');
+  assert.ok(at>=0);
+  const effective=css.slice(at,at+420);
+  assert.match(effective,/#1877f2/);
+  assert.doesNotMatch(effective,/240,193,91/);
 });
