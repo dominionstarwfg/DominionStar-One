@@ -941,3 +941,192 @@ body.ds-auth-os-page .dm-avatar-fallback{
   color:#f4d28a!important;
   font-weight:850;
 }
+
+
+/* ===== Remaining Agent OS workspace finish ===== */
+
+/* Profile */
+body.ds-auth-os-page .executive-profile-card{
+  background:
+    radial-gradient(circle at 50% 4%,rgba(240,193,91,.13),transparent 28%),
+    linear-gradient(155deg,rgba(22,45,78,.96),rgba(8,24,48,.98))!important;
+  border-color:rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page .executive-avatar-wrap{
+  position:relative!important;
+  background:#132f51!important;
+  border:2px solid rgba(240,193,91,.68)!important;
+  box-shadow:0 0 0 5px rgba(240,193,91,.055),0 18px 38px rgba(0,0,0,.26)!important;
+}
+body.ds-auth-os-page .executive-avatar-wrap img{
+  position:absolute;
+  inset:0;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border:0!important;
+  background:transparent!important;
+}
+body.ds-auth-os-page .profile-avatar-fallback{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  color:#f5d48a!important;
+  font:800 42px/1 Georgia,"Times New Roman",serif;
+  letter-spacing:.02em;
+}
+body.ds-auth-os-page .avatar-upload-button{
+  background:linear-gradient(135deg,#f4cd72,#d69b31)!important;
+  color:#251907!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.24)!important;
+}
+body.ds-auth-os-page .executive-rank{color:#f0c15b!important}
+body.ds-auth-os-page .profile-section-card{
+  background:linear-gradient(155deg,rgba(20,42,75,.95),rgba(8,25,49,.97))!important;
+  border-color:rgba(143,175,214,.21)!important;
+}
+body.ds-auth-os-page .profile-section-card input,
+body.ds-auth-os-page .profile-section-card textarea,
+body.ds-auth-os-page .profile-section-card select{
+  background:rgba(7,23,46,.92)!important;
+  color:#f5f8fc!important;
+  border-color:rgba(143,175,214,.28)!important;
+}
+body.ds-auth-os-page .profile-section-card input::placeholder,
+body.ds-auth-os-page .profile-section-card textarea::placeholder{color:#8fa4bd!important}
+
+/* Appointments / Calendar */
+body.ds-auth-os-page .appointment-center-grid{gap:16px!important}
+body.ds-auth-os-page .appointment-center-grid>.member-panel{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(75,134,206,.12),transparent 30%),
+    linear-gradient(155deg,rgba(20,42,75,.96),rgba(8,25,49,.98))!important;
+  border-color:rgba(143,175,214,.22)!important;
+  border-radius:19px!important;
+}
+body.ds-auth-os-page .appointment-center-grid h2{
+  color:#fff!important;
+  font-family:Georgia,"Times New Roman",serif!important;
+}
+body.ds-auth-os-page .appointment-request-form label{color:#dfe8f3!important}
+body.ds-auth-os-page .appointment-card{
+  background:linear-gradient(145deg,rgba(25,47,79,.88),rgba(10,28,54,.94))!important;
+  border:1px solid rgba(143,175,214,.20)!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.16)!important;
+}
+body.ds-auth-os-page .appointment-card h3{color:#fff!important}
+body.ds-auth-os-page .appointment-card dl div{
+  background:rgba(255,255,255,.035)!important;
+  border:1px solid rgba(143,175,214,.12)!important;
+}
+body.ds-auth-os-page .appointment-card dt{color:#92a8c1!important}
+body.ds-auth-os-page .appointment-card dd{color:#eef4fb!important}
+
+/* Recognition */
+body.ds-auth-os-page .recognition-intro{
+  background:
+    radial-gradient(circle at 92% 10%,rgba(240,193,91,.15),transparent 23%),
+    linear-gradient(120deg,rgba(9,31,59,.98),rgba(21,70,100,.90))!important;
+  border-color:rgba(240,193,91,.30)!important;
+  box-shadow:0 18px 38px rgba(0,0,0,.20)!important;
+}
+body.ds-auth-os-page .recognition-heading h2{
+  color:#fff!important;
+  font-family:Georgia,"Times New Roman",serif!important;
+}
+body.ds-auth-os-page .recognition-feed{max-width:none!important}
+body.ds-auth-os-page .recognition-post{
+  border:1px solid rgba(143,175,214,.21)!important;
+  border-left:4px solid #d7a942!important;
+  background:
+    radial-gradient(circle at 100% 100%,rgba(240,193,91,.08),transparent 25%),
+    linear-gradient(155deg,rgba(23,45,77,.95),rgba(9,27,52,.98))!important;
+  box-shadow:0 15px 34px rgba(0,0,0,.19)!important;
+}
+body.ds-auth-os-page .recognition-post h3{color:#fff!important}
+body.ds-auth-os-page .recognition-post p{color:#b9c8da!important}
+body.ds-auth-os-page .recognition-post a{color:#f0c15b!important}
+body.ds-auth-os-page .recognition-date,
+body.ds-auth-os-page .recognition-source{color:#91a6be!important}
+
+/* Learning */
+body.ds-auth-os-page .agent-learning-grid{gap:14px!important}
+body.ds-auth-os-page .agent-learning-card{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 100% 100%,rgba(240,193,91,.09),transparent 28%),
+    linear-gradient(155deg,rgba(21,43,76,.96),rgba(8,25,49,.98))!important;
+  border-color:rgba(143,175,214,.22)!important;
+  border-radius:19px!important;
+}
+body.ds-auth-os-page .agent-learning-card:after{
+  content:"";
+  position:absolute;
+  right:-45px;
+  bottom:-65px;
+  width:170px;
+  height:110px;
+  border:1px solid rgba(240,193,91,.18);
+  border-radius:50%;
+  pointer-events:none;
+}
+body.ds-auth-os-page .agent-learning-icon{
+  background:linear-gradient(145deg,rgba(240,193,91,.18),rgba(51,75,108,.32))!important;
+  color:#f5cf78!important;
+  border:1px solid rgba(240,193,91,.31)!important;
+  box-shadow:0 0 22px rgba(240,193,91,.07)!important;
+}
+body.ds-auth-os-page .agent-learning-card h2{
+  color:#fff!important;
+  font-family:Georgia,"Times New Roman",serif!important;
+}
+body.ds-auth-os-page .agent-learning-card>p:not(.eyebrow){color:#b5c5d8!important}
+body.ds-auth-os-page .agent-learning-actions>a:not(.btn){color:#9bc9fb!important}
+body.ds-auth-os-page .agent-learning-note{
+  background:linear-gradient(155deg,rgba(20,42,75,.94),rgba(8,25,49,.97))!important;
+  border-color:rgba(143,175,214,.20)!important;
+}
+
+/* Agent settings + Meet boundary */
+body.ds-auth-os-page .ds-agent-meet-bridge{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(240,193,91,.12),transparent 27%),
+    linear-gradient(145deg,rgba(20,42,75,.95),rgba(8,25,49,.98))!important;
+  border-color:rgba(143,175,214,.22)!important;
+  box-shadow:0 16px 34px rgba(0,0,0,.19)!important;
+}
+body.ds-auth-os-page .ds-agent-meet-symbol{
+  color:#f3ce78!important;
+  background:linear-gradient(145deg,#18385d,#0a223e)!important;
+  border:1px solid rgba(240,193,91,.34)!important;
+}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy .eyebrow{color:#d5b56e!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy h2{color:#fff!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy p:not(.eyebrow){color:#afc0d3!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy span{color:#91a6bf!important}
+
+/* Directory resilient photo overlay */
+body.ds-auth-os-page .member-directory-avatar{position:relative!important;overflow:visible!important}
+body.ds-auth-os-page .member-directory-fallback{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  color:#f4d28a!important;
+  font-weight:900;
+  z-index:0;
+}
+body.ds-auth-os-page .member-directory-photo{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%;
+  object-fit:cover!important;
+}
+body.ds-auth-os-page .member-directory-avatar>span.online,
+body.ds-auth-os-page .member-directory-avatar>span.offline{z-index:2}
