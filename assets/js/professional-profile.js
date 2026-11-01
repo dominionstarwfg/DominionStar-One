@@ -5,12 +5,14 @@
   const form = document.getElementById('contactProfileForm');
   const result = document.getElementById('profileSaveResult');
   const avatarPreview = document.getElementById('profileAvatarPreview');
+  const avatarInitials = document.getElementById('profileAvatarInitials');
   const photoInput = document.getElementById('profilePhotoInput');
 
   let supabase;
   let session;
   let profile;
   let currentAvatarPath = '';
+  let localPreviewUrl = '';
 
   const setText = (id, value) => {
     const element = document.getElementById(id);
@@ -27,10 +29,35 @@
     result.className = `member-message show ${type}`;
   }
 
+  const profileInitials = value => String(value || 'DS')
+    .trim().split(/\s+/).filter(Boolean).slice(0,2)
+    .map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
+
+  const showAvatarFallback = () => {
+    avatarPreview.classList.add('member-hidden');
+    avatarPreview.removeAttribute('src');
+    avatarInitials?.classList.remove('member-hidden');
+  };
+
+  const showAvatarImage = src => {
+    if (!src) {
+      showAvatarFallback();
+      return;
+    }
+    avatarPreview.classList.add('member-hidden');
+    avatarInitials?.classList.remove('member-hidden');
+    avatarPreview.onerror = () => showAvatarFallback();
+    avatarPreview.onload = () => {
+      avatarPreview.classList.remove('member-hidden');
+      avatarInitials?.classList.add('member-hidden');
+    };
+    avatarPreview.src = src;
+  };
+
   async function loadAvatar(path) {
     currentAvatarPath = path || '';
     if (!path) {
-      avatarPreview.src = '/assets/logo.jpeg';
+      showAvatarFallback();
       return;
     }
 
@@ -39,8 +66,11 @@
       .createSignedUrl(path, 3600);
 
     if (!error && data?.signedUrl) {
-      avatarPreview.src = `${data.signedUrl}&v=${Date.now()}`;
+      const separator = data.signedUrl.includes('?') ? '&' : '?';
+      showAvatarImage(`${data.signedUrl}${separator}v=${Date.now()}`);
+      return;
     }
+    showAvatarFallback();
   }
 
   function renderProfile() {
@@ -48,6 +78,7 @@
     const email = session.user.email || profile.email || '';
 
     setText('profileDisplayName', displayName);
+    if (avatarInitials) avatarInitials.textContent = profileInitials(displayName);
     setText('profileDisplayRank', profile.rank || 'TA');
     setText('verifiedFullName', displayName);
     setText('verifiedEmail', email);
@@ -120,7 +151,10 @@
 
   photoInput.addEventListener('change', () => {
     const file = photoInput.files[0];
-    if (file) avatarPreview.src = URL.createObjectURL(file);
+    if (!file) return;
+    if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+    localPreviewUrl = URL.createObjectURL(file);
+    showAvatarImage(localPreviewUrl);
   });
 
   form.addEventListener('submit', async event => {
@@ -188,6 +222,10 @@
     }
 
     photoInput.value = '';
+    if (localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      localPreviewUrl = '';
+    }
     await loadAvatar(currentAvatarPath);
     renderProfile();
 

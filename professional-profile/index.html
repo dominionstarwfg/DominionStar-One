@@ -22,7 +22,7 @@
 <section id="profileApp" class="member-hidden">
 <header class="member-dashboard-header executive-header">
 <div>
-<span class="founding-member-badge">Exclusive Edition</span>
+<span class="founding-member-badge">Professional Profile</span>
 <h1>My Profile</h1>
 <p>Manage your profile photo and contact information. Verified organization fields are read-only.</p>
 </div>
@@ -35,7 +35,8 @@
 <section class="profile-stable-layout">
 <aside class="executive-profile-card">
 <div class="executive-avatar-wrap">
-<img id="profileAvatarPreview" src="/assets/logo.jpeg" alt="Profile photo">
+<span id="profileAvatarInitials" class="profile-avatar-fallback" aria-hidden="true">DS</span>
+<img id="profileAvatarPreview" class="member-hidden" alt="Profile photo">
 <label class="avatar-upload-button">Change Photo
 <input id="profilePhotoInput" form="contactProfileForm" type="file" accept="image/jpeg,image/png,image/webp">
 </label>

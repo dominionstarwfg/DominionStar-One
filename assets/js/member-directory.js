@@ -17,14 +17,21 @@
     members=m.data||[];presence=Object.fromEntries((p.data||[]).map(x=>[x.user_id,x]));render();
   }
   async function avatar(path){if(!path)return null;const r=await client.storage.from('member-avatars').createSignedUrl(path,3600);return r.data?.signedUrl||null;}
+  const initials=name=>String(name||'M').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'M';
+  const wireAvatarFallbacks=root=>{
+    root?.querySelectorAll?.('img.member-directory-photo').forEach(image=>{
+      image.addEventListener('error',()=>image.remove(),{once:true});
+    });
+  };
   async function render(){
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
     const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
     const cards=await Promise.all(filtered.map(async m=>{
       const pic=await avatar(m.avatar_path);const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
+      const memberName=m.preferred_name||m.full_name||'Member';
       return `<article class="member-directory-card">
-        <div class="member-directory-avatar">${pic?`<img src="${pic}" alt="">`:esc((m.preferred_name||m.full_name||'M').slice(0,1))}<span class="${active?'online':'offline'}"></span></div>
+        <div class="member-directory-avatar"><span class="member-directory-fallback" aria-hidden="true">${esc(initials(memberName))}</span>${pic?`<img class="member-directory-photo" src="${esc(pic)}" alt="${esc(memberName)}">`:''}<span class="${active?'online':'offline'}"></span></div>
         <h2>${esc(m.preferred_name||m.full_name||'Member')}</h2>
         <p>${esc(m.rank||'TA')}${m.exclusive_member_number?` · Exclusive #${m.exclusive_member_number}`:''}</p>
         <small>${esc([m.city,m.state].filter(Boolean).join(', ')||'Location not listed')}</small>
@@ -35,6 +42,7 @@
       </article>`;
     }));
     grid.innerHTML=cards.length?cards.join(''):'<div class="member-empty-state"><h2>No members found.</h2></div>';
+    wireAvatarFallbacks(grid);
     grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const r=await client.from('member_connections').insert({requester_id:session.user.id,recipient_id:b.dataset.id});b.textContent=r.error?(r.error.code==='23505'?'Requested':'Unable'):'Requested';}));
   }
   document.getElementById('directorySearch').addEventListener('input',render);
