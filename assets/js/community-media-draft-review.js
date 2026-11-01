@@ -54,7 +54,8 @@
     if(!attach||!input)throw new Error('The unified attachment control is unavailable.');
     const tray=root.querySelector('[data-draft-tray]');
     const note=root.querySelector('[data-draft-note]');
-    const publish=form.querySelector('#communityPostSubmit');
+    const publish=form.querySelector('#communityPostSubmit,[data-draft-publish]');
+    if(!publish)throw new Error('The publish control is unavailable.');
     const entries=[];
     const objectUrls=new Set();
      let validationInProgress=false;
@@ -157,4 +158,7 @@
   const form=document.getElementById('communityPostForm');
   const root=document.getElementById('communityMediaDraft');
   if(form && root)mount({form,root});
+  const feedForm=document.getElementById('feedPageComposer');
+  const feedRoot=document.getElementById('feedMediaDraft');
+  if(feedForm && feedRoot)mount({form:feedForm,root:feedRoot});
 })();
