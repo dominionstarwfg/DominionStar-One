@@ -9,15 +9,15 @@ const dashboardJs=read('assets/js/member-dashboard.js');
 const socialJs=read('assets/js/dashboard-social.js');
 const css=read('assets/css/dominionstar-cinematic-os.css');
 
-test('Local daypart greeting identifies the authenticated member and shows credentials above feed',()=>{
+test('Local daypart greeting identifies the authenticated member on the executive Dashboard',()=>{
   const marker=html.indexOf('id="heroMemberName"');
   assert.ok(marker>0);
   assert.match(html,/<span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName">/);
   assert.match(html,/Welcome back to DominionStar Executive OS/);
   for(const daypart of ['Good morning','Good afternoon','Good evening']) assert.ok(dashboardJs.includes(daypart),daypart);
-  assert.ok(marker<html.indexOf('id="dsosCommunitySection"'));
+  assert.ok(marker<html.indexOf('class="dsx-dashboard-hub"'));
   for(const hook of ['heroProfileFullName','heroContractLevel','heroProfileAvatar','heroProfileInitials',
-    'heroFoundingBadge','dashboardAvatarInitials','topbarFoundingBadge','feedComposerInitials']){
+    'heroFoundingBadge','dashboardAvatarInitials','topbarFoundingBadge']){
     assert.ok(html.includes('id="'+hook+'"'),hook+' missing');
   }
   assert.match(dashboardJs,/setIdentityText\('heroMemberName', firstName\)/);

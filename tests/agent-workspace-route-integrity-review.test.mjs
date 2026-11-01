@@ -9,6 +9,7 @@ const read=relative=>readFileSync(path.join(root,relative),'utf8');
 
 const pages=[
   'member-dashboard/index.html',
+  'feed/index.html',
   'member-login/index.html',
   'founder-control/index.html',
   'community/index.html',
@@ -20,7 +21,8 @@ const pages=[
   'account-settings/index.html'
 ];
 const mainNav=[
-  ['Feed','/member-dashboard/'],
+  ['Dashboard','/member-dashboard/'],
+  ['Feed','/feed/'],
   ['Messages','/direct-messages/'],
   ['Meet','/meet/'],
   ['Notifications','/notifications/'],
@@ -49,7 +51,7 @@ const routeToFile=raw=>{
   return path.join(root,mapped);
 };
 
-test('All ten core authenticated pages link only to existing internal routes and assets',()=>{
+test('Core authenticated pages link only to existing internal routes and assets',()=>{
   let reviewed=0;
   for(const page of pages){
     const markup=read(page);

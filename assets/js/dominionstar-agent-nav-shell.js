@@ -14,7 +14,7 @@
     '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
     '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
     '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
-    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp'
+    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp','#feedApp'
   ];
   const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
   if(!app || app.querySelector('[data-ds-agent-shell]')) return;
@@ -30,7 +30,8 @@
   if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
 
   const agentItems=[
-    ['Feed','/member-dashboard/','home'],
+    ['Dashboard','/member-dashboard/','home'],
+    ['Feed','/feed/','feed'],
     ['Messages','/direct-messages/','message'],
     ['Meet','/meet/','video'],
     ['Notifications','/notifications/','bell'],
@@ -53,12 +54,13 @@
     ['Feature Controls','/founder-features/','sliders'],
     ['Diagnostics','/founder-diagnostics/','pulse'],
     ['Release Check','/release-check/','shield'],
-    ['Member Feed','/member-dashboard/','home']
+    ['Member Feed','/feed/','feed']
   ];
   const items=founderMode?founderItems:agentItems;
 
   const shapes={
     home:'<path d="m3 10 9-7 9 7v11H3V10Zm6 11v-7h6v7"/>',
+    feed:'<rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M7 16h6M7 7h10"/>',
     message:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
     bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
     sparkles:'<path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3ZM19 18l.6 1.4L21 20l-1.4.6L19 22l-.6-1.4L17 20l1.4-.6L19 18Z"/>',

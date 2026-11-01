@@ -13,6 +13,11 @@ on:
       - 'assets/css/member-dashboard-readability-v2.css'
       - 'account-settings/**'
       - 'member-dashboard/**'
+      - 'feed/**'
+      - 'assets/js/feed.js'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/js/community-media-draft-review.js'
+      - 'assets/css/dominionstar-cinematic-os.css'
       - 'direct-messages/**'
       - 'netlify/functions/push-public-key.mjs'
       - 'netlify/functions/process-push-outbox.mjs'
@@ -53,6 +58,11 @@ on:
       - 'assets/css/member-dashboard-readability-v2.css'
       - 'account-settings/**'
       - 'member-dashboard/**'
+      - 'feed/**'
+      - 'assets/js/feed.js'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/js/community-media-draft-review.js'
+      - 'assets/css/dominionstar-cinematic-os.css'
       - 'direct-messages/**'
       - 'netlify/functions/push-public-key.mjs'
       - 'netlify/functions/process-push-outbox.mjs'
@@ -89,6 +99,9 @@ jobs:
           node --check assets/js/communication-engine.js
           node --check assets/js/account-settings.js
           node --check assets/js/member-dashboard.js
+          node --check assets/js/feed.js
+          node --check assets/js/dashboard-social.js
+          node --check assets/js/community-media-draft-review.js
           node --check assets/js/direct-messages.js
           node --check assets/js/notification-feature-flags.js
           node --check scripts/check-agent-release-gates.mjs

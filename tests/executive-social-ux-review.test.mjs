@@ -5,7 +5,10 @@ import vm from 'node:vm';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const dashboard=read('member-dashboard/index.html');
+const feedPage=read('feed/index.html');
+const feedScript=read('assets/js/feed.js');
 const dashboardCss=read('assets/css/member-dashboard-executive.css');
+const cinematic=read('assets/css/dominionstar-cinematic-os.css');
 const dashboardScript=read('assets/js/member-dashboard.js');
 const navigation=read('assets/js/dominionstar-os.js');
 const community=read('assets/js/community-hub.js');
@@ -18,7 +21,8 @@ test('Approved simplified sidebar has clean vector icons and no retired tabs',()
   assert.ok(nav,'sidebar missing');
   assert.doesNotMatch(nav,/\/workspace\/|Workspace|href="\/academy\/"|>Directory</);
   for(const [label,route] of [
-    ['Feed','/member-dashboard/'],
+    ['Dashboard','/member-dashboard/'],
+    ['Feed','/feed/'],
     ['Messages','/direct-messages/'],
     ['Meet','/meet/'],
     ['Notifications','/notifications/'],
@@ -48,23 +52,25 @@ test('Real notification and message events drive meaningful status colors',()=>{
   assert.match(dashboardScript,/const unreadMessages = notifications\.filter/);
   assert.match(dashboardScript,/item\.event_type\.startsWith\('message\.'\)/);
   assert.match(dashboardScript,/messageBadge\.classList\.toggle\('member-hidden', unreadMessages === 0\)/);
-  assert.match(dashboardCss,/\.ds30-nav-badge/);
-  assert.match(dashboardCss,/#d44758/);
-  assert.match(dashboardCss,/#358e96/);
+  assert.match(cinematic,/--dsx-blue:#1877f2/);
+  assert.match(cinematic,/--dsx-danger:#ff4d5a/);
+  assert.match(cinematic,/--dsx-success:#35d07f/);
+  assert.match(cinematic,/--dsx-warning:#f2c94c/);
+  assert.match(cinematic,/--dsx-gold:#f0c15b/);
+  assert.match(cinematic,/\.ds30-nav-badge,[\s\S]*background:var\(--dsx-danger\)!important/);
 });
 
-test('Approved agents see an executive dashboard layer plus a true social feed',()=>{
-  const feedAt=dashboard.indexOf('id="dsosCommunitySection"');
-  assert.ok(feedAt>0,'feed should be present');
+test('Approved agents get a focused executive Dashboard and a separate social Feed',()=>{
   assert.doesNotMatch(dashboard,/class="dsos-profile-card"|System status|Account health/);
   assert.match(dashboard,/Welcome back to DominionStar Executive OS/);
   assert.match(dashboard,/class="dsx-overview"/);
   assert.match(dashboard,/Upcoming Activity/);
   assert.match(dashboard,/Quick Actions/);
-  assert.match(dashboard,/id="dsosCommunitySection" class="[^"]*member-hidden"/);
-  assert.match(dashboard,/id="dsosSocialGateway"/);
-  assert.match(dashboardScript,/status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);
-  assert.match(dashboardScript,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
+  assert.match(dashboard,/class="dsx-dashboard-hub"/);
+  assert.doesNotMatch(dashboard,/id="dsosSocialGateway"|id="dashboardCommunityPreview"|dashboard-social\.js/);
+  assert.match(feedPage,/id="feedPageComposer"/);
+  assert.match(feedPage,/id="feedPageStream"/);
+  assert.match(feedScript,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
 });
 
 test('Post three-dot menu actions copy actual text and a deep link',()=>{
@@ -89,6 +95,8 @@ test('Link rendering is escaped and limited to https or http',()=>{
 
 test('Media attachments remain explicitly local drafts until secure upload approval',()=>{
   assert.match(communityPage,/Local preview only\. Secure media publishing is not enabled\./);
+  assert.match(feedPage,/Secure media publication is not enabled yet/);
+  assert.match(feedPage,/id="feedMediaDraft"/);
   assert.match(communityPage,/data-draft-attach/);
   assert.match(communityPage,/data-draft-file-input/);
   assert.doesNotMatch(communityPage,/data-draft-picker/);
@@ -112,7 +120,7 @@ test('Executive login retains mandatory Agent Code and guards optional Google si
 
 test('Executive community post action row uses existing Supabase interaction endpoints',()=>{
   const social=read('assets/js/dashboard-social.js');
-  assert.match(dashboard,/dashboard-social\.js/);
+  assert.match(feedPage,/dashboard-social\.js/);
   for(const action of ['like','comment','repost','share']) {
     assert.match(social,new RegExp('data-social="'+action+'"'));
   }

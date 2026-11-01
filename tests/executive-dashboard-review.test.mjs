@@ -5,6 +5,8 @@ import vm from 'node:vm';
 
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const html = read('member-dashboard/index.html');
+const feedHtml = read('feed/index.html');
+const feedJs = read('assets/js/feed.js');
 const css = read('assets/css/member-dashboard-executive.css');
 const cinematic = read('assets/css/dominionstar-cinematic-os.css');
 const js = read('assets/js/member-dashboard.js');
@@ -12,19 +14,19 @@ const os = read('assets/js/dominionstar-os.js');
 
 const htmlIds = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 
-test('Executive OS home preserves live dashboard and social-feed hooks', () => {
+test('Executive OS home preserves live dashboard hooks without embedding the social feed', () => {
   assert.equal(new Set(htmlIds).size, htmlIds.length, 'All IDs must remain unique');
   for (const hook of [
     'dsosSidebar','dsosMenu','memberName','memberGreeting','heroGreeting','heroMemberName',
     'founderControlLink','memberLogout','dashboardAvatar','dashboardAvatarInitials',
-    'heroProfileAvatar','heroProfileInitials','dsosSocialGateway','feedComposerAvatar',
-    'feedComposerBody','feedComposerPublish','dashboardCommunityPreview',
+    'heroProfileAvatar','heroProfileInitials',
     'journeyPercent','journeyCount','journeyProgressBar','dashboardNextAppointment',
     'activityAnnouncements','activityMessages','activityNotifications','dashboardAnnouncementPreview',
-    'notificationBell','notificationCount','pendingMemberContent','dsosCommunitySection',
+    'dashboardPulsePosts','dashboardPulseNotifications','dashboardPulseAnnouncements',
+    'notificationBell','notificationCount',
     'dashboardPresenceSelect','dashboardPresenceDot','dsosSearchPanel','dsosAiPanel','dsosBackdrop'
   ]) {
-    assert.ok(htmlIds.includes(hook), 'Missing required Feed hook ' + hook);
+    assert.ok(htmlIds.includes(hook), 'Missing required Dashboard hook ' + hook);
   }
   for (const removed of [
     'memberStatus','memberRank','memberEmail','memberAgentCode',
@@ -52,16 +54,15 @@ test('Executive visual system uses the approved cinematic dashboard and social l
   assert.doesNotMatch(cinematic, /2030/);
 });
 
-test('Community social gateway is present but hidden until approved', () => {
-  assert.match(html, /id="dsosSocialGateway" class="[^"]*member-hidden"/);
-  assert.match(html, /id="dsosCommunitySection" class="[^"]*member-hidden"/);
-  assert.match(html, /id="dashboardCommunityPreview"/);
-  assert.match(html, /href="\/community\/"/);
-  assert.match(js, /if \(status === 'approved'\) \{[\s\S]*?socialGateway\?\.classList\.remove\('member-hidden'\)/);
-  assert.match(js, /communitySection\?\.classList\.add\('member-hidden'\)/);
-  assert.match(js, /status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);
-  assert.match(js, /window\.DSDashboardSocial\.mount/);
-  assert.match(html, /\/assets\/js\/dashboard-social\.js/);
+test('Social publishing lives on the dedicated Feed route, not Dashboard', () => {
+  assert.doesNotMatch(html, /id="dsosSocialGateway"|id="dashboardCommunityPreview"|dashboard-social\.js/);
+  assert.match(html, /href="\/feed\/"/);
+  assert.match(feedHtml, /id="feedPageComposer"/);
+  assert.match(feedHtml, /id="feedComposerBody"/);
+  assert.match(feedHtml, /id="feedPageStream"/);
+  assert.match(feedHtml, /\/assets\/js\/dashboard-social\.js/);
+  assert.match(feedJs, /window\.DSDashboardSocial\.mount/);
+  assert.match(feedJs, /\.from\('community_messages'\)[\s\S]*\.insert\(/);
 });
 
 test('Founder control is no longer granted from email or profile claims alone', () => {
@@ -96,7 +97,7 @@ test('Executive overview metrics are live hooks rather than fabricated values', 
   assert.match(js, /\.from\('community_messages'\)[\s\S]*count:'exact'/);
   assert.match(js, /\.from\('executive_events'\)/);
   assert.match(js, /loadDashboardAppointments\(\)/);
-  assert.match(html, /id="dashboardCommunityPreview"/);
+  assert.match(html, /id="dashboardPulsePosts">—</);
 });
 
 test('Dashboard health audit only claims route and interface checks', () => {

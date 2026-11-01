@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Network Feed | DominionStar Executive OS</title>
+<link rel="icon" href="/assets/logo.jpeg">
+<link rel="stylesheet" href="/styles.css?v=9.0">
+<link rel="stylesheet" href="/assets/css/community-media-draft-review.css?v=review-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-2">
+<link rel="stylesheet" href="/assets/css/dominionstar-auth-os-v2.css?v=os-stage-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-cinematic-os.css?v=cinematic-1">
+<script src="/assets/js/runtime-safety.js"></script>
+<script src="/assets/js/platform-core.js"></script>
+</head>
+<body class="founder-body">
+<main class="member-dashboard">
+  <section id="feedGate" class="member-card">
+    <p class="eyebrow">DominionStar Executive OS</p>
+    <h1>Loading your network feed…</h1>
+  </section>
+
+  <section id="feedApp" class="member-hidden">
+    <header class="member-dashboard-header executive-header dsx-feed-page-header">
+      <div>
+        <span class="founding-member-badge">Network Feed</span>
+        <h1>Your professional network, in motion.</h1>
+        <p>Share updates, insights, wins, and questions. React, comment, repost, and share with approved DominionStar members.</p>
+      </div>
+      <div class="member-dashboard-actions">
+        <a class="btn btn-outline" href="/member-dashboard/">Dashboard</a>
+        <a class="btn btn-outline" href="/community/">Community Hub</a>
+      </div>
+    </header>
+
+    <section class="dsx-feed-workspace">
+      <div class="dsx-feed-main">
+        <article class="member-panel dsx-feed-page-composer">
+          <div class="dsx-feed-page-identity">
+            <span class="dsos-feed-avatar">
+              <img id="feedPageAvatar" class="member-hidden" alt="Your profile photo">
+              <span id="feedPageInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
+            </span>
+            <div>
+              <strong id="feedPageName">DominionStar Member</strong>
+              <span id="feedPageRank">Contract Level: —</span>
+              <span id="feedPageFounding" class="dsmedia-founding-badge member-hidden"></span>
+            </div>
+          </div>
+
+          <form id="feedPageComposer">
+            <label for="feedComposerBody" class="dsos-screenreader">Share with your network</label>
+            <textarea id="feedComposerBody" name="body" rows="3" maxlength="2000" required placeholder="Share an update, insight, win, or question with your DominionStar network…"></textarea>
+
+            <section id="feedMediaDraft" class="dsmedia-draft" aria-label="Attach media to a draft post">
+              <div class="dsmedia-action-row dsx-feed-media-actions">
+                <button type="button" class="dsmedia-attach-button" data-draft-attach aria-label="Attach a photo, flyer or video">＋ Photo / Video / File</button>
+                <span class="dsmedia-attach-hint">Secure media publication is not enabled yet; selected media stays a local draft.</span>
+              </div>
+              <input type="file" data-draft-file-input multiple hidden aria-label="Choose files for local preview" accept="image/jpeg,image/png,image/webp,application/pdf,video/mp4,video/webm">
+              <div class="dsmedia-tray" data-draft-tray aria-live="polite"></div>
+              <p class="dsmedia-note" data-draft-note role="status" aria-live="polite">Text and links can be published now. Media remains local until secure storage is enabled.</p>
+            </section>
+
+            <div class="dsx-feed-publish-row">
+              <span id="feedComposerStatus" role="status" aria-live="polite"></span>
+              <button id="feedComposerPublish" class="btn btn-gold" type="submit" data-draft-publish data-draft-label="Post to Feed">Post to Feed</button>
+            </div>
+          </form>
+        </article>
+
+        <div class="dsx-feed-section-head">
+          <div><p class="eyebrow">Latest activity</p><h2>Network Feed</h2></div>
+          <button id="feedRefresh" class="btn btn-outline" type="button">Refresh</button>
+        </div>
+
+        <div id="feedPageStream" class="dsos-feed-stream dsx-feed-page-stream" role="feed" aria-live="polite">
+          <p class="dsos-muted">Loading posts…</p>
+        </div>
+      </div>
+
+      <aside class="dsx-feed-aside">
+        <section class="dsx-side-card">
+          <div class="dsx-side-head"><strong>Feed vs. Community</strong></div>
+          <p><strong>Feed</strong> is your social stream: updates, reactions, comments, reposts, and sharing.</p>
+          <p><strong>Community</strong> is the broader collaboration hub for structured discussions, announcements, standards, and live chat.</p>
+        </section>
+
+        <section class="dsx-side-card dsx-announcement">
+          <div class="dsx-side-head"><strong>Professional Standard</strong></div>
+          <p>Protect client privacy, keep posts constructive, and avoid unverified product or earnings claims.</p>
+          <a class="btn btn-outline" href="/community/">Open Community Hub</a>
+        </section>
+
+        <section class="dsx-side-card">
+          <div class="dsx-side-head"><strong>Quick Links</strong></div>
+          <div class="dsx-quick-grid">
+            <a href="/direct-messages/">✉ <span>Messages</span></a>
+            <a href="/member-directory/">◎ <span>Members</span></a>
+            <a href="/recognition/">★ <span>Recognition</span></a>
+            <a href="/notifications/">◉ <span>Alerts</span></a>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </section>
+</main>
+
+<script src="/assets/js/supabase-config.js"></script>
+<script src="/assets/js/data-layer.js"></script>
+<script src="/assets/js/member-auth.js"></script>
+<script src="/assets/js/dashboard-social.js?v=os-stage-1"></script>
+<script src="/assets/js/community-media-draft-review.js?v=review-1"></script>
+<script src="/assets/js/feed.js?v=feed-separation-1"></script>
+<script src="/assets/js/dominionstar-agent-nav-shell.js?v=os-stage-1"></script>
+</body>
+</html>

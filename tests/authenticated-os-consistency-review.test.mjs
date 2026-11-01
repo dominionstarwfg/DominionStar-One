@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 const authenticatedPages=[
+  'feed/index.html',
   'professional-profile/index.html',
   'account-settings/index.html',
   'direct-messages/index.html',
@@ -112,7 +113,7 @@ test('core authenticated palette meets readable contrast targets',()=>{
 
 test('shared shell covers the full Agent and Founder route families',()=>{
   const shell=read('assets/js/dominionstar-agent-nav-shell.js');
-  for(const root of ['#dmApp','#notificationApp','#mindsetApp','#chatApp','#agentJourneyApp','#agentLearningApp','#founderApp','#founderDashboard','#releaseCheckApp']){
+  for(const root of ['#feedApp','#dmApp','#notificationApp','#mindsetApp','#chatApp','#agentJourneyApp','#agentLearningApp','#founderApp','#founderDashboard','#releaseCheckApp']){
     assert.ok(shell.includes(root),'missing root '+root);
   }
   assert.match(shell,/FOUNDER OS/);

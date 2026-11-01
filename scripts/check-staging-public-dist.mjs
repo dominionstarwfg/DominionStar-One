@@ -11,6 +11,7 @@ const present=relative=>existsSync(path.join(dist,relative))&&statSync(path.join
 if(!present('index.html'))fail('Public homepage missing from staged package');
 if(!present('meet/index.html'))fail('Browser Meet must exist at /meet/');
 if(!present('member-dashboard/index.html'))fail('Agent Dashboard is missing');
+if(!present('feed/index.html'))fail('Agent Feed is missing');
 if(!present('account-settings/index.html'))fail('Agent Settings is missing');
 if(!present('journey/index.html'))fail('Journey roadmap must be a real page');
 if(!present('_redirects'))fail('Netlify redirects missing');
@@ -52,7 +53,7 @@ const walk=(dir,prefix='')=>{
 walk(dist);
 
 const pages=[
-  'index.html','member-dashboard/index.html','member-login/index.html',
+  'index.html','member-dashboard/index.html','feed/index.html','member-login/index.html',
   'founder-control/index.html','community/index.html','direct-messages/index.html',
   'appointments/index.html','member-directory/index.html','recognition/index.html',
   'professional-profile/index.html','account-settings/index.html','journey/index.html'

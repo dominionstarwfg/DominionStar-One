@@ -6,6 +6,7 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const js=read('assets/js/dominionstar-agent-nav-shell.js');
 const css=read('assets/css/dominionstar-agent-nav-shell.css');
 const targetPages=[
+ ['feed/index.html','feedApp'],
  ['community/index.html','communityApp'],
  ['member-directory/index.html','directoryApp'],
  ['appointments/index.html','appointmentApp'],
@@ -14,7 +15,7 @@ const targetPages=[
 ];
 
 test('Member shell mounts only into authenticated app roots and never bypasses their gates',()=>{
-  for(const root of ['#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp']){
+  for(const root of ['#feedApp','#communityApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp']){
     assert.ok(js.includes(root),'Missing authenticated root '+root);
   }
   assert.match(js,/app\.prepend\(shell\)/);
@@ -32,7 +33,8 @@ test('Member shell mounts only into authenticated app roots and never bypasses t
 
 test('Simple labels, SVGs and exact routes match executive approval',()=>{
  for(const [label,route] of [
-  ['Feed','/member-dashboard/'],
+  ['Dashboard','/member-dashboard/'],
+  ['Feed','/feed/'],
   ['Messages','/direct-messages/'],
   ['Meet','/meet/'],
   ['Notifications','/notifications/'],
