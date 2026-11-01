@@ -6,27 +6,29 @@ import vm from 'node:vm';
 const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 const html = read('member-dashboard/index.html');
 const css = read('assets/css/member-dashboard-executive.css');
+const cinematic = read('assets/css/dominionstar-cinematic-os.css');
 const js = read('assets/js/member-dashboard.js');
 const os = read('assets/js/dominionstar-os.js');
 
 const htmlIds = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 
-test('Executive OS Feed preserves only the hooks required by focused Home', () => {
+test('Executive OS home preserves live dashboard and social-feed hooks', () => {
   assert.equal(new Set(htmlIds).size, htmlIds.length, 'All IDs must remain unique');
   for (const hook of [
     'dsosSidebar','dsosMenu','memberName','memberGreeting','heroGreeting','heroMemberName',
     'founderControlLink','memberLogout','dashboardAvatar','dashboardAvatarInitials',
     'heroProfileAvatar','heroProfileInitials','dsosSocialGateway','feedComposerAvatar',
     'feedComposerBody','feedComposerPublish','dashboardCommunityPreview',
+    'journeyPercent','journeyCount','journeyProgressBar','dashboardNextAppointment',
+    'activityAnnouncements','activityMessages','activityNotifications','dashboardAnnouncementPreview',
     'notificationBell','notificationCount','pendingMemberContent','dsosCommunitySection',
     'dashboardPresenceSelect','dashboardPresenceDot','dsosSearchPanel','dsosAiPanel','dsosBackdrop'
   ]) {
     assert.ok(htmlIds.includes(hook), 'Missing required Feed hook ' + hook);
   }
   for (const removed of [
-    'memberStatus','memberRank','memberEmail','memberAgentCode','journeyPercent',
-    'dashboardIdentityName','dashboardNextAppointment','activityAnnouncements','activityMessages',
-    'activityNotifications','openNotificationsMetric','approvedMemberContent','memberFeedbackForm',
+    'memberStatus','memberRank','memberEmail','memberAgentCode',
+    'dashboardIdentityName','openNotificationsMetric','approvedMemberContent','memberFeedbackForm',
     'executiveTimeline','refreshExecutiveTimeline','dsosNotificationPreview','runMemberAudit'
   ]) {
     assert.ok(!htmlIds.includes(removed), 'Legacy Home module must stay off Feed: ' + removed);
@@ -38,15 +40,16 @@ test('Executive OS Feed preserves only the hooks required by focused Home', () =
   assert.match(html,/href="\/notifications\/"/);
 });
 
-test('Executive visual system isolates a centered Feed stage from other site pages', () => {
+test('Executive visual system uses the approved cinematic dashboard and social layout', () => {
   assert.match(html, /class="dsos-body dsos-executive"/);
-  assert.match(html, /member-dashboard-executive\.css/);
-  assert.match(css, /\.dsos-body\.dsos-executive/);
-  assert.match(css, /background:linear-gradient\(180deg,#102b4c/);
-  assert.match(css, /\.dsos-feed-layout\{display:block!important;max-width:920px/);
-  assert.match(css, /\.dsos-feed-intro/);
-  assert.match(css, /@media\(max-width:760px\)/);
-  assert.match(css, /@media\(max-width:560px\)/);
+  assert.match(html, /dominionstar-cinematic-os\.css/);
+  assert.match(cinematic, /\.dsx-hero\{/);
+  assert.match(cinematic, /\.dsx-overview\{/);
+  assert.match(cinematic, /\.dsx-dashboard-grid\{/);
+  assert.match(cinematic, /\.dsx-feed-shell/);
+  assert.match(cinematic, /--dsx-gold:#f0c15b/);
+  assert.match(cinematic, /@media\(max-width:720px\)/);
+  assert.doesNotMatch(cinematic, /2030/);
 });
 
 test('Community social gateway is present but hidden until approved', () => {
@@ -85,11 +88,15 @@ test('Notification deep links reject untrusted external and executable URLs', ()
   assert.match(js, /safeNotificationHref\(item\.payload\?\.action_url\)/);
 });
 
-test('Feed does not render fabricated dashboard metrics', () => {
+test('Executive overview metrics are live hooks rather than fabricated values', () => {
   assert.doesNotMatch(html, /Visual preview|No live member data|placeholder members/i);
-  assert.doesNotMatch(html, /id="activityMessages"|id="activityNotifications"|id="activityAnnouncements"/);
+  assert.match(html, /id="activityMessages">—</);
+  assert.match(html, /id="activityNotifications">—</);
+  assert.match(html, /id="activityAnnouncements">—</);
+  assert.match(js, /\.from\('community_messages'\)[\s\S]*count:'exact'/);
+  assert.match(js, /\.from\('executive_events'\)/);
+  assert.match(js, /loadDashboardAppointments\(\)/);
   assert.match(html, /id="dashboardCommunityPreview"/);
-  assert.match(html, /id="dsosSocialGateway"/);
 });
 
 test('Dashboard health audit only claims route and interface checks', () => {

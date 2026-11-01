@@ -4,18 +4,21 @@ import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('member dashboard is a focused Feed stage, not an all-modules landing page',()=>{
+test('member dashboard is an executive landing stage with a real social feed',()=>{
   const html=read('member-dashboard/index.html');
   assert.match(html,/>Feed<\/span>/);
   assert.match(html,/href="\/notifications\/"/);
-  assert.match(html,/Share with your network/);
+  assert.match(html,/Welcome back to DominionStar Executive OS/);
+  assert.match(html,/class="dsx-overview"/);
+  assert.match(html,/id="dashboardNextAppointment"/);
+  assert.match(html,/id="journeyPercent"/);
   assert.match(html,/id="dsosSocialGateway"[^>]*<span|id="dsosSocialGateway"/);
   assert.match(html,/id="feedComposerBody"/);
   assert.match(html,/id="feedComposerPublish"/);
   assert.match(html,/id="feedComposerAvatar"/);
   assert.match(html,/id="dashboardCommunityPreview"/);
   for(const stale of [
-    'Professional identity','Quick actions','System status','Account health',
+    'Professional identity','System status','Account health',
     'Featured learning','Professional resources','Help improve DominionStar',
     'id="openAuroraSide"','id="runMemberAudit"'
   ]){

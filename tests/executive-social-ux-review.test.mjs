@@ -53,10 +53,14 @@ test('Real notification and message events drive meaningful status colors',()=>{
   assert.match(dashboardCss,/#358e96/);
 });
 
-test('Approved agents see one Feed stage without duplicated profile statistics',()=>{
+test('Approved agents see an executive dashboard layer plus a true social feed',()=>{
   const feedAt=dashboard.indexOf('id="dsosCommunitySection"');
   assert.ok(feedAt>0,'feed should be present');
-  assert.doesNotMatch(dashboard,/class="dsos-profile-card"|class="dsos-metrics"|Quick actions|System status|Account health/);
+  assert.doesNotMatch(dashboard,/class="dsos-profile-card"|System status|Account health/);
+  assert.match(dashboard,/Welcome back to DominionStar Executive OS/);
+  assert.match(dashboard,/class="dsx-overview"/);
+  assert.match(dashboard,/Upcoming Activity/);
+  assert.match(dashboard,/Quick Actions/);
   assert.match(dashboard,/id="dsosCommunitySection" class="[^"]*member-hidden"/);
   assert.match(dashboard,/id="dsosSocialGateway"/);
   assert.match(dashboardScript,/status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);

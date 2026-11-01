@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/styles.css?v=9.0-executive-3.2-build001">
 <link rel="stylesheet" href="/assets/css/member-dashboard-executive.css?v=os-stage-1">
 <link rel="stylesheet" href="/assets/css/member-dashboard-readability-v2.css?v=review-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-cinematic-os.css?v=cinematic-1">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e-os-build1.7"></script>
 <script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e-os-build1.7"></script>
@@ -77,13 +78,13 @@
     </header>
 
     <div class="dsos-page">
-      <section class="dsos-feed-intro" aria-labelledby="feedStageTitle">
-        <div>
-          <p class="eyebrow">DominionStar Network</p>
-          <h1 id="feedStageTitle">Feed</h1>
-          <p class="dsos-feed-greeting"><span id="heroGreeting">Good day</span>, <strong id="heroMemberName">Member</strong>. See what your professional network is sharing.</p>
+      <section class="dsx-hero" aria-labelledby="dashboardGreetingTitle">
+        <div class="dsx-hero-copy">
+          <p class="dsx-kicker">DominionStar Leadership Development</p>
+          <h1 id="dashboardGreetingTitle" class="dsx-greeting"><span id="heroGreeting">Good day</span>, <strong id="heroMemberName">Member</strong>.</h1>
+          <p class="dsx-welcome">Welcome back to DominionStar Executive OS — your space to connect, learn, lead, and grow with a professional network of agents.</p>
         </div>
-        <a class="dsos-feed-identity" href="/professional-profile/" aria-label="Open your professional profile">
+        <a class="dsx-hero-profile" href="/professional-profile/" aria-label="Open your professional profile">
           <span class="dsos-feed-avatar">
             <img id="heroProfileAvatar" class="member-hidden" alt="Your profile photo">
             <span id="heroProfileInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
@@ -96,8 +97,37 @@
         </a>
       </section>
 
-      <section class="dsos-layout dsos-feed-layout">
-        <div class="dsos-primary">
+      <section class="dsx-overview" aria-label="Executive overview">
+        <a class="dsx-stat" href="/agent-journey/">
+          <span>My Journey</span>
+          <strong id="journeyPercent">0%</strong>
+          <small id="journeyCount">0 of 6 milestones completed</small>
+        </a>
+        <a class="dsx-stat" href="/community/">
+          <span>Network Activity</span>
+          <strong id="activityMessages">—</strong>
+          <small>Community posts</small>
+        </a>
+        <a class="dsx-stat" href="/notifications/">
+          <span>Notifications</span>
+          <strong id="activityNotifications">—</strong>
+          <small>Unread activity</small>
+        </a>
+        <a class="dsx-stat" href="/notifications/?filter=announcements">
+          <span>Announcements</span>
+          <strong id="activityAnnouncements">—</strong>
+          <small>Active Founder updates</small>
+        </a>
+      </section>
+
+      <section class="dsx-dashboard-grid">
+        <div class="dsx-feed-shell">
+          <div class="dsx-feed-tabs" aria-label="Feed destinations">
+            <span class="active">Network Feed</span>
+            <a href="/community/">Community</a>
+            <a href="/notifications/">Announcements & Alerts</a>
+          </div>
+
           <form id="dsosSocialGateway" class="dsos-social-gateway dsos-feed-composer member-hidden" aria-label="Create a community post">
             <span class="dsos-composer-avatar" aria-hidden="true">
               <img id="feedComposerAvatar" class="member-hidden" alt="">
@@ -105,7 +135,7 @@
             </span>
             <label class="dsos-composer-field" for="feedComposerBody">
               <span class="dsos-screenreader">Share with your network</span>
-              <textarea id="feedComposerBody" name="body" rows="1" maxlength="2000" placeholder="Share with your network" required></textarea>
+              <textarea id="feedComposerBody" name="body" rows="1" maxlength="2000" placeholder="Share an update, insight, win, or question with the DominionStar network…" required></textarea>
             </label>
             <div class="dsos-composer-actions">
               <a class="dsos-composer-attach" href="/community/#communityMediaDraft" aria-label="Open Community media draft">
@@ -114,29 +144,63 @@
               </a>
               <button id="feedComposerPublish" class="dsos-composer-publish" type="submit">Post</button>
             </div>
+            <div class="dsx-composer-media" aria-label="Post media options">
+              <a href="/community/#communityMediaDraft">▧ Photo</a>
+              <a href="/community/#communityMediaDraft">▣ Video</a>
+              <a href="/community/#communityMediaDraft">⌁ Attachment</a>
+            </div>
             <p id="feedComposerStatus" class="dsos-composer-status" role="status" aria-live="polite"></p>
           </form>
 
           <section id="pendingMemberContent" class="member-panel dsos-pending-feed-state">
             <p class="eyebrow">Pending approval</p>
             <h2>Your account is awaiting review.</h2>
-            <p>Your feed will activate after Founder approval.</p>
+            <p>Your network feed will activate after Founder approval.</p>
           </section>
 
-          <section id="dsosCommunitySection" class="member-panel dsos-feed-panel member-hidden" aria-labelledby="dsosCommunityHeading">
-            <div class="dashboard-section-heading dsos-feed-heading">
+          <section id="dsosCommunitySection" class="dsx-feed-section member-hidden" aria-labelledby="dsosCommunityHeading">
+            <div class="dsx-feed-section-head">
               <div>
                 <p class="eyebrow">Professional network</p>
                 <h2 id="dsosCommunityHeading">Latest updates</h2>
               </div>
-              <a class="text-link" href="/community/">Open Community</a>
+              <a href="/community/">Open Community →</a>
             </div>
-            <div id="feedPinnedAnnouncement" class="dsos-pinned-announcement member-hidden" aria-live="polite"></div>
             <div id="dashboardCommunityPreview" class="dashboard-data-state dsos-feed-stream" aria-live="polite">
               <p class="dsos-muted">Loading your feed…</p>
             </div>
           </section>
         </div>
+
+        <aside class="dsx-right-rail" aria-label="Dashboard insights">
+          <section class="dsx-side-card dsx-upcoming">
+            <div class="dsx-side-head"><strong>Upcoming Activity</strong><a href="/appointments/">View Calendar →</a></div>
+            <div id="dashboardNextAppointment"><p class="dsos-muted">Loading your schedule…</p></div>
+          </section>
+
+          <section class="dsx-side-card dsx-journey-card">
+            <div class="dsx-side-head"><strong>My Journey Progress</strong><a href="/agent-journey/">View Journey →</a></div>
+            <div class="dsx-progress-number" id="dashboardJourneyPercentMirror">0%</div>
+            <div id="journeyCurrentMission">Loading current focus…</div>
+            <div class="dsx-progress-track" aria-hidden="true"><span id="journeyProgressBar"></span></div>
+            <small id="journeyMissionStatus">Preparing your journey…</small>
+          </section>
+
+          <section class="dsx-side-card">
+            <div class="dsx-side-head"><strong>Quick Actions</strong></div>
+            <div class="dsx-quick-grid">
+              <a href="#dsosSocialGateway">✎ <span>Create Post</span></a>
+              <a href="/meet/">◫ <span>Meet Now</span></a>
+              <a href="/agent-learning/">▤ <span>Browse Learning</span></a>
+              <a href="/member-directory/">◎ <span>Find Members</span></a>
+            </div>
+          </section>
+
+          <section class="dsx-side-card dsx-announcement">
+            <div class="dsx-side-head"><strong>Founder Announcement</strong><a href="/notifications/">All alerts →</a></div>
+            <div id="dashboardAnnouncementPreview"><p class="dsos-muted">Loading announcements…</p></div>
+          </section>
+        </aside>
       </section>
     </div>
   </main>
