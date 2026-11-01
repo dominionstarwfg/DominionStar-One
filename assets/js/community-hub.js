@@ -236,10 +236,10 @@
         <p class="community-post-body">${linkify(post.body)}</p>
 
         <div class="community-reaction-row">
-          ${['like','celebrate','support','insightful'].map(reaction=>`
-            <button class="community-reaction-button" data-reaction="${reaction}" type="button">
-              ${reactionLabel(reaction)} <b>${reactionCounts[reaction]}</b>
-            </button>`).join('')}
+          ${['like','celebrate','support','insightful'].map(reaction=>{
+            const active=reactions.some(item=>item.user_id===session.user.id&&item.reaction===reaction);
+            return '<button class="community-reaction-button '+(active?'is-active':'')+'" data-reaction="'+reaction+'" type="button" aria-pressed="'+(active?'true':'false')+'">'+reactionLabel(reaction)+' <b>'+reactionCounts[reaction]+'</b></button>';
+          }).join('')}
         </div>
         <div class="ds-community-social-actions" role="group" aria-label="Share post">
           <button type="button" data-post-action="repost" aria-label="Repost this update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4M21 13v3a2 2 0 0 1-2 2H3"/></svg>Repost</button>

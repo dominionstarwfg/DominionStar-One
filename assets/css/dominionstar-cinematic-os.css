@@ -1492,3 +1492,227 @@ body.ds-auth-os-page .dsmedia-file-card{background:rgba(6,23,47,.72)!important;b
   .dsx-feed-aside{grid-template-columns:1fr}
   body.ds-auth-os-page #feedApp{padding:14px 12px 44px}
 }
+
+
+/* ===== Semantic communication colors ===== */
+:root{
+  --dsx-violet:#9b8cff;
+  --dsx-cyan:#2d9cdb;
+}
+
+/* Messages: communication blue, unread/end red, online/accept green. */
+body.ds-auth-os-page .dm-message.outgoing .dm-message-bubble{
+  background:linear-gradient(145deg,#1877f2,#0d63d9)!important;
+  border-color:rgba(103,166,255,.58)!important;
+  color:#fff!important;
+  box-shadow:0 8px 22px rgba(24,119,242,.16)!important;
+}
+body.ds-auth-os-page .dm-message.incoming .dm-message-bubble{
+  background:linear-gradient(145deg,rgba(39,62,94,.94),rgba(24,45,75,.96))!important;
+  border-color:rgba(143,175,214,.21)!important;
+  color:#eef4fb!important;
+}
+body.ds-auth-os-page #dmSendButton{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(99,164,255,.48)!important;
+  box-shadow:0 8px 20px rgba(24,119,242,.18)!important;
+}
+body.ds-auth-os-page #dmSendButton:hover{
+  background:linear-gradient(135deg,#3c91fb,#1877f2)!important;
+}
+body.ds-auth-os-page .dm-conversation:hover{
+  background:rgba(24,119,242,.08)!important;
+  border-color:rgba(24,119,242,.28)!important;
+  box-shadow:none!important;
+}
+body.ds-auth-os-page .dm-conversation.active{
+  background:linear-gradient(135deg,rgba(24,119,242,.18),rgba(37,83,137,.28))!important;
+  border-color:rgba(24,119,242,.48)!important;
+  box-shadow:inset 3px 0 #1877f2,0 0 20px rgba(24,119,242,.08)!important;
+}
+body.ds-auth-os-page .dm-conversation-meta b{
+  min-width:20px;
+  height:20px;
+  display:inline-grid;
+  place-items:center;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--dsx-danger)!important;
+  color:#fff!important;
+  font-size:10px!important;
+  box-shadow:0 0 14px rgba(255,77,90,.20)!important;
+}
+body.ds-auth-os-page .dm-presence-dot.online{
+  background:var(--dsx-success)!important;
+  box-shadow:0 0 0 3px rgba(53,208,127,.12),0 0 12px rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .dm-receipt.read{color:#69a6ff!important}
+body.ds-auth-os-page .dm-receipt.delivered{color:#8397ae!important}
+body.ds-auth-os-page #dmIncomingCall .accept,
+body.ds-auth-os-page .dm-incoming-card .accept{
+  background:var(--dsx-success)!important;
+  color:#04170e!important;
+  border-color:rgba(53,208,127,.55)!important;
+}
+body.ds-auth-os-page #dmIncomingCall .decline,
+body.ds-auth-os-page .dm-incoming-card .decline,
+body.ds-auth-os-page #dmEndCall,
+body.ds-auth-os-page #dmActiveCallEnd{
+  background:var(--dsx-danger)!important;
+  color:#fff!important;
+  border-color:rgba(255,130,140,.42)!important;
+  box-shadow:0 8px 22px rgba(255,77,90,.18)!important;
+}
+body.ds-auth-os-page .dm-header-actions button:hover,
+body.ds-auth-os-page .dm-header-actions a:hover,
+body.ds-auth-os-page .dm-sidebar-header button:hover,
+body.ds-auth-os-page .dm-back:hover{
+  background:rgba(24,119,242,.10)!important;
+  color:#8fc0ff!important;
+  border-color:rgba(24,119,242,.38)!important;
+}
+body.ds-auth-os-page .dm-member-profile{
+  background:
+    radial-gradient(circle at 90% 0%,rgba(24,119,242,.11),transparent 29%),
+    linear-gradient(145deg,rgba(24,52,90,.78),rgba(11,29,56,.92))!important;
+}
+
+/* Notifications: unread/urgent red; ordinary selection blue; categories carry meaning. */
+body.ds-auth-os-page #notificationFilters button.active{
+  color:#fff!important;
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  border-color:rgba(96,164,255,.44)!important;
+  box-shadow:0 0 22px rgba(24,119,242,.15)!important;
+}
+body.ds-auth-os-page .notification-header-actions #markAllNotifications{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(96,164,255,.44)!important;
+}
+body.ds-auth-os-page .notification-item.unread{
+  border-color:rgba(255,77,90,.40)!important;
+  box-shadow:inset 3px 0 var(--dsx-danger),0 0 24px rgba(255,77,90,.07)!important;
+}
+body.ds-auth-os-page .notification-item>b{
+  background:var(--dsx-danger)!important;
+  color:#fff!important;
+  border-radius:999px!important;
+  box-shadow:0 0 14px rgba(255,77,90,.16)!important;
+}
+body.ds-auth-os-page .notification-item-icon{
+  width:38px;height:38px;
+  display:grid;place-items:center;
+  border-radius:11px;
+  background:rgba(255,255,255,.045);
+  font-size:18px;
+}
+body.ds-auth-os-page .notification-communications .notification-item-icon{
+  color:#75adff!important;background:rgba(24,119,242,.11)!important;
+}
+body.ds-auth-os-page .notification-calls .notification-item-icon{
+  color:#8fc4ff!important;background:rgba(45,156,219,.10)!important;
+}
+body.ds-auth-os-page .notification-missed .notification-item-icon{
+  color:#ff8992!important;background:rgba(255,77,90,.12)!important;
+}
+body.ds-auth-os-page .notification-meetings .notification-item-icon{
+  color:#f5d967!important;background:rgba(242,201,76,.11)!important;
+}
+body.ds-auth-os-page .notification-journey .notification-item-icon{
+  color:#75e7aa!important;background:rgba(53,208,127,.11)!important;
+}
+body.ds-auth-os-page .notification-recognition .notification-item-icon{
+  color:#f5ce71!important;background:rgba(240,193,91,.11)!important;
+}
+body.ds-auth-os-page #notificationUnread{color:#ff7d88!important}
+body.ds-auth-os-page #notificationMissed{color:#ff7d88!important}
+body.ds-auth-os-page #notificationToday{color:#70aaff!important}
+
+/* Community: social actions use social colors; gold remains official/premium. */
+body.ds-auth-os-page #communityPostSubmit{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(96,164,255,.44)!important;
+  box-shadow:0 8px 20px rgba(24,119,242,.16)!important;
+}
+body.ds-auth-os-page .community-live{
+  color:#72e5a8!important;
+  background:rgba(53,208,127,.10)!important;
+  border-color:rgba(53,208,127,.26)!important;
+}
+body.ds-auth-os-page .community-offline{
+  color:#ff8992!important;
+  background:rgba(255,77,90,.10)!important;
+  border-color:rgba(255,77,90,.25)!important;
+}
+body.ds-auth-os-page .community-connecting{
+  color:#f6d86b!important;
+  background:rgba(242,201,76,.09)!important;
+  border-color:rgba(242,201,76,.24)!important;
+}
+body.ds-auth-os-page .community-post-type.discussion{
+  color:#7db3ff!important;background:rgba(24,119,242,.11)!important;border-color:rgba(24,119,242,.25)!important;
+}
+body.ds-auth-os-page .community-post-type.question{
+  color:#f6d86b!important;background:rgba(242,201,76,.10)!important;border-color:rgba(242,201,76,.26)!important;
+}
+body.ds-auth-os-page .community-post-type.milestone{
+  color:#75e7aa!important;background:rgba(53,208,127,.10)!important;border-color:rgba(53,208,127,.25)!important;
+}
+body.ds-auth-os-page .community-post-type.announcement{
+  color:#f5ce71!important;background:rgba(240,193,91,.11)!important;border-color:rgba(240,193,91,.30)!important;
+}
+body.ds-auth-os-page .community-pinned-label{
+  color:#2b1c05!important;
+  background:linear-gradient(135deg,#f3cb6d,#d79b32)!important;
+}
+body.ds-auth-os-page .community-locked-label{
+  color:#f6d86b!important;
+  background:rgba(242,201,76,.10)!important;
+  border-color:rgba(242,201,76,.24)!important;
+}
+body.ds-auth-os-page .community-reaction-button{
+  color:#a9bad0!important;
+  background:rgba(255,255,255,.025)!important;
+  border-color:rgba(126,168,221,.15)!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="like"]:hover,
+body.ds-auth-os-page .community-reaction-button[data-reaction="like"].is-active{
+  color:#78afff!important;background:rgba(24,119,242,.12)!important;border-color:rgba(24,119,242,.30)!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="celebrate"]:hover,
+body.ds-auth-os-page .community-reaction-button[data-reaction="celebrate"].is-active{
+  color:#f6d86b!important;background:rgba(242,201,76,.10)!important;border-color:rgba(242,201,76,.27)!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="support"]:hover,
+body.ds-auth-os-page .community-reaction-button[data-reaction="support"].is-active{
+  color:#75e7aa!important;background:rgba(53,208,127,.10)!important;border-color:rgba(53,208,127,.26)!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="insightful"]:hover,
+body.ds-auth-os-page .community-reaction-button[data-reaction="insightful"].is-active{
+  color:#b5aaff!important;background:rgba(155,140,255,.10)!important;border-color:rgba(155,140,255,.27)!important;
+}
+body.ds-auth-os-page .ds-community-social-actions [data-post-action="repost"]:hover{
+  color:#68cafa!important;background:rgba(45,156,219,.10)!important;
+}
+body.ds-auth-os-page .ds-community-social-actions [data-post-action="share"]:hover{
+  color:#78afff!important;background:rgba(24,119,242,.10)!important;
+}
+body.ds-auth-os-page .community-comment-form .btn{
+  background:rgba(24,119,242,.12)!important;
+  color:#8fc0ff!important;
+  border-color:rgba(24,119,242,.30)!important;
+}
+body.ds-auth-os-page .moderate-delete{
+  color:#ff8d96!important;
+  border-color:rgba(255,77,90,.28)!important;
+}
+body.ds-auth-os-page .moderate-pin{
+  color:#f3cd78!important;
+  border-color:rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page .moderate-lock{
+  color:#f6d86b!important;
+  border-color:rgba(242,201,76,.26)!important;
+}

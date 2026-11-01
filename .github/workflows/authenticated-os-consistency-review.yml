@@ -46,6 +46,7 @@ on:
       - 'assets/js/release-check.js'
       - 'assets/js/founder-control.js'
       - 'assets/js/community-chat.js'
+      - 'assets/js/community-hub.js'
       - 'assets/js/direct-messages.js'
       - 'assets/js/professional-profile.js'
       - 'assets/js/qa-center.js'
@@ -178,6 +179,7 @@ jobs:
           node --check assets/js/release-check.js
           node --check assets/js/founder-control.js
           node --check assets/js/community-chat.js
+          node --check assets/js/community-hub.js
           node --check assets/js/direct-messages.js
           node --check assets/js/global-call-manager.js
           node --check assets/js/professional-profile.js

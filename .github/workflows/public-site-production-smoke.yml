@@ -12,6 +12,8 @@ on:
       - 'assets/js/community-media-draft-review.js'
       - 'member-login/**'
       - 'assets/js/direct-messages.js'
+      - 'assets/js/notifications-center.js'
+      - 'assets/js/community-hub.js'
       - 'assets/js/professional-profile.js'
       - 'assets/js/member-directory.js'
       - 'assets/css/dominionstar-cinematic-os.css'
@@ -54,6 +56,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/feed.js" -o production-smoke/feed.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/dashboard-social.js" -o production-smoke/social.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/direct-messages.js" -o production-smoke/messages.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/notifications-center.js" -o production-smoke/notifications.js
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/community-hub.js" -o production-smoke/community.js
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/css/dominionstar-cinematic-os.css" -o production-smoke/cinematic.css
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/professional-profile/" -o production-smoke/profile.html
           curl --fail --silent --show-error --location --retry 2 --retry-delay 3 --connect-timeout 12 --max-time 45 "$base/assets/js/professional-profile.js" -o production-smoke/profile.js
@@ -83,6 +87,12 @@ jobs:
           grep -Fq 'id="feedPageStream"' production-smoke/feed.html
           grep -Fq "from('community_messages')" production-smoke/feed.js
           grep -Fq 'community_toggle_reaction' production-smoke/social.js
+          grep -Fq 'notification-${category(e)}' production-smoke/notifications.js
+          grep -Fq 'notification-missed' production-smoke/notifications.js
+          grep -Fq "item.user_id===session.user.id&&item.reaction===reaction" production-smoke/community.js
+          grep -Fq '.dm-message.outgoing .dm-message-bubble' production-smoke/cinematic.css
+          grep -Fq '.notification-item.unread' production-smoke/cinematic.css
+          grep -Fq '.community-post-type.milestone' production-smoke/cinematic.css
           grep -Fq -- '--dsx-blue:#1877f2' production-smoke/cinematic.css
           grep -Fq -- '--dsx-danger:#ff4d5a' production-smoke/cinematic.css
           grep -Fq -- '--dsx-success:#35d07f' production-smoke/cinematic.css
@@ -121,6 +131,7 @@ jobs:
           echo 'PUBLIC_GEOGRAPHY_SMOKE_OK: country, region, time-zone, and jurisdiction assets found on production domain.'
           echo 'DASHBOARD_FEED_SEPARATION_OK: executive Dashboard and social Feed are separate live workspaces.'
           echo 'SEMANTIC_SOCIAL_COLORS_OK: semantic social design tokens found on production domain.'
+          echo 'COMMUNICATION_COLOR_STATES_OK: message, notification, and community semantic states found on production domain.'
           echo 'AGENT_OS_PRODUCTION_SMOKE_OK: cinematic workspaces and resilient member identity assets found on production domain.'
           echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS, browser-call source, and trusted-message flag state found on production domain.'
           echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
