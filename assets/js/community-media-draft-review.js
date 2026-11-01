@@ -56,6 +56,7 @@
     const note=root.querySelector('[data-draft-note]');
     const publish=form.querySelector('#communityPostSubmit,[data-draft-publish]');
     if(!publish)throw new Error('The publish control is unavailable.');
+    const readyLabel=publish.dataset.draftLabel||'Publish Post';
     const entries=[];
     const objectUrls=new Set();
      let validationInProgress=false;
@@ -105,7 +106,7 @@
       // misleading successful post when media files remain unuploaded.
       publish.disabled=blocked;
       if(attach)attach.disabled=validationInProgress;
-      publish.textContent=validationInProgress?'Checking attachments…':hasFiles?'Remove attachments to publish':'Publish Post';
+      publish.textContent=validationInProgress?'Checking attachments…':hasFiles?'Remove attachments to publish':readyLabel;
       if(validationInProgress)setNote('Checking file type and size. Publishing is paused until validation finishes.');
       else if(hasFiles)setNote('Draft only — attachments have NOT been uploaded. Remove attachments to publish a text-only post.');
       else setNote('Text and links can be published. Secure media uploads are not enabled.');
