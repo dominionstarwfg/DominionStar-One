@@ -127,14 +127,30 @@
 
   const avatarMarkup = member => {
     const url = avatarUrls.get(member?.id);
+    const fallback = escapeHtml(initials(member?.display_name));
+    const label = escapeHtml(member?.display_name || 'DominionStar member');
     return url
-      ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(member.display_name)}">`
-      : `<span>${escapeHtml(initials(member?.display_name))}</span>`;
+      ? `<span class="dm-avatar-fallback member-hidden" aria-hidden="true">${fallback}</span><img class="dm-avatar-photo" src="${escapeHtml(url)}" alt="${label}">`
+      : `<span class="dm-avatar-fallback" aria-hidden="true">${fallback}</span>`;
+  };
+
+  const wireAvatarFallback = root => {
+    if (!root?.querySelectorAll) return;
+    root.querySelectorAll('img.dm-avatar-photo').forEach(image => {
+      if (image.dataset.avatarFallbackWired === 'true') return;
+      image.dataset.avatarFallbackWired = 'true';
+      image.addEventListener('error', () => {
+        const fallback = image.parentElement?.querySelector('.dm-avatar-fallback');
+        fallback?.classList.remove('member-hidden');
+        image.remove();
+      }, { once:true });
+    });
   };
 
   const setAvatarElement = (element, member) => {
     if (!element) return;
     element.innerHTML = avatarMarkup(member);
+    wireAvatarFallback(element);
   };
 
   let soundEnabled = localStorage.getItem('dominionstar_message_sound') !== 'off';
@@ -478,6 +494,8 @@
           </span>
         </button>`;
     }).join('') : '<p class="dm-empty-copy">No conversation found.</p>';
+
+    wireAvatarFallback(list);
 
     list.querySelectorAll('[data-member-id]').forEach(button => {
       button.addEventListener('click', () => openConversation(button.dataset.memberId));
