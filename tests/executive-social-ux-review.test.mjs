@@ -18,13 +18,17 @@ test('Approved simplified sidebar has clean vector icons and no retired tabs',()
   assert.ok(nav,'sidebar missing');
   assert.doesNotMatch(nav,/\/workspace\/|Workspace|href="\/academy\/"|>Directory</);
   for(const [label,route] of [
-    ['Home','/member-dashboard/'],
+    ['Feed','/member-dashboard/'],
     ['Messages','/direct-messages/'],
     ['Meet','/meet/'],
+    ['Notifications','/notifications/'],
     ['Community','/community/'],
     ['Calendar','/appointments/'],
     ['Team Members','/member-directory/'],
     ['Recognition','/recognition/'],
+    ['My Journey','/agent-journey/'],
+    ['Learning','/agent-learning/'],
+    ['Aurora','/member-dashboard/?open=aurora'],
     ['My Profile','/professional-profile/'],
     ['Agent Settings','/account-settings/']]){
      assert.ok(nav.includes('href="'+route+'"'),'Missing '+label+' route');
@@ -49,12 +53,14 @@ test('Real notification and message events drive meaningful status colors',()=>{
   assert.match(dashboardCss,/#358e96/);
 });
 
-test('Approved agents see community first, not profile statistics first',()=>{
+test('Approved agents see one Feed stage without duplicated profile statistics',()=>{
   const feedAt=dashboard.indexOf('id="dsosCommunitySection"');
-  const profileAt=dashboard.indexOf('class="dsos-profile-card"');
-  assert.ok(feedAt>0 && profileAt>feedAt,'feed should precede identity section');
+  assert.ok(feedAt>0,'feed should be present');
+  assert.doesNotMatch(dashboard,/class="dsos-profile-card"|class="dsos-metrics"|Quick actions|System status|Account health/);
   assert.match(dashboard,/id="dsosCommunitySection" class="[^"]*member-hidden"/);
+  assert.match(dashboard,/id="dsosSocialGateway"/);
   assert.match(dashboardScript,/status === 'approved' \? loadDashboardCommunity\(\) : Promise\.resolve\(\)/);
+  assert.match(dashboardScript,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
 });
 
 test('Post three-dot menu actions copy actual text and a deep link',()=>{

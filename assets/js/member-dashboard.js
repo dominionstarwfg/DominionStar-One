@@ -11,6 +11,19 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[char]));
 
+  const linkifySafe = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
+    if (!/^https?:\/\//i.test(part)) return escapeHtml(part);
+    const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
+    const candidate=part.slice(0,part.length-trailing.length);
+    try {
+      const url=new URL(candidate);
+      if (!['http:','https:'].includes(url.protocol)) return escapeHtml(part);
+      return '<a class="dsos-inline-link" href="'+escapeHtml(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+escapeHtml(candidate)+'</a>'+escapeHtml(trailing);
+    } catch {
+      return escapeHtml(part);
+    }
+  }).join('');
+
   const withTimeout = async (promise, timeoutMs = 9000) => {
     let timer;
     try {
@@ -78,8 +91,10 @@
   let { data: profile, error: profileError } = await withTimeout(fetchProfile());
 
   if (profileError || !profile) {
-    statusEl.textContent = 'Profile unavailable';
-    statusEl.className = 'member-status pending';
+    if (statusEl) {
+      statusEl.textContent = 'Profile unavailable';
+      statusEl.className = 'member-status pending';
+    }
     return;
   }
 
@@ -112,7 +127,8 @@
     })
     .catch(() => { /* Fail closed: Founder tools stay hidden. */ });
 
-  document.getElementById('dashboardIdentityCode').textContent =
+  const dashboardIdentityCode = document.getElementById('dashboardIdentityCode');
+  if (dashboardIdentityCode) dashboardIdentityCode.textContent =
     `Agent Code: ${profile.agent_code || '—'}`;
 
   const selectedSmdName =
@@ -138,13 +154,14 @@
   // Missing, revoked or broken photos show member initials, never a company logo.
   const initials = fullName.split(/\s+/).filter(Boolean)
     .slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
-  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials']) {
+  for (const id of ['dashboardAvatarInitials','heroProfileInitials','dashboardIdentityInitials','feedComposerInitials']) {
     setIdentityText(id, initials);
   }
   const avatarPairs = [
     ['dashboardAvatar','dashboardAvatarInitials'],
     ['heroProfileAvatar','heroProfileInitials'],
-    ['dashboardIdentityAvatar','dashboardIdentityInitials']
+    ['dashboardIdentityAvatar','dashboardIdentityInitials'],
+    ['feedComposerAvatar','feedComposerInitials']
   ];
   const renderAvatar = signedUrl => {
     for (const [imageId,fallbackId] of avatarPairs) {
@@ -174,7 +191,10 @@
     Promise.resolve()
       .then(() => withTimeout(supabase.storage.from('member-avatars').createSignedUrl(profile.avatar_path, 3600), 5000))
       .then(result => {
-        if (!result.error && result.data?.signedUrl) renderAvatar(result.data.signedUrl);
+        if (!result.error && result.data?.signedUrl) {
+          const separator=result.data.signedUrl.includes('?')?'&':'?';
+          renderAvatar(`${result.data.signedUrl}${separator}v=${Date.now()}`);
+        }
       })
       .catch(() => { /* Keep visible initials instead of a broken image. */ });
   }
@@ -220,12 +240,14 @@
   }
 
   const status = profile.verification_status || 'pending';
-  nameEl.textContent = fullName;
-  rankEl.textContent = profile.rank || 'TA';
-  emailEl.textContent = profile.email || user.email || '';
-  agentCodeEl.textContent = profile.agent_code || '—';
-  statusEl.textContent = status;
-  statusEl.className = `member-status ${status}`;
+  if (nameEl) nameEl.textContent = fullName;
+  if (rankEl) rankEl.textContent = profile.rank || 'TA';
+  if (emailEl) emailEl.textContent = profile.email || user.email || '';
+  if (agentCodeEl) agentCodeEl.textContent = profile.agent_code || '—';
+  if (statusEl) {
+    statusEl.textContent = status;
+    statusEl.className = `member-status ${status}`;
+  }
 
   await supabase.rpc('ensure_default_milestones', { target_user_id: user.id });
   const { data: milestones } = await supabase
@@ -239,8 +261,10 @@
   const percent = Math.round((completed / totalMilestones) * 100);
   const bar = document.querySelector('.member-progress span');
   if (bar) bar.style.width = `${percent}%`;
-  document.getElementById('journeyPercent').textContent = `${percent}%`;
-  document.getElementById('journeyCount').textContent =
+  const journeyPercentElement = document.getElementById('journeyPercent');
+  const journeyCountElement = document.getElementById('journeyCount');
+  if (journeyPercentElement) journeyPercentElement.textContent = `${percent}%`;
+  if (journeyCountElement) journeyCountElement.textContent =
     `${completed} of ${totalMilestones} milestones completed`;
   const journeyProgressBar = document.getElementById('journeyProgressBar');
   if (journeyProgressBar) journeyProgressBar.style.width = `${percent}%`;
@@ -289,17 +313,14 @@
     if (journeyContinueButton) journeyContinueButton.textContent = 'Review Journey';
   }
 
-  const approvedContent = document.getElementById('approvedMemberContent');
   const pendingContent = document.getElementById('pendingMemberContent');
   const socialGateway = document.getElementById('dsosSocialGateway');
   const communitySection = document.getElementById('dsosCommunitySection');
   if (status === 'approved') {
     socialGateway?.classList.remove('member-hidden');
     communitySection?.classList.remove('member-hidden');
-    approvedContent?.classList.remove('member-hidden');
     pendingContent?.classList.add('member-hidden');
   } else {
-    approvedContent?.classList.add('member-hidden');
     pendingContent?.classList.remove('member-hidden');
     socialGateway?.classList.add('member-hidden');
     communitySection?.classList.add('member-hidden');
@@ -319,32 +340,35 @@
   if (heroGreeting) heroGreeting.textContent = greetingText;
 
   async function loadAnnouncements() {
+    const target = document.getElementById('feedPinnedAnnouncement');
+    if (!target) return;
     const result = await withTimeout(
       supabase
         .from('founder_announcements')
         .select('title,body,created_at')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(1)
     );
 
-    const target = document.getElementById('memberAnnouncements');
-    if (!target) return;
-
-    if (result.error) {
-      target.innerHTML =
-        '<div class="dashboard-empty-compact"><strong>Announcements unavailable.</strong>' +
-        '<p>Please refresh in a moment.</p></div>';
+    if (result.error || !result.data?.length) {
+      target.classList.add('member-hidden');
+      target.replaceChildren();
       return;
     }
 
-    target.innerHTML = result.data?.length
-      ? result.data.map(item => `
-          <article class="member-announcement">
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>${escapeHtml(item.body)}</p>
-          </article>`).join('')
-      : '<p>No active announcements.</p>';
+    const item=result.data[0];
+    const when=item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+    target.innerHTML = `
+      <article class="dsos-pinned-update">
+        <div class="dsos-pinned-update-head">
+          <span class="dsos-pinned-label">Founder update</span>
+          <small>${escapeHtml(when)}</small>
+        </div>
+        <h3>${escapeHtml(item.title || 'DominionStar update')}</h3>
+        <p>${linkifySafe(item.body || '')}</p>
+      </article>`;
+    target.classList.remove('member-hidden');
   }
 
   async function loadDashboardAppointments() {
@@ -422,6 +446,70 @@
     }
   }
 
+  const feedComposerForm = document.getElementById('dsosSocialGateway');
+  const feedComposerBody = document.getElementById('feedComposerBody');
+  const feedComposerPublish = document.getElementById('feedComposerPublish');
+  const feedComposerStatus = document.getElementById('feedComposerStatus');
+
+  const setFeedComposerStatus = (message, type='') => {
+    if (!feedComposerStatus) return;
+    feedComposerStatus.textContent = message;
+    feedComposerStatus.dataset.state = type;
+  };
+
+  feedComposerForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (status !== 'approved' || !feedComposerBody || !feedComposerPublish) return;
+    const body = feedComposerBody.value.trim();
+    if (!body) {
+      setFeedComposerStatus('Write something before posting.', 'error');
+      feedComposerBody.focus();
+      return;
+    }
+
+    feedComposerPublish.disabled = true;
+    feedComposerPublish.textContent = 'Posting…';
+    setFeedComposerStatus('Publishing to your network…', 'pending');
+
+    try {
+      const insert = await supabase
+        .from('community_messages')
+        .insert({
+          user_id:user.id,
+          title:null,
+          body:body.slice(0,2000),
+          post_type:'discussion',
+          is_pinned:false
+        })
+        .select('id')
+        .single();
+      if (insert.error) throw insert.error;
+
+      await supabase.rpc('community_notify_mentions', {
+        target_message_id:insert.data.id,
+        message_body:body.slice(0,2000)
+      });
+
+      feedComposerBody.value = '';
+      feedComposerBody.rows = 1;
+      await loadDashboardCommunity();
+      setFeedComposerStatus('Posted to your network.', 'success');
+    } catch (error) {
+      setFeedComposerStatus(error?.message || 'Your post could not be published.', 'error');
+    } finally {
+      feedComposerPublish.disabled = false;
+      feedComposerPublish.textContent = 'Post';
+    }
+  });
+
+  feedComposerBody?.addEventListener('focus', () => {
+    feedComposerBody.rows = Math.max(feedComposerBody.rows, 3);
+    feedComposerForm?.classList.add('is-expanded');
+  });
+  feedComposerBody?.addEventListener('input', () => {
+    if (feedComposerBody.value.trim()) feedComposerForm?.classList.add('is-expanded');
+  });
+
   // Never trust a notification payload URL as an href without same-origin checks.
   const safeNotificationHref = candidate => {
     if (typeof candidate !== 'string' ||
@@ -469,13 +557,16 @@
         )
       ]);
 
-      document.getElementById('activityAnnouncements').textContent =
+      const announcementsMetric=document.getElementById('activityAnnouncements');
+      const messagesMetric=document.getElementById('activityMessages');
+      if (announcementsMetric) announcementsMetric.textContent =
         announcements.error ? '—' : (announcements.count ?? 0);
-      document.getElementById('activityMessages').textContent =
+      if (messagesMetric) messagesMetric.textContent =
         status !== 'approved' || messages.error ? '—' : (messages.count ?? 0);
 
       if (notificationsResult.error) {
-        document.getElementById('activityNotifications').textContent = '—';
+        const notificationMetric=document.getElementById('activityNotifications');
+        if (notificationMetric) notificationMetric.textContent = '—';
         notificationCount?.classList.add('member-hidden');
         const panelStatus = document.getElementById('notificationPanelStatus');
         if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
@@ -499,7 +590,8 @@
       }
       messageLink?.classList.toggle('ds30-has-unread', unreadMessages > 0);
       window.CommunicationEngine?.setBadge(unread);
-      document.getElementById('activityNotifications').textContent = unread;
+      const notificationMetric=document.getElementById('activityNotifications');
+      if (notificationMetric) notificationMetric.textContent = unread;
 
       if (unread) {
         notificationCount.textContent = unread;
@@ -619,7 +711,6 @@
   // or a visible retry state.
   await Promise.allSettled([
     loadAnnouncements(),
-    loadDashboardAppointments(),
     status === 'approved' ? loadDashboardCommunity() : Promise.resolve(),
     loadExecutiveActivity()
   ]);

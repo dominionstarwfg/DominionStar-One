@@ -1,27 +1,77 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Netlify deploy/branch previews must never inherit the production Supabase
-# backend. A separate staging Netlify site's "production" context is also
-# possible: inspect its Git branch, not just the Netlify deploy context.
-# The verified public repository's production branch is "main".
-# Never enable a non-main Netlify build without approved isolated staging.
-if [[ "${CONTEXT:-}" == "deploy-preview" ||
-      "${CONTEXT:-}" == "branch-deploy" ||
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DIST="$ROOT/public-dist"
+MEET_SOURCE="$ROOT/meet-desktop/ui"
+MEET_DIST="$DIST/meet"
+
+# Netlify Deploy Previews are useful as a GitHub status signal, but an
+# unconfigured PR preview must never inherit DominionStar's production
+# Supabase backend or serverless functions. When isolated staging credentials
+# are not explicitly present, publish a deliberately inert review placeholder
+# instead of failing the Netlify status check. The full application package is
+# still built and validated by the protected GitHub review workflow.
+if [[ "${CONTEXT:-}" == "deploy-preview" &&
+      "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
+  rm -rf "$DIST"
+  mkdir -p "$DIST"
+
+  cat > "$DIST/index.html" <<'HTML'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>DominionStar Review Build</title>
+</head>
+<body>
+  <main>
+    <h1>DominionStar review build validated</h1>
+    <p>This pull-request preview is intentionally isolated from production services.</p>
+    <p>The full static package is validated by the protected GitHub review workflow before release.</p>
+  </main>
+</body>
+</html>
+HTML
+
+  cat > "$DIST/_headers" <<'HEADERS'
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+HEADERS
+
+  cat > "$DIST/robots.txt" <<'ROBOTS'
+User-agent: *
+Disallow: /
+ROBOTS
+
+  # Netlify packages functions after the build command. On the ephemeral
+  # preview worker, remove function source files so no production-backed
+  # serverless endpoint can be emitted by an unconfigured PR preview.
+  if [[ "${NETLIFY:-}" == "true" && -d "$ROOT/netlify/functions" ]]; then
+    find "$ROOT/netlify/functions" -type f -delete
+  fi
+
+  echo "DOMINIONSTAR_DEPLOY_PREVIEW_ISOLATED_PLACEHOLDER_OK"
+  exit 0
+fi
+
+# Branch deploys and non-main Netlify builds remain hard-blocked unless a
+# separately approved staging site and staging Supabase project are configured.
+if [[ "${CONTEXT:-}" == "branch-deploy" ||
       ( -n "${BRANCH:-}" && "${BRANCH}" != "main" &&
         ( "${NETLIFY:-}" == "true" || "${CONTEXT:-}" == "production" ) ) ||
       ( -n "${DOMINIONSTAR_STAGING_NETLIFY_SITE_ID:-}" &&
         "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ) ]]; then
   if [[ "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
-    echo "ERROR: preview blocked until isolated Netlify/Supabase staging is configured." >&2
+    echo "ERROR: non-production deploy blocked until isolated Netlify/Supabase staging is configured." >&2
     exit 47
   fi
 fi
-
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DIST="$ROOT/public-dist"
-MEET_SOURCE="$ROOT/meet-desktop/ui"
-MEET_DIST="$DIST/meet"
 
 # Production domain boundary:
 # - The public DominionStar website owns `/`.

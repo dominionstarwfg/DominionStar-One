@@ -494,3 +494,97 @@ body.ds-auth-os-page .dm-typing-indicator{color:#5d7287!important}
   body.ds-auth-os-page .profile-stable-layout{grid-template-columns:1fr!important}
   body.ds-auth-os-page .executive-profile-card{position:static!important}
 }
+
+
+/* Focused Agent OS stages: persistent shell + one primary workspace. */
+body.ds-auth-os-page .aurora-command-strip,
+body.ds-auth-os-page .aurora-member-briefing{display:none!important}
+
+body.ds-auth-os-page .member-dashboard-header{
+  min-height:0!important;
+  margin:12px 0 18px!important;
+  padding:18px 22px!important;
+  border-radius:16px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:18px!important;
+  background:linear-gradient(110deg,#0b2743,#123f69)!important;
+  box-shadow:0 10px 26px rgba(12,39,66,.12)!important
+}
+body.ds-auth-os-page .member-dashboard-header>div:first-child{min-width:0;flex:1}
+body.ds-auth-os-page .member-dashboard-header h1{
+  margin:3px 0 4px!important;
+  color:#fff!important;
+  font-size:clamp(25px,2.5vw,31px)!important;
+  line-height:1.12!important;
+  letter-spacing:-.035em!important
+}
+body.ds-auth-os-page .member-dashboard-header p{
+  margin:0!important;
+  max-width:760px!important;
+  color:#d7e3ee!important;
+  font-size:13.5px!important;
+  line-height:1.55!important
+}
+body.ds-auth-os-page .member-dashboard-header .founding-member-badge,
+body.ds-auth-os-page .member-dashboard-header .production-stable-pill{
+  display:inline-flex!important;
+  margin:0!important;
+  padding:4px 8px!important;
+  font-size:10.5px!important
+}
+/* The rail already provides these destinations; don't duplicate them as header buttons. */
+body.ds-auth-os-page .member-dashboard-actions a[href="/member-dashboard/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/community/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/community-center/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/appointments/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/professional-profile/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/account-settings/"],
+body.ds-auth-os-page .member-dashboard-actions a[href="/digital-card/"]{display:none!important}
+body.ds-auth-os-page .member-dashboard-actions{gap:8px!important;flex-wrap:wrap!important}
+body.ds-auth-os-page .member-dashboard-actions:empty{display:none!important}
+
+/* Directory must read like a professional people workspace, not dark placeholder tiles. */
+body.ds-auth-os-page .member-directory-grid{
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;
+  gap:14px!important
+}
+body.ds-auth-os-page .member-directory-card{
+  background:#fff!important;
+  color:#173550!important;
+  border:1px solid #d9e3eb!important;
+  border-radius:16px!important;
+  box-shadow:0 8px 24px rgba(15,37,60,.055)!important;
+  padding:22px!important
+}
+body.ds-auth-os-page .member-directory-card h2{
+  color:#173550!important;
+  font:750 18px/1.3 Inter,"Segoe UI",Arial,sans-serif!important;
+  letter-spacing:-.02em!important
+}
+body.ds-auth-os-page .member-directory-card p{
+  color:#345a7b!important;
+  font-size:13px!important;
+  font-weight:750!important
+}
+body.ds-auth-os-page .member-directory-card small{
+  color:#667c91!important;
+  font-size:12.5px!important
+}
+body.ds-auth-os-page .member-directory-avatar{
+  width:76px!important;height:76px!important;
+  border:2px solid #d6b873!important;
+  background:#f2d16f!important;color:#172e49!important
+}
+body.ds-auth-os-page .member-directory-avatar img{width:100%!important;height:100%!important;object-fit:cover!important}
+body.ds-auth-os-page .member-directory-actions .btn{
+  background:#f8fafc!important;color:#234d72!important;border:1px solid #cfdce7!important
+}
+body.ds-auth-os-page a:not(.btn):not(.ds-agent-nav-item):not(.ds-agent-brand){
+  text-decoration-thickness:1px;
+  text-underline-offset:3px
+}
+@media(max-width:760px){
+  body.ds-auth-os-page .member-dashboard-header{align-items:flex-start!important;padding:16px!important}
+  body.ds-auth-os-page .member-dashboard-header h1{font-size:25px!important}
+}

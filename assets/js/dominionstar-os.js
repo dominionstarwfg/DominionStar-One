@@ -38,7 +38,7 @@
     backdrop?.classList.toggle('member-hidden', !sidebar?.classList.contains('open'));
   });
 
-  ['notificationBell', 'openNotificationsMetric', 'openNotificationsSide'].forEach(id => {
+  ['openNotificationsMetric', 'openNotificationsSide'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', event => showPanel(notificationPanel, event.currentTarget));
   });
   document.getElementById('closeNotificationPanel')?.addEventListener('click', hideAll);
@@ -72,14 +72,16 @@
   document.addEventListener('keydown', e => e.key === 'Escape' && hideAll());
 
   const destinations = [
-    ['Home','/member-dashboard/','Your executive home'],
+    ['Feed','/member-dashboard/','Your professional network'],
     ['Messages','/direct-messages/','Private member conversations'],
     ['Meet','/meet/','Join a video meeting'],
+    ['Notifications','/notifications/','Messages, calls, meetings, and platform updates'],
     ['Community','/community/','Posts and announcements'],
     ['Training','/agent-learning/#training','Learning and development'],
     ['Calendar','/appointments/','Appointments and meetings'],
     ['Team Members','/member-directory/','Connect with approved members'],
     ['Recognition','/recognition/','Member advancement announcements'],
+    ['Aurora','/member-dashboard/?open=aurora','Platform guidance'],
     ['Profile','/professional-profile/','Professional identity'],
     ['Agent Settings','/account-settings/','Profile, security, and community preferences'],
     ['Command Control','/founder-control/','Founder operations']
@@ -126,7 +128,7 @@
     reply.className = 'dsos-ai-message';
     reply.innerHTML = match
       ? `${match.label} <a href="${match.url}">Open →</a>`
-      : 'I can open Messages, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
+      : 'I can open Feed, Messages, Notifications, Meet, Community, Training, Calendar, Team Members, Profile, or Settings.';
     messages.appendChild(reply);
     input.value = '';
     messages.scrollTop = messages.scrollHeight;

@@ -12,12 +12,12 @@ const css=read('assets/css/member-dashboard-executive.css');
 test('Local daypart greeting identifies the authenticated member and shows credentials above feed',()=>{
   const marker=html.indexOf('id="heroMemberName"');
   assert.ok(marker>0);
-  assert.match(html,/<span id="heroGreeting">Good day<\/span>, <span id="heroMemberName">/);
+  assert.match(html,/<span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName">/);
   assert.doesNotMatch(html,/Welcome back/);
   for(const daypart of ['Good morning','Good afternoon','Good evening']) assert.ok(dashboardJs.includes(daypart),daypart);
   assert.ok(marker<html.indexOf('id="dsosCommunitySection"'));
   for(const hook of ['heroProfileFullName','heroContractLevel','heroProfileAvatar','heroProfileInitials',
-    'heroFoundingBadge','dashboardAvatarInitials','topbarFoundingBadge','dashboardIdentityInitials']){
+    'heroFoundingBadge','dashboardAvatarInitials','topbarFoundingBadge','feedComposerInitials']){
     assert.ok(html.includes('id="'+hook+'"'),hook+' missing');
   }
   assert.match(dashboardJs,/setIdentityText\('heroMemberName', firstName\)/);
@@ -28,8 +28,8 @@ test('Local daypart greeting identifies the authenticated member and shows crede
   assert.match(dashboardJs,/Number\.isInteger\(foundingNumber\)/);
   assert.match(dashboardJs,/profile\.founding_member === true/);
   assert.match(dashboardJs,/classList\.toggle\('member-hidden', !isFoundingMember\)/);
-  assert.match(css,/\.dsos-hero-identity/);
-  assert.match(css,/\.dsos-hero-avatar/);
+  assert.match(css,/\.dsos-feed-identity/);
+  assert.match(css,/\.dsos-feed-avatar/);
 });
 test('Branding remains unnumbered and no unsupported stock photo is shown',()=>{
   assert.match(html,/DominionStar Executive OS/);

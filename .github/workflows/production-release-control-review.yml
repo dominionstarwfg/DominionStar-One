@@ -5,6 +5,23 @@ on:
     branches:
       - main
     paths:
+      - 'tests/executive-os-stage-architecture-review.test.mjs'
+      - 'assets/css/dominionstar-auth-os-v2.css'
+      - 'assets/css/member-dashboard-executive.css'
+      - 'assets/js/aurora-ui.js'
+      - 'assets/js/dominionstar-agent-nav-shell.js'
+      - 'assets/js/dominionstar-os.js'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/js/member-dashboard.js'
+      - 'direct-messages/**'
+      - 'notifications/**'
+      - 'account-settings/**'
+      - 'professional-profile/**'
+      - 'recognition/**'
+      - 'member-directory/**'
+      - 'appointments/**'
+      - 'community/**'
+      - 'member-dashboard/**'
       - '.github/workflows/public-site-production-smoke.yml'
       - 'scripts/test-public-geography.mjs'
       - 'scripts/build-public-netlify.sh'
