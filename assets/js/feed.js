@@ -11,7 +11,7 @@
   const refresh=document.getElementById('feedRefresh');
 
   const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&#34;',"'":'&#39;'
   }[char]));
 
   const initials=value=>String(value||'DS').trim().split(/\s+/).filter(Boolean).slice(0,2)
