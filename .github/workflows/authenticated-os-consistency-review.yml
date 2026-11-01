@@ -6,6 +6,7 @@ on:
       - review/notification-readability-20261029
     paths:
       - 'member-dashboard/**'
+      - 'feed/**'
       - 'professional-profile/**'
       - 'account-settings/**'
       - 'direct-messages/**'
@@ -34,6 +35,10 @@ on:
       - 'assets/js/dominionstar-agent-nav-shell.js'
       - 'assets/js/dominionstar-os.js'
       - 'assets/js/member-dashboard.js'
+      - 'assets/js/feed.js'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/js/community-media-draft-review.js'
+      - 'assets/css/dominionstar-cinematic-os.css'
       - 'assets/js/agent-journey.js'
       - 'assets/js/agent-learning.js'
       - 'assets/js/agent-tool-gate.js'
@@ -88,6 +93,7 @@ on:
       - 'scripts/check-agent-release-gates.mjs'
       - 'assets/js/notification-feature-flags.js'
       - 'member-dashboard/**'
+      - 'feed/**'
       - 'professional-profile/**'
       - 'account-settings/**'
       - 'direct-messages/**'
@@ -116,6 +122,10 @@ on:
       - 'assets/js/dominionstar-agent-nav-shell.js'
       - 'assets/js/dominionstar-os.js'
       - 'assets/js/member-dashboard.js'
+      - 'assets/js/feed.js'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/js/community-media-draft-review.js'
+      - 'assets/css/dominionstar-cinematic-os.css'
       - 'assets/js/agent-journey.js'
       - 'assets/js/agent-learning.js'
       - 'assets/js/agent-tool-gate.js'
@@ -158,6 +168,9 @@ jobs:
           node --check assets/js/dominionstar-agent-nav-shell.js
           node --check assets/js/dominionstar-os.js
           node --check assets/js/member-dashboard.js
+          node --check assets/js/feed.js
+          node --check assets/js/dashboard-social.js
+          node --check assets/js/community-media-draft-review.js
           node --check assets/js/agent-journey.js
           node --check assets/js/agent-learning.js
           node --check assets/js/agent-tool-gate.js
