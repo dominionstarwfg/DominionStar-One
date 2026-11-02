@@ -28,13 +28,14 @@ test('approved illustration composition is present on Dashboard',()=>{
 });
 
 test('desktop scale remains compact and social-app dense',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Illustration geometry lock'));
   assert.match(css,/grid-template-columns:220px minmax\(0,1fr\)!important/);
-  assert.match(css,/\.dsx-hero\{[\s\S]*min-height:178px!important/);
-  assert.match(css,/\.dsx-stat\{[\s\S]*min-height:82px!important/);
-  assert.match(css,/\.dsx-dashboard-grid\{[\s\S]*315px!important/);
-  assert.match(css,/\.dsx-global-search\{[\s\S]*min-height:40px!important/);
+  assert.match(tail,/\.dsx-hero\{[\s\S]*min-height:162px!important[\s\S]*max-height:162px!important/);
+  assert.match(tail,/\.dsx-stat\{[\s\S]*min-height:74px!important[\s\S]*max-height:74px!important/);
+  assert.match(tail,/\.dsx-dashboard-grid\{[\s\S]*304px!important/);
+  assert.match(tail,/\.dsx-global-search\{[\s\S]*min-height:36px!important/);
   assert.match(css,/\.dsx-quick-grid-six\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
-  assert.doesNotMatch(css,/\.dsx-hero\{[\s\S]{0,180}min-height:260px!important/);
+  assert.doesNotMatch(tail,/min-height:260px!important|min-height:178px!important|min-height:82px!important|315px!important/);
 });
 
 test('dashboard social preview stays separate from the full Feed and only requests one post',()=>{
