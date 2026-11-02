@@ -62,9 +62,8 @@
   };
 
   try{await refresh();}
-  catch(error){
-    target.innerHTML='<div class="dashboard-empty-compact"><strong>Network preview unavailable.</strong><p>'+
-      String(error?.message||'Please open Feed to continue.')+'</p><a href="/feed/">Open Feed →</a></div>';
+  catch(_error){
+    target.innerHTML='<div class="dashboard-empty-compact"><strong>Network preview unavailable.</strong><p>Open Feed to continue.</p><a href="/feed/">Open Feed →</a></div>';
   }
 
   form.addEventListener('submit',async event=>{
