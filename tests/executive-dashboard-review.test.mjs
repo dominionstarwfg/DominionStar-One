@@ -14,7 +14,7 @@ const os = read('assets/js/dominionstar-os.js');
 
 const htmlIds = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 
-test('Executive OS home preserves live dashboard hooks without embedding the social feed', () => {
+test('Executive OS home preserves live dashboard hooks with a compact social preview', () => {
   assert.equal(new Set(htmlIds).size, htmlIds.length, 'All IDs must remain unique');
   for (const hook of [
     'dsosSidebar','dsosMenu','memberName','memberGreeting','heroGreeting','heroMemberName',
@@ -22,7 +22,7 @@ test('Executive OS home preserves live dashboard hooks without embedding the soc
     'heroProfileAvatar','heroProfileInitials',
     'journeyPercent','journeyCount','journeyProgressBar','dashboardNextAppointment',
     'activityAnnouncements','activityMessages','activityNotifications','dashboardAnnouncementPreview',
-    'dashboardPulsePosts','dashboardPulseNotifications','dashboardPulseAnnouncements',
+    'dashboardComposerForm','dashboardComposerBody','dashboardComposerPublish','dashboardSocialPreview',
     'notificationBell','notificationCount',
     'dashboardPresenceSelect','dashboardPresenceDot','dsosSearchPanel','dsosAiPanel','dsosBackdrop'
   ]) {
@@ -48,14 +48,18 @@ test('Executive visual system uses the approved cinematic dashboard and social l
   assert.match(cinematic, /\.dsx-hero\{/);
   assert.match(cinematic, /\.dsx-overview\{/);
   assert.match(cinematic, /\.dsx-dashboard-grid\{/);
-  assert.match(cinematic, /\.dsx-feed-shell/);
+  assert.match(cinematic, /\.dsx-dashboard-social/);
+  assert.match(cinematic, /\.dsx-global-search/);
   assert.match(cinematic, /--dsx-gold:#f0c15b/);
   assert.match(cinematic, /@media\(max-width:720px\)/);
   assert.doesNotMatch(cinematic, /2030/);
 });
 
-test('Social publishing lives on the dedicated Feed route, not Dashboard', () => {
-  assert.doesNotMatch(html, /id="dsosSocialGateway"|id="dashboardCommunityPreview"|dashboard-social\.js/);
+test('Dashboard has a compact one-post social preview while Feed remains the full destination', () => {
+  assert.match(html, /id="dashboardComposerForm"/);
+  assert.match(html, /id="dashboardSocialPreview"/);
+  assert.match(html, /dashboard-social\.js/);
+  assert.match(html, /dashboard-social-preview\.js/);
   assert.match(html, /href="\/feed\/"/);
   assert.match(feedHtml, /id="feedPageComposer"/);
   assert.match(feedHtml, /id="feedComposerBody"/);
@@ -97,7 +101,7 @@ test('Executive overview metrics are live hooks rather than fabricated values', 
   assert.match(js, /\.from\('community_messages'\)[\s\S]*count:'exact'/);
   assert.match(js, /\.from\('executive_events'\)/);
   assert.match(js, /loadDashboardAppointments\(\)/);
-  assert.match(html, /id="dashboardPulsePosts">—</);
+  assert.match(html, /id="dashboardSocialPreview"/);
 });
 
 test('Dashboard health audit only claims route and interface checks', () => {
