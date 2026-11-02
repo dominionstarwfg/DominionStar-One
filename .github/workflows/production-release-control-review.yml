@@ -18,6 +18,8 @@ on:
       - 'assets/js/dominionstar-agent-nav-shell.js'
       - 'assets/js/dominionstar-os.js'
       - 'assets/js/dashboard-social.js'
+      - 'assets/js/dashboard-social-preview.js'
+      - 'tests/approved-illustration-fidelity.test.mjs'
       - 'assets/js/member-dashboard.js'
       - 'assets/js/feed.js'
       - 'direct-messages/**'
