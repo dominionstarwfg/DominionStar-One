@@ -115,6 +115,12 @@ jobs:
             test -s public-dist/community/index.html
             grep -Fq 'dominionstar-visual-review.css' public-dist/member-dashboard/index.html
             grep -Fq 'dominionstar-visual-review-fixtures.js' public-dist/member-dashboard/index.html
+            grep -Fq 'dsos-body dsos-executive ds-visual-review' public-dist/member-dashboard/index.html
+            if grep -Fq 'ds-auth-os-shell-active' public-dist/member-dashboard/index.html; then
+              echo 'Dashboard preview must not double-apply authenticated shell spacing' >&2
+              exit 1
+            fi
+            echo 'DASHBOARD_PREVIEW_SINGLE_SHELL_OK'
             grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
             grep -Fq 'Strong week ahead' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
