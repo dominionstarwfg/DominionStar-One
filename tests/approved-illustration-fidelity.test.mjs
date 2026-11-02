@@ -1,0 +1,63 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+
+const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const html=read('member-dashboard/index.html');
+const css=read('assets/css/dominionstar-cinematic-os.css');
+const dashboardJs=read('assets/js/member-dashboard.js');
+const previewJs=read('assets/js/dashboard-social-preview.js');
+const social=read('assets/js/dashboard-social.js');
+
+test('approved illustration composition is present on Dashboard',()=>{
+  for(const marker of [
+    'dsx-approved-topbar','dsx-global-search','dsx-create-action',
+    'dsx-hero','dsx-overview','dsx-dashboard-social','dsx-dashboard-tabs',
+    'dashboardComposerForm','dashboardSocialPreview','dsx-right-rail',
+    'dsx-quick-grid-six','dashboardAnnouncementPreview'
+  ]) assert.ok(html.includes(marker),marker+' missing');
+  assert.match(html,/Network Feed/);
+  assert.match(html,/Announcements &amp; Alerts/);
+  assert.match(html,/Create Post/);
+  assert.match(html,/Meet Now/);
+  assert.match(html,/Book Appointment/);
+  assert.match(html,/Browse Learning/);
+  assert.match(html,/Find Members/);
+  assert.match(html,/Start a Discussion/);
+});
+
+test('desktop scale remains compact and social-app dense',()=>{
+  assert.match(css,/grid-template-columns:220px minmax\(0,1fr\)!important/);
+  assert.match(css,/\.dsx-hero\{[\s\S]*min-height:178px!important/);
+  assert.match(css,/\.dsx-stat\{[\s\S]*min-height:82px!important/);
+  assert.match(css,/\.dsx-dashboard-grid\{[\s\S]*315px!important/);
+  assert.match(css,/\.dsx-global-search\{[\s\S]*min-height:40px!important/);
+  assert.match(css,/\.dsx-quick-grid-six\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.doesNotMatch(css,/\.dsx-hero\{[\s\S]{0,180}min-height:260px!important/);
+});
+
+test('dashboard social preview stays separate from the full Feed and only requests one post',()=>{
+  assert.doesNotThrow(()=>new vm.Script(previewJs));
+  assert.match(previewJs,/resultLimit:1/);
+  assert.match(previewJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
+  assert.match(previewJs,/community_notify_mentions/);
+  assert.match(social,/resultLimit=20/);
+  assert.match(social,/result_limit:safeLimit/);
+  assert.match(html,/href="\/feed\//);
+});
+
+test('signed social avatars are physically contained at 42px on authenticated pages',()=>{
+  assert.match(css,/body\.ds-auth-os-page \.ds30-author-avatar,[\s\S]*width:42px!important[\s\S]*height:42px!important/);
+  assert.match(css,/body\.ds-auth-os-page \.ds30-author-avatar \.ds30-author-photo,[\s\S]*object-fit:cover!important/);
+  assert.match(css,/max-width:100%!important/);
+  assert.match(css,/max-height:100%!important/);
+});
+
+test('Founder dashboard content stays compact instead of dumping raw meeting text',()=>{
+  assert.match(dashboardJs,/cleanLines=String\(item\.body\|\|''\)/);
+  assert.match(dashboardJs,/slice\(0,3\)/);
+  assert.match(dashboardJs,/Read Full Update →/);
+  assert.match(dashboardJs,/founderEvent=await withTimeout/);
+  assert.match(dashboardJs,/Join Meeting/);
+});
