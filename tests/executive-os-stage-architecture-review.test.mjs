@@ -13,8 +13,9 @@ test('member dashboard is an executive landing stage and Feed is a separate work
   assert.match(html,/class="dsx-overview"/);
   assert.match(html,/id="dashboardNextAppointment"/);
   assert.match(html,/id="journeyPercent"/);
-  assert.match(html,/class="dsx-dashboard-hub"/);
-  assert.match(html,/id="dashboardPulsePosts"/);
+  assert.match(html,/class="dsx-dashboard-social"/);
+  assert.match(html,/id="dashboardComposerForm"/);
+  assert.match(html,/id="dashboardSocialPreview"/);
   assert.doesNotMatch(html,/id="dsosSocialGateway"|id="feedComposerBody"|id="dashboardCommunityPreview"/);
   for(const stale of [
     'Professional identity','System status','Account health',
@@ -51,5 +52,6 @@ test('dedicated Feed uses real profile avatars and existing authenticated social
   assert.match(feedJs,/createSignedUrl\(profile\.avatar_path,3600\)/);
   assert.match(feedJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
   assert.match(feedJs,/community_notify_mentions/);
-  assert.match(social,/result_limit:20/);
+  assert.match(social,/resultLimit=20/);
+  assert.match(social,/result_limit:safeLimit/);
 });
