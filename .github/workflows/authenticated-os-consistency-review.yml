@@ -56,6 +56,7 @@ on:
       - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
       - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
       - 'tests/authenticated-os-consistency-review.test.mjs'
+      - 'tests/approved-secondary-workspace-fidelity.test.mjs'
       - 'tests/founder-os-integrity-review.test.mjs'
       - 'tests/workspace-retirement-review.test.mjs'
       - 'tests/direct-message-integrity-review.test.mjs'
@@ -203,6 +204,7 @@ jobs:
           node --test tests/production-cutover-review.test.mjs
           node --test tests/cutover-manifest-integrity-review.test.mjs
           node --test tests/main-branch-release-protection-review.test.mjs
+          node --test tests/approved-secondary-workspace-fidelity.test.mjs
           node --test tests/approved-illustration-fidelity.test.mjs
 
       - name: Notification compatibility regression
