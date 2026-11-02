@@ -37,6 +37,7 @@ on:
       - 'assets/js/member-dashboard.js'
       - 'assets/js/feed.js'
       - 'assets/js/dashboard-social.js'
+      - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
       - 'assets/js/agent-journey.js'
@@ -125,6 +126,7 @@ on:
       - 'assets/js/member-dashboard.js'
       - 'assets/js/feed.js'
       - 'assets/js/dashboard-social.js'
+      - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
       - 'assets/js/agent-journey.js'
@@ -171,6 +173,7 @@ jobs:
           node --check assets/js/member-dashboard.js
           node --check assets/js/feed.js
           node --check assets/js/dashboard-social.js
+          node --check assets/js/dashboard-social-preview.js
           node --check assets/js/community-media-draft-review.js
           node --check assets/js/agent-journey.js
           node --check assets/js/agent-learning.js
@@ -200,6 +203,7 @@ jobs:
           node --test tests/production-cutover-review.test.mjs
           node --test tests/cutover-manifest-integrity-review.test.mjs
           node --test tests/main-branch-release-protection-review.test.mjs
+          node --test tests/approved-illustration-fidelity.test.mjs
 
       - name: Notification compatibility regression
         run: |

@@ -16,11 +16,15 @@ const media=read('assets/js/community-media-draft-review.js');
 test('Dashboard and Feed are separate first-class Agent OS workspaces',()=>{
   assert.match(dashboard,/>Dashboard<\/span>/);
   assert.match(dashboard,/href="\/feed\/"/);
-  assert.match(dashboard,/class="dsx-dashboard-hub"/);
+  assert.match(dashboard,/class="dsx-dashboard-social"/);
+  assert.match(dashboard,/id="dashboardComposerForm"/);
+  assert.match(dashboard,/id="dashboardSocialPreview"/);
   assert.match(dashboard,/id="dashboardNextAppointment"/);
   assert.match(dashboard,/id="dashboardJourneyPercentMirror"/);
   assert.match(dashboard,/id="dashboardAnnouncementPreview"/);
-  assert.doesNotMatch(dashboard,/id="dsosSocialGateway"|id="feedComposerBody"|id="dashboardCommunityPreview"|dashboard-social\.js/);
+  assert.doesNotMatch(dashboard,/id="dsosSocialGateway"|id="feedComposerBody"|id="dashboardCommunityPreview"/);
+  assert.match(dashboard,/dashboard-social\.js/);
+  assert.match(dashboard,/dashboard-social-preview\.js/);
   assert.doesNotMatch(dashboardJs,/dsosSocialGateway|loadDashboardCommunity|feedComposerPublish|feedComposerAvatar/);
 
   assert.match(feed,/id="feedApp"/);

@@ -50,20 +50,29 @@
   </aside>
 
   <main class="dsos-main">
-    <header class="dsos-topbar">
-      <div class="dsos-top-left">
-        <button id="dsosMenu" type="button" aria-label="Open navigation">☰</button>
-        <div>
-          <small>DominionStar Leadership Development</small>
-          <strong>Dashboard</strong>
-          <span id="memberName" class="dsos-screenreader">Member</span>
-          <span id="memberGreeting" class="dsos-screenreader">Welcome</span>
-        </div>
-      </div>
+    <header class="dsos-topbar dsx-approved-topbar">
+      <button id="dsosMenu" class="dsx-mobile-menu" type="button" aria-label="Open navigation">☰</button>
+      <button id="dsosSearchButton" class="dsx-global-search" type="button" aria-label="Search DominionStar">
+        <span aria-hidden="true">⌕</span>
+        <span>Search DominionStar <small>(members, posts, resources…)</small></span>
+        <kbd>⌘ K</kbd>
+      </button>
       <div class="dsos-top-actions">
-      <div class="dsos-presence-control"><span id="dashboardPresenceDot" class="dsos-presence-dot online"></span><select id="dashboardPresenceSelect" aria-label="Set your availability"><option value="online">Online</option><option value="away">Away</option><option value="busy">Busy</option><option value="do_not_disturb">Do Not Disturb</option></select></div>
-
-        <button id="dsosSearchButton" type="button" aria-label="Search">⌕</button>
+        <a class="dsx-top-action dsx-create-action" href="/feed/#feedComposerBody" aria-label="Create a post">＋</a>
+        <a class="dsx-top-action" href="/direct-messages/" aria-label="Open messages">
+          <svg class="ds30-icon" aria-hidden="true"><use href="#ds30-message"></use></svg>
+          <em id="topbarUnreadMessages" class="ds30-nav-badge member-hidden">0</em>
+        </a>
+        <a class="dsx-top-action" href="/notifications/" aria-label="Open notifications">
+          <svg class="ds30-icon" aria-hidden="true"><use href="#ds30-bell"></use></svg>
+          <em id="topbarNotificationCount" class="ds30-nav-badge member-hidden">0</em>
+        </a>
+        <div class="dsos-presence-control dsx-presence-control">
+          <span id="dashboardPresenceDot" class="dsos-presence-dot online"></span>
+          <select id="dashboardPresenceSelect" aria-label="Set your availability">
+            <option value="online">Online</option><option value="away">Away</option><option value="busy">Busy</option><option value="do_not_disturb">Do Not Disturb</option>
+          </select>
+        </div>
         <a href="/professional-profile/" class="dsos-profile-chip">
           <span class="dsos-top-avatar">
             <img id="dashboardAvatar" class="member-hidden" alt="Member profile photo">
@@ -76,6 +85,8 @@
           </span>
         </a>
       </div>
+      <span id="memberName" class="dsos-screenreader">Member</span>
+      <span id="memberGreeting" class="dsos-screenreader">Welcome</span>
     </header>
 
     <div class="dsos-page">
@@ -99,22 +110,26 @@
       </section>
 
       <section class="dsx-overview" aria-label="Executive overview">
-        <a class="dsx-stat" href="/agent-journey/">
+        <a class="dsx-stat dsx-stat-journey" href="/agent-journey/">
+          <span class="dsx-stat-icon" aria-hidden="true"><svg class="ds30-icon"><use href="#ds30-journey"></use></svg></span>
           <span>My Journey</span>
           <strong id="journeyPercent">0%</strong>
           <small id="journeyCount">0 of 6 milestones completed</small>
         </a>
-        <a class="dsx-stat" href="/community/">
+        <a class="dsx-stat dsx-stat-network" href="/community/">
+          <span class="dsx-stat-icon" aria-hidden="true"><svg class="ds30-icon"><use href="#ds30-users"></use></svg></span>
           <span>Network Activity</span>
           <strong id="activityMessages">—</strong>
           <small>Community posts</small>
         </a>
-        <a class="dsx-stat" href="/notifications/">
+        <a class="dsx-stat dsx-stat-notifications" href="/notifications/">
+          <span class="dsx-stat-icon" aria-hidden="true"><svg class="ds30-icon"><use href="#ds30-bell"></use></svg></span>
           <span>Notifications</span>
           <strong id="activityNotifications">—</strong>
           <small>Unread activity</small>
         </a>
-        <a class="dsx-stat" href="/notifications/?filter=announcements">
+        <a class="dsx-stat dsx-stat-announcements" href="/notifications/?filter=announcements">
+          <span class="dsx-stat-icon" aria-hidden="true"><svg class="ds30-icon"><use href="#ds30-community"></use></svg></span>
           <span>Announcements</span>
           <strong id="activityAnnouncements">—</strong>
           <small>Active Founder updates</small>
@@ -122,58 +137,72 @@
       </section>
 
       <section class="dsx-dashboard-grid">
-        <div class="dsx-dashboard-hub">
-          <section class="dsx-hub-card dsx-hub-primary">
-            <div>
-              <p class="dsx-kicker">Executive workspace</p>
-              <h2>Your DominionStar command center</h2>
-              <p>Use Dashboard for your leadership overview, upcoming activity, Journey progress, and fast access to the tools you use most.</p>
-            </div>
-            <div class="dsx-hub-actions">
-              <a href="/feed/" class="dsx-hub-action"><strong>Open Feed</strong><span>Post updates, react, comment, repost, and share.</span></a>
-              <a href="/direct-messages/" class="dsx-hub-action"><strong>Messages</strong><span>Continue private member conversations.</span></a>
-              <a href="/appointments/" class="dsx-hub-action"><strong>Calendar</strong><span>Review meetings and appointment activity.</span></a>
-              <a href="/agent-learning/" class="dsx-hub-action"><strong>Learning</strong><span>Continue professional and leadership development.</span></a>
+        <div class="dsx-dashboard-social">
+          <nav class="dsx-dashboard-tabs" aria-label="Dashboard social shortcuts">
+            <span class="active">Network Feed</span>
+            <a href="/community/">Community</a>
+            <a href="/notifications/?filter=announcements">Announcements &amp; Alerts</a>
+          </nav>
+
+          <section class="dsx-dashboard-composer">
+            <div class="dsx-dashboard-composer-main">
+              <span class="dsos-feed-avatar">
+                <img id="dashboardComposerAvatar" class="member-hidden" alt="Your profile photo">
+                <span id="dashboardComposerInitials" class="dsos-avatar-initials" aria-hidden="true">DS</span>
+              </span>
+              <form id="dashboardComposerForm">
+                <label class="dsos-screenreader" for="dashboardComposerBody">Share with your network</label>
+                <textarea id="dashboardComposerBody" maxlength="2000" rows="2" required placeholder="Share an update, insight, win, or question with your network…"></textarea>
+                <div class="dsx-dashboard-composer-tools">
+                  <div>
+                    <a href="/feed/#feedMediaDraft">▧ <span>Photo</span></a>
+                    <a href="/feed/#feedMediaDraft">▣ <span>Video</span></a>
+                    <a href="/feed/#feedMediaDraft">⌕ <span>File</span></a>
+                    <a href="/feed/">▥ <span>Poll</span></a>
+                  </div>
+                  <button id="dashboardComposerPublish" type="submit">➤ <span>Post</span></button>
+                </div>
+                <span id="dashboardComposerStatus" class="dsx-dashboard-composer-status" role="status" aria-live="polite"></span>
+              </form>
             </div>
           </section>
 
-          <section class="dsx-hub-card">
-            <div class="dsx-side-head"><strong>Network Pulse</strong><a href="/feed/">Open Feed →</a></div>
-            <div class="dsx-network-pulse">
-              <div><span>Community posts</span><strong id="dashboardPulsePosts">—</strong></div>
-              <div><span>Unread activity</span><strong id="dashboardPulseNotifications">—</strong></div>
-              <div><span>Founder updates</span><strong id="dashboardPulseAnnouncements">—</strong></div>
+          <section class="dsx-dashboard-feed-preview">
+            <div class="dsx-dashboard-feed-head">
+              <div><p class="dsx-kicker">Professional Network</p><h2>Latest update</h2></div>
+              <a href="/feed/">Open full Feed →</a>
             </div>
-            <p>Feed is the social layer of DominionStar. Dashboard remains your executive operating center.</p>
+            <div id="dashboardSocialPreview" class="dsos-feed-stream"><p class="dsos-muted">Loading your network…</p></div>
           </section>
         </div>
 
         <aside class="dsx-right-rail" aria-label="Dashboard insights">
           <section class="dsx-side-card dsx-upcoming">
-            <div class="dsx-side-head"><strong>Upcoming Activity</strong><a href="/appointments/">View Calendar →</a></div>
+            <div class="dsx-side-head"><strong>Upcoming Activity</strong><a href="/appointments/">View All</a></div>
             <div id="dashboardNextAppointment"><p class="dsos-muted">Loading your schedule…</p></div>
           </section>
 
           <section class="dsx-side-card dsx-journey-card">
-            <div class="dsx-side-head"><strong>My Journey Progress</strong><a href="/agent-journey/">View Journey →</a></div>
-            <div class="dsx-progress-number" id="dashboardJourneyPercentMirror">0%</div>
+            <div class="dsx-side-head"><strong>My Journey Progress</strong><strong class="dsx-side-percent" id="dashboardJourneyPercentMirror">0%</strong></div>
             <div id="journeyCurrentMission">Loading current focus…</div>
             <div class="dsx-progress-track" aria-hidden="true"><span id="journeyProgressBar"></span></div>
             <small id="journeyMissionStatus">Preparing your journey…</small>
           </section>
 
-          <section class="dsx-side-card">
-            <div class="dsx-side-head"><strong>Quick Actions</strong></div>
-            <div class="dsx-quick-grid">
-              <a href="/feed/#feedComposerBody">✎ <span>Create Post</span></a>
-              <a href="/meet/">◫ <span>Meet Now</span></a>
+          <section class="dsx-side-card dsx-quick-actions-card">
+            <div class="dsx-side-head"><strong>⚡ Quick Actions</strong></div>
+            <div class="dsx-quick-grid dsx-quick-grid-six">
+              <a class="action-blue" href="#dashboardComposerBody">✎ <span>Create Post</span></a>
+              <a class="action-green" href="/meet/">▣ <span>Meet Now</span></a>
+              <a class="action-violet" href="/appointments/">▣ <span>Book Appointment</span></a>
               <a href="/agent-learning/">▤ <span>Browse Learning</span></a>
               <a href="/member-directory/">◎ <span>Find Members</span></a>
+              <a href="/community/">◉ <span>Start a Discussion</span></a>
             </div>
           </section>
 
           <section class="dsx-side-card dsx-announcement">
-            <div class="dsx-side-head"><strong>Founder Announcement</strong><a href="/notifications/">All alerts →</a></div>
+            <div class="dsx-side-head"><strong>Founder Announcement</strong></div>
             <div id="dashboardAnnouncementPreview"><p class="dsos-muted">Loading announcements…</p></div>
           </section>
         </aside>
@@ -228,6 +257,8 @@
 <script src="/assets/js/communication-engine.js?v=9.0-executive-3.2-build002"></script>
 <script src="/assets/js/presence-engine.js?v=8.0-genesis-rc5e-os-build2.1"></script>
 <script src="/assets/js/member-dashboard.js?v=os-stage-1"></script>
+<script src="/assets/js/dashboard-social.js?v=os-stage-1"></script>
+<script src="/assets/js/dashboard-social-preview.js?v=approved-visual-1"></script>
 <script src="/assets/js/dominionstar-os.js?v=os-stage-1"></script>
 </body>
 </html>

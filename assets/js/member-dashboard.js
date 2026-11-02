@@ -347,6 +347,13 @@
 
     const item=result.data[0];
     const when=item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+    const cleanLines=String(item.body||'')
+      .replace(/\*/g,'')
+      .split(/\r?\n/)
+      .map(line=>line.trim())
+      .filter(line=>line&&!/^https?:\/\//i.test(line)&&!/^join zoom meeting/i.test(line))
+      .slice(0,3);
+    const summary=cleanLines.join(' · ').slice(0,220);
     target.innerHTML = `
       <article class="dsos-pinned-update">
         <div class="dsos-pinned-update-head">
@@ -354,7 +361,8 @@
           <small>${escapeHtml(when)}</small>
         </div>
         <h3>${escapeHtml(item.title || 'DominionStar update')}</h3>
-        <p>${linkifySafe(item.body || '')}</p>
+        ${summary?'<p>'+escapeHtml(summary)+'</p>':''}
+        <a class="dsos-inline-link dsx-announcement-read" href="/notifications/?filter=announcements">Read Full Update →</a>
       </article>`;
     target.classList.remove('member-hidden');
   }
@@ -381,6 +389,30 @@
       if (result.error) throw result.error;
 
       if (!result.data?.length) {
+        const founderEvent=await withTimeout(
+          supabase.from('founder_announcements')
+            .select('title,body,created_at')
+            .eq('is_active',true)
+            .order('created_at',{ascending:false})
+            .limit(1)
+        );
+        const announcement=founderEvent.data?.[0];
+        const bodyText=String(announcement?.body||'');
+        const meetingUrl=(bodyText.match(/https:\/\/[^\s<>"']+/i)||[])[0]||'';
+        if(announcement&&meetingUrl){
+          const lines=bodyText.replace(/\*/g,'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+          const dateLine=lines.find(line=>/^date\s*:/i.test(line))||'';
+          const timeLine=lines.find(line=>/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)/i.test(line))||'';
+          target.innerHTML=`
+            <article class="dashboard-appointment-preview dsx-founder-event">
+              <span class="appointment-status confirmed">Upcoming</span>
+              <h3>${escapeHtml(announcement.title||'DominionStar meeting')}</h3>
+              ${dateLine?'<p>'+escapeHtml(dateLine)+'</p>':''}
+              ${timeLine?'<small>'+escapeHtml(timeLine)+'</small>':''}
+              <a class="dsx-join-link" href="${escapeHtml(meetingUrl)}" target="_blank" rel="noopener noreferrer">Join Meeting</a>
+            </article>`;
+          return;
+        }
         target.innerHTML = `
           <div class="dashboard-empty-compact">
             <strong>Your schedule is open.</strong>
@@ -484,6 +516,7 @@
         const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
         if (dashboardPulseNotifications) dashboardPulseNotifications.textContent='—';
         notificationCount?.classList.add('member-hidden');
+        document.getElementById('topbarNotificationCount')?.classList.add('member-hidden');
         const panelStatus = document.getElementById('notificationPanelStatus');
         if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
         notificationList.textContent = 'Notifications could not be loaded. Try again later.';
@@ -504,6 +537,11 @@
         messageBadge.textContent = unreadMessages > 99 ? '99+' : String(unreadMessages);
         messageBadge.classList.toggle('member-hidden', unreadMessages === 0);
       }
+      const topbarMessageBadge=document.getElementById('topbarUnreadMessages');
+      if(topbarMessageBadge){
+        topbarMessageBadge.textContent=unreadMessages>99?'99+':String(unreadMessages);
+        topbarMessageBadge.classList.toggle('member-hidden',unreadMessages===0);
+      }
       messageLink?.classList.toggle('ds30-has-unread', unreadMessages > 0);
       window.CommunicationEngine?.setBadge(unread);
       const notificationMetric=document.getElementById('activityNotifications');
@@ -511,11 +549,17 @@
       const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
       if (dashboardPulseNotifications) dashboardPulseNotifications.textContent=unread;
 
+      const topbarNotificationBadge=document.getElementById('topbarNotificationCount');
       if (unread) {
         notificationCount.textContent = unread;
         notificationCount.classList.remove('member-hidden');
+        if(topbarNotificationBadge){
+          topbarNotificationBadge.textContent=unread>99?'99+':String(unread);
+          topbarNotificationBadge.classList.remove('member-hidden');
+        }
       } else {
         notificationCount.classList.add('member-hidden');
+        topbarNotificationBadge?.classList.add('member-hidden');
       }
 
       const panelStatus = document.getElementById('notificationPanelStatus');

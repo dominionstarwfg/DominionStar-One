@@ -33,7 +33,7 @@
   const asPosts = result => Array.isArray(result) ? result : [];
   const readableCount = (count, known) => known ? String(count) : '—';
 
-  async function mount({client, memberId, target}) {
+  async function mount({client, memberId, target, resultLimit=20}) {
     if (!client || !memberId || !target) throw new Error('The member feed requires a verified session.');
     if (target.__ds30Controller) {
       await target.__ds30Controller.refresh();
@@ -142,7 +142,8 @@
     };
     const refresh = async () => {
       const current=++revision;
-      const result=await client.rpc('list_community_feed',{result_limit:20});
+      const safeLimit=Math.max(1,Math.min(20,Number(resultLimit)||20));
+      const result=await client.rpc('list_community_feed',{result_limit:safeLimit});
       if(current!==revision)return;
       if(result.error)throw result.error;
       posts=asPosts(result.data).filter(p=>p && p.id);

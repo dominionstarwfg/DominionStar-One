@@ -49,6 +49,8 @@ test('Approved simplified sidebar has clean vector icons and no retired tabs',()
 test('Real notification and message events drive meaningful status colors',()=>{
   assert.match(dashboard,/id="notificationCount"/);
   assert.match(dashboard,/id="sidebarUnreadMessages"/);
+  assert.match(dashboard,/id="topbarNotificationCount"/);
+  assert.match(dashboard,/id="topbarUnreadMessages"/);
   assert.match(dashboardScript,/const unreadMessages = notifications\.filter/);
   assert.match(dashboardScript,/item\.event_type\.startsWith\('message\.'\)/);
   assert.match(dashboardScript,/messageBadge\.classList\.toggle\('member-hidden', unreadMessages === 0\)/);
@@ -60,14 +62,17 @@ test('Real notification and message events drive meaningful status colors',()=>{
   assert.match(cinematic,/\.ds30-nav-badge,[\s\S]*background:var\(--dsx-danger\)!important/);
 });
 
-test('Approved agents get a focused executive Dashboard and a separate social Feed',()=>{
+test('Approved agents get the approved compact Dashboard social preview and a separate full Feed',()=>{
   assert.doesNotMatch(dashboard,/class="dsos-profile-card"|System status|Account health/);
   assert.match(dashboard,/Welcome back to DominionStar Executive OS/);
   assert.match(dashboard,/class="dsx-overview"/);
   assert.match(dashboard,/Upcoming Activity/);
   assert.match(dashboard,/Quick Actions/);
-  assert.match(dashboard,/class="dsx-dashboard-hub"/);
-  assert.doesNotMatch(dashboard,/id="dsosSocialGateway"|id="dashboardCommunityPreview"|dashboard-social\.js/);
+  assert.match(dashboard,/class="dsx-dashboard-social"/);
+  assert.match(dashboard,/id="dashboardComposerForm"/);
+  assert.match(dashboard,/id="dashboardSocialPreview"/);
+  assert.match(dashboard,/dashboard-social\.js/);
+  assert.match(dashboard,/dashboard-social-preview\.js/);
   assert.match(feedPage,/id="feedPageComposer"/);
   assert.match(feedPage,/id="feedPageStream"/);
   assert.match(feedScript,/\.from\('community_messages'\)[\s\S]*\.insert\(/);

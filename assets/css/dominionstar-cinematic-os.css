@@ -1716,3 +1716,772 @@ body.ds-auth-os-page .moderate-lock{
   color:#f6d86b!important;
   border-color:rgba(242,201,76,.26)!important;
 }
+
+
+/* ===== People and progress semantic colors ===== */
+body.ds-auth-os-page .dsx-action-primary{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border:1px solid rgba(96,164,255,.44)!important;
+  box-shadow:0 8px 20px rgba(24,119,242,.15)!important;
+}
+body.ds-auth-os-page .dsx-action-primary:hover{
+  background:linear-gradient(135deg,#3b91fa,#1877f2)!important;
+  border-color:rgba(120,180,255,.58)!important;
+}
+
+/* Team Members */
+body.ds-auth-os-page .member-directory-avatar>span.online{
+  background:var(--dsx-success)!important;
+  border:2px solid #0b1d34!important;
+  box-shadow:0 0 0 3px rgba(53,208,127,.12),0 0 14px rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .member-directory-avatar>span.offline{
+  background:#667b92!important;
+  border:2px solid #0b1d34!important;
+}
+body.ds-auth-os-page .member-directory-card p{
+  color:#d7e4f2!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .member-directory-card p::first-line{color:#d7e4f2!important}
+body.ds-auth-os-page .member-directory-actions .btn:first-child{
+  color:#8fc0ff!important;
+  border-color:rgba(24,119,242,.30)!important;
+  background:rgba(24,119,242,.08)!important;
+}
+body.ds-auth-os-page .member-directory-actions .connect-member{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(96,164,255,.44)!important;
+}
+body.ds-auth-os-page .member-directory-actions .connect-member:disabled{
+  background:rgba(53,208,127,.12)!important;
+  color:#76e8ab!important;
+  border-color:rgba(53,208,127,.28)!important;
+}
+body.ds-auth-os-page .member-directory-card:has(.online){
+  border-color:rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .member-directory-card:has(.online)::after{
+  border-color:rgba(53,208,127,.13)!important;
+}
+
+/* Journey */
+body.ds-auth-os-page .agent-journey-track span{
+  background:linear-gradient(90deg,#1877f2 0%,#2d9cdb 52%,#35d07f 100%)!important;
+}
+body.ds-auth-os-page .agent-journey-item.pending{
+  border-color:rgba(126,168,221,.17)!important;
+  background:rgba(7,25,49,.58)!important;
+}
+body.ds-auth-os-page .agent-journey-item.current{
+  border-color:rgba(242,201,76,.34)!important;
+  background:
+    radial-gradient(circle at 100% 50%,rgba(242,201,76,.07),transparent 30%),
+    rgba(7,25,49,.72)!important;
+  box-shadow:inset 3px 0 var(--dsx-warning),0 0 20px rgba(242,201,76,.06)!important;
+}
+body.ds-auth-os-page .agent-journey-item.current strong{color:#fff!important}
+body.ds-auth-os-page .agent-journey-item.current a{color:#f5d867!important}
+body.ds-auth-os-page .agent-journey-item.completed{
+  background:rgba(53,208,127,.075)!important;
+  border-color:rgba(53,208,127,.26)!important;
+  box-shadow:inset 3px 0 var(--dsx-success)!important;
+}
+body.ds-auth-os-page .agent-journey-item.completed strong{color:#9aefbd!important}
+body.ds-auth-os-page .agent-journey-item.completed a{color:#76e8ab!important}
+body.ds-auth-os-page .agent-journey-item input[type="checkbox"]{
+  accent-color:var(--dsx-success)!important;
+}
+body.ds-auth-os-page .agent-journey-resources a:hover{
+  border-color:rgba(24,119,242,.35)!important;
+  background:rgba(24,119,242,.06)!important;
+}
+body.ds-auth-os-page .agent-journey-resources a:hover strong{color:#8fc0ff!important}
+
+/* Learning */
+body.ds-auth-os-page #training .agent-learning-icon{
+  color:#78afff!important;background:rgba(24,119,242,.11)!important;border-color:rgba(24,119,242,.27)!important;
+}
+body.ds-auth-os-page #mentorship .agent-learning-icon{
+  color:#68cafa!important;background:rgba(45,156,219,.10)!important;border-color:rgba(45,156,219,.27)!important;
+}
+body.ds-auth-os-page #leadership .agent-learning-icon{
+  color:#f5ce71!important;background:rgba(240,193,91,.10)!important;border-color:rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page #financial-development .agent-learning-icon{
+  color:#75e7aa!important;background:rgba(53,208,127,.10)!important;border-color:rgba(53,208,127,.25)!important;
+}
+body.ds-auth-os-page .agent-learning-actions>a:not(.btn){
+  color:#86baff!important;
+}
+body.ds-auth-os-page .agent-learning-actions>a:not(.btn):hover{
+  color:#b8d5ff!important;
+}
+
+/* Appointment Center */
+body.ds-auth-os-page .appointment-status{
+  display:inline-flex!important;
+  align-items:center;
+  min-height:24px;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-weight:850!important;
+  font-size:10px!important;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  border:1px solid transparent!important;
+}
+body.ds-auth-os-page .appointment-status.pending{
+  background:rgba(242,201,76,.11)!important;color:#f6d86b!important;border-color:rgba(242,201,76,.25)!important;
+}
+body.ds-auth-os-page .appointment-status.confirmed,
+body.ds-auth-os-page .appointment-status.completed{
+  background:rgba(53,208,127,.11)!important;color:#75e7aa!important;border-color:rgba(53,208,127,.25)!important;
+}
+body.ds-auth-os-page .appointment-status.rescheduled{
+  background:rgba(24,119,242,.11)!important;color:#78afff!important;border-color:rgba(24,119,242,.26)!important;
+}
+body.ds-auth-os-page .appointment-status.cancelled{
+  background:rgba(255,77,90,.11)!important;color:#ff8992!important;border-color:rgba(255,77,90,.25)!important;
+}
+body.ds-auth-os-page .cancel-appointment{
+  color:#ff8992!important;
+  border-color:rgba(255,77,90,.28)!important;
+  background:rgba(255,77,90,.06)!important;
+}
+body.ds-auth-os-page .cancel-appointment:hover{
+  background:rgba(255,77,90,.12)!important;
+  border-color:rgba(255,77,90,.42)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.confirmed),
+body.ds-auth-os-page .appointment-card:has(.appointment-status.completed){
+  border-color:rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.pending){
+  border-color:rgba(242,201,76,.20)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.cancelled){
+  opacity:.78;
+}
+
+/* Recognition: this is where achievement gold belongs. */
+body.ds-auth-os-page .recognition-mark{
+  color:#f5ce71!important;
+  background:rgba(240,193,91,.12)!important;
+  border-color:rgba(240,193,91,.32)!important;
+  box-shadow:0 0 24px rgba(240,193,91,.09)!important;
+}
+body.ds-auth-os-page .recognition-post{
+  border-left-color:var(--dsx-gold)!important;
+}
+body.ds-auth-os-page .recognition-post .eyebrow,
+body.ds-auth-os-page .recognition-post a{
+  color:#f5ce71!important;
+}
+body.ds-auth-os-page .recognition-post:hover{
+  border-color:rgba(240,193,91,.38)!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.22),0 0 24px rgba(240,193,91,.06)!important;
+}
+
+
+/* ===== Compact executive density correction — visual QA 2026-11-01 =====
+   Desktop Agent OS should feel like a social operating system, not oversized landing pages. */
+@media(min-width:1041px){
+  body.ds-auth-os-page.ds-auth-os-shell-active{padding-left:218px!important}
+  body.ds-auth-os-page .ds-agent-shell{width:218px!important;padding:14px 11px 12px!important}
+  body.ds-auth-os-page .ds-agent-progress{left:218px!important}
+  body.ds-auth-os-page .ds-agent-head{gap:9px!important;padding:0 2px 11px!important}
+  body.ds-auth-os-page .ds-agent-brand-mark{width:34px!important;height:34px!important;border-radius:10px!important;font-size:20px!important}
+  body.ds-auth-os-page .ds-agent-brand-copy strong{font-size:12px!important}
+  body.ds-auth-os-page .ds-agent-brand-copy small{font-size:10px!important}
+  body.ds-auth-os-page .ds-agent-current{font-size:10px!important}
+  body.ds-auth-os-page .ds-agent-search-trigger{min-height:36px!important;padding:7px 8px!important}
+  body.ds-auth-os-page .ds-agent-nav{gap:2px!important;padding:9px 0 6px!important}
+  body.ds-auth-os-page .ds-agent-nav-item{min-height:36px!important;padding:7px 8px!important;font-size:12px!important;gap:8px!important;border-radius:8px!important}
+  body.ds-auth-os-page .ds-agent-nav-item svg{width:16px!important;height:16px!important;flex-basis:16px!important}
+}
+
+/* Main dashboard shell */
+.dsos-executive .dsos-shell{grid-template-columns:220px minmax(0,1fr)!important}
+.dsos-executive .dsos-sidebar{width:220px!important;padding:16px 12px!important}
+.dsos-executive .dsos-topbar{min-height:64px!important;padding:10px 20px!important}
+.dsos-executive .dsos-page{padding:14px 20px 40px!important}
+.dsx-hero{
+  min-height:178px!important;
+  padding:22px 24px!important;
+  gap:20px!important;
+  border-radius:20px!important;
+}
+.dsx-greeting{font-size:clamp(31px,3.1vw,44px)!important}
+.dsx-welcome{font-size:13.5px!important;line-height:1.55!important;margin-top:9px!important}
+.dsx-kicker{margin-bottom:9px!important;font-size:10px!important}
+.dsx-hero-profile{
+  grid-template-columns:56px 1fr!important;
+  gap:11px!important;
+  padding:13px!important;
+  border-radius:15px!important;
+}
+.dsx-hero-profile .dsos-feed-avatar{width:56px!important;height:56px!important}
+.dsx-hero-profile strong{font-size:14px!important}
+.dsx-hero-profile small{font-size:11px!important}
+.dsx-overview{gap:10px!important;margin:11px 0!important}
+.dsx-stat{min-height:86px!important;padding:13px 14px!important;border-radius:14px!important}
+.dsx-stat strong{font-size:24px!important}
+.dsx-stat small{font-size:10.5px!important;margin-top:5px!important}
+.dsx-dashboard-grid{gap:11px!important;grid-template-columns:minmax(0,1fr) 315px!important}
+.dsx-hub-card{padding:16px!important;border-radius:16px!important}
+.dsx-hub-primary{padding:18px!important}
+.dsx-hub-card h2{font-size:clamp(19px,1.8vw,25px)!important}
+.dsx-hub-card p{font-size:12.5px!important;line-height:1.5!important}
+.dsx-hub-actions{gap:8px!important;margin-top:13px!important}
+.dsx-hub-action{min-height:70px!important;padding:11px 12px!important;border-radius:11px!important}
+.dsx-hub-action strong{font-size:12.5px!important}
+.dsx-hub-action span{font-size:10.5px!important}
+.dsx-network-pulse{gap:7px!important;margin:8px 0 10px!important}
+.dsx-network-pulse>div{padding:10px!important;border-radius:10px!important}
+.dsx-network-pulse strong{font-size:19px!important}
+.dsx-right-rail{gap:10px!important}
+.dsx-side-card{padding:13px!important;border-radius:15px!important}
+.dsx-side-head{margin-bottom:8px!important}
+.dsx-side-head strong{font-size:13px!important}
+.dsx-quick-grid{gap:6px!important}
+.dsx-quick-grid a{min-height:56px!important;padding:8px!important;font-size:10.5px!important}
+.dsx-journey-card .dsx-progress-number{font-size:29px!important}
+
+/* Shared authenticated pages */
+body.ds-auth-os-page main.member-dashboard{
+  max-width:1480px!important;
+  margin:0 auto!important;
+  padding:14px 18px 42px!important;
+}
+body.ds-auth-os-page .member-dashboard-header,
+body.ds-auth-os-page .command-center-header{
+  min-height:0!important;
+  padding:17px 20px!important;
+  border-radius:18px!important;
+  gap:16px!important;
+}
+body.ds-auth-os-page .member-dashboard-header h1,
+body.ds-auth-os-page .command-center-header h1{
+  font-size:clamp(25px,2.5vw,34px)!important;
+  line-height:1.1!important;
+  margin:4px 0 7px!important;
+}
+body.ds-auth-os-page .member-dashboard-header p,
+body.ds-auth-os-page .command-center-header p{
+  max-width:760px!important;
+  font-size:12.5px!important;
+  line-height:1.5!important;
+}
+body.ds-auth-os-page .member-dashboard-actions{gap:7px!important}
+body.ds-auth-os-page .btn{min-height:36px!important;padding:7px 11px!important;font-size:11.5px!important;border-radius:8px!important}
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .member-card,
+body.ds-auth-os-page .profile-section-card,
+body.ds-auth-os-page .settings-panel{padding:16px!important;border-radius:14px!important}
+body.ds-auth-os-page .eyebrow{font-size:10px!important;letter-spacing:.11em!important}
+
+/* Feed */
+body.ds-auth-os-page #feedApp{max-width:1480px!important;padding:14px 18px 42px!important}
+body.ds-auth-os-page .dsx-feed-page-header{min-height:0!important;padding:18px 20px!important}
+body.ds-auth-os-page .dsx-feed-page-header h1{font-size:clamp(26px,2.6vw,36px)!important}
+.dsx-feed-workspace{grid-template-columns:minmax(0,1fr) 290px!important;gap:11px!important;margin-top:11px!important}
+.dsx-feed-aside{gap:9px!important}
+.dsx-feed-page-composer{padding:14px!important}
+.dsx-feed-page-identity{margin-bottom:10px!important}
+.dsx-feed-page-identity .dsos-feed-avatar{width:44px!important;height:44px!important}
+.dsx-feed-page-composer textarea{min-height:74px!important;padding:11px 12px!important;border-radius:11px!important}
+body.ds-auth-os-page .ds30-post-authorbar{padding:13px 14px 9px!important}
+body.ds-auth-os-page .ds30-social-post>h3,
+body.ds-auth-os-page .ds30-post-copy,
+body.ds-auth-os-page .ds30-view-full,
+body.ds-auth-os-page .ds30-post-engagement{margin-left:14px!important;margin-right:14px!important}
+
+/* Messages */
+body.ds-auth-os-page .dm-os.dm-os-three{
+  width:min(1480px,calc(100vw - 218px))!important;
+  padding:12px 14px 18px!important;
+  gap:10px!important;
+  grid-template-columns:minmax(250px,310px) minmax(420px,1fr) minmax(245px,300px)!important;
+  grid-template-rows:auto minmax(560px,calc(100vh - 128px))!important;
+}
+body.ds-auth-os-page .dsx-messages-title{
+  min-height:82px!important;
+  padding:15px 18px!important;
+  border-radius:16px!important;
+}
+body.ds-auth-os-page .dsx-messages-title h1{font-size:clamp(25px,2.5vw,34px)!important}
+body.ds-auth-os-page .dsx-messages-title small{font-size:11.5px!important}
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{border-radius:14px!important}
+body.ds-auth-os-page .dm-sidebar-header,
+body.ds-auth-os-page .dm-chat-header{min-height:60px!important}
+body.ds-auth-os-page .dm-conversation{padding:9px!important}
+
+/* Notifications */
+body.ds-auth-os-page .notification-center{max-width:1480px!important;padding:14px 18px 42px!important}
+body.ds-auth-os-page .notification-center>header{
+  min-height:0!important;
+  padding:18px 20px!important;
+  border-radius:18px!important;
+}
+body.ds-auth-os-page .notification-center>header h1{font-size:clamp(26px,2.6vw,36px)!important}
+body.ds-auth-os-page #notificationFilters{margin:10px 0!important;padding:5px!important}
+body.ds-auth-os-page #notificationFilters button{padding:7px 11px!important;font-size:11.5px!important}
+body.ds-auth-os-page .notification-layout{grid-template-columns:minmax(0,1fr) 280px!important;gap:10px!important}
+body.ds-auth-os-page .notification-item{min-height:72px!important;padding:11px 13px!important;border-radius:13px!important}
+body.ds-auth-os-page .notification-item-icon{width:32px!important;height:32px!important;font-size:15px!important}
+
+/* Directory */
+body.ds-auth-os-page .directory-filter-bar{padding:12px!important}
+body.ds-auth-os-page .member-directory-grid{gap:10px!important}
+body.ds-auth-os-page .member-directory-card{
+  min-height:190px!important;
+  padding:15px!important;
+  border-radius:14px!important;
+}
+body.ds-auth-os-page .member-directory-avatar{width:62px!important;height:62px!important;margin-bottom:9px!important}
+body.ds-auth-os-page .member-directory-card h2{font-size:15px!important;margin:4px 0!important}
+body.ds-auth-os-page .member-directory-card p{font-size:11.5px!important;margin:4px 0!important}
+body.ds-auth-os-page .member-directory-card small{font-size:10.5px!important}
+body.ds-auth-os-page .member-directory-actions{margin-top:10px!important;gap:6px!important}
+
+/* Journey */
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header{min-height:0!important;padding:18px 20px!important}
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header h1{font-size:clamp(26px,2.6vw,36px)!important}
+body.ds-auth-os-page .agent-journey-overview{gap:10px!important;margin:12px 0!important}
+body.ds-auth-os-page .agent-journey-score>strong{font-size:36px!important}
+body.ds-auth-os-page .agent-journey-track{height:7px!important;margin:10px 0!important}
+body.ds-auth-os-page .agent-journey-list{gap:7px!important;margin-top:10px!important}
+body.ds-auth-os-page .agent-journey-item{gap:9px!important;padding:10px 11px!important;border-radius:10px!important}
+body.ds-auth-os-page .agent-journey-item input{width:17px!important;height:17px!important}
+body.ds-auth-os-page .agent-journey-item strong{font-size:12.5px!important}
+body.ds-auth-os-page .agent-journey-item span{font-size:11px!important}
+body.ds-auth-os-page .agent-journey-resources{gap:8px!important;margin-top:10px!important}
+body.ds-auth-os-page .agent-journey-resources a{padding:11px!important;border-radius:10px!important}
+
+/* Learning */
+body.ds-auth-os-page .agent-learning-grid{gap:10px!important;margin:12px 0!important}
+body.ds-auth-os-page .agent-learning-card{min-height:178px!important;padding:15px!important}
+body.ds-auth-os-page .agent-learning-icon{width:36px!important;height:36px!important;border-radius:10px!important;font-size:17px!important;margin-bottom:10px!important}
+body.ds-auth-os-page .agent-learning-card h2{font-size:17px!important;margin:4px 0 6px!important}
+body.ds-auth-os-page .agent-learning-card>p:not(.eyebrow){min-height:48px!important;font-size:12px!important;line-height:1.5!important}
+body.ds-auth-os-page .agent-learning-actions{gap:8px!important;margin-top:11px!important}
+
+/* Calendar */
+body.ds-auth-os-page .appointment-center-grid{gap:10px!important;margin-top:12px!important}
+body.ds-auth-os-page .appointment-center-grid>.member-panel{padding:15px!important;border-radius:14px!important}
+body.ds-auth-os-page .appointment-request-form{gap:10px!important}
+body.ds-auth-os-page .appointment-card{padding:12px!important;border-radius:12px!important}
+body.ds-auth-os-page .appointment-card dl{gap:6px!important}
+body.ds-auth-os-page .appointment-card dl div{padding:7px 8px!important;border-radius:8px!important}
+
+/* Recognition */
+body.ds-auth-os-page .recognition-intro{padding:17px 19px!important;margin-bottom:14px!important;border-radius:14px!important;gap:13px!important}
+body.ds-auth-os-page .recognition-mark{width:50px!important;height:50px!important;flex-basis:50px!important;border-radius:13px!important}
+body.ds-auth-os-page .recognition-mark svg{width:28px!important;height:28px!important}
+body.ds-auth-os-page .recognition-intro h2{font-size:20px!important;margin:4px 0 6px!important}
+body.ds-auth-os-page .recognition-intro p{font-size:12px!important;line-height:1.55!important}
+body.ds-auth-os-page .recognition-heading{margin:14px 0 10px!important}
+body.ds-auth-os-page .recognition-heading h2{font-size:18px!important}
+body.ds-auth-os-page .recognition-feed{gap:9px!important}
+body.ds-auth-os-page .recognition-post{padding:14px 16px!important;border-radius:13px!important}
+body.ds-auth-os-page .recognition-post h3{font-size:14px!important;margin:4px 0 8px!important}
+body.ds-auth-os-page .recognition-post p{font-size:12px!important;line-height:1.55!important}
+
+/* Profile / Settings */
+body.ds-auth-os-page .executive-avatar-wrap{width:96px!important;height:96px!important}
+body.ds-auth-os-page .profile-avatar-fallback{font-size:30px!important}
+body.ds-auth-os-page .profile-section-card{padding:15px!important}
+body.ds-auth-os-page .settings-nav{padding:6px!important;gap:4px!important}
+body.ds-auth-os-page .settings-nav button{min-height:34px!important;padding:6px 9px!important;font-size:11.5px!important}
+body.ds-auth-os-page .settings-switch-row{padding:10px 0!important}
+
+@media(max-width:1180px) and (min-width:1041px){
+  .dsx-dashboard-grid{grid-template-columns:1fr!important}
+  .dsx-right-rail{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+
+/* ===== Approved illustration fidelity pass ===== */
+.dsos-executive .dsos-topbar.dsx-approved-topbar{
+  display:grid!important;
+  grid-template-columns:minmax(360px,640px) auto!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  gap:18px!important;
+  min-height:64px!important;
+  padding:9px 18px!important;
+  background:rgba(4,16,32,.90)!important;
+  border-bottom:1px solid rgba(113,156,208,.20)!important;
+}
+.dsx-mobile-menu{display:none!important}
+.dsx-global-search{
+  width:min(640px,100%)!important;
+  min-height:40px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:0 13px!important;
+  border:1px solid rgba(126,168,221,.27)!important;
+  border-radius:13px!important;
+  background:rgba(15,37,69,.80)!important;
+  color:#eef4fb!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.03)!important;
+  cursor:pointer;
+}
+.dsx-global-search>span:first-child{font-size:22px;color:#dbe9f8!important}
+.dsx-global-search>span:nth-child(2){flex:1;text-align:left;font-size:12px!important;color:#e3edf8!important}
+.dsx-global-search small{font-size:10px!important;color:#8fa6c0!important}
+.dsx-global-search kbd{
+  padding:4px 7px!important;
+  border:1px solid rgba(126,168,221,.20)!important;
+  border-radius:7px!important;
+  background:rgba(255,255,255,.04)!important;
+  color:#9eb3ca!important;
+  font-size:10px!important;
+}
+.dsos-executive .dsos-top-actions{display:flex!important;align-items:center!important;gap:8px!important}
+.dsx-top-action{
+  position:relative;
+  width:40px;height:40px;
+  display:grid;place-items:center;
+  border-radius:12px;
+  border:1px solid rgba(126,168,221,.22);
+  background:rgba(14,38,70,.86);
+  color:#eaf3fd!important;
+  text-decoration:none!important;
+}
+.dsx-top-action:hover{background:rgba(24,119,242,.13);border-color:rgba(24,119,242,.38)}
+.dsx-top-action .ds30-icon{width:19px!important;height:19px!important}
+.dsx-create-action{
+  background:linear-gradient(135deg,#2583f7,#0e6be4)!important;
+  border-color:rgba(91,163,255,.55)!important;
+  color:#fff!important;
+  font-size:24px!important;
+  box-shadow:0 8px 22px rgba(24,119,242,.20)!important;
+}
+.dsx-top-action .ds30-nav-badge{
+  position:absolute!important;
+  top:-6px!important;right:-6px!important;
+  min-width:19px!important;height:19px!important;
+  padding:0 4px!important;
+  display:grid!important;place-items:center!important;
+  font-size:9px!important;
+}
+.dsx-presence-control{
+  width:18px!important;
+  min-width:18px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+.dsx-presence-control select{
+  position:absolute!important;
+  width:1px!important;height:1px!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+.dsx-presence-control .dsos-presence-dot{
+  width:10px!important;height:10px!important;
+  margin:0!important;
+}
+.dsos-executive .dsos-profile-chip{
+  min-width:190px!important;
+  min-height:44px!important;
+  padding:5px 9px!important;
+  border-radius:13px!important;
+}
+.dsos-executive .dsos-top-avatar{width:35px!important;height:35px!important;flex-basis:35px!important}
+.dsos-executive .dsos-top-profile-info strong{font-size:11.5px!important}
+.dsos-executive .dsos-top-profile-info small{font-size:9.5px!important;line-height:1.2!important}
+.dsos-executive .dsos-founding-inline{padding:2px 6px!important;margin-top:2px!important;font-size:8.5px!important}
+
+/* Cinematic hero: compact horizon/globe composition from approved reference. */
+.dsx-hero{
+  position:relative!important;
+  isolation:isolate;
+  overflow:hidden!important;
+  grid-template-columns:minmax(0,1fr) 290px!important;
+  min-height:178px!important;
+  background:
+    radial-gradient(circle at 63% 52%,rgba(37,124,219,.35),transparent 19%),
+    radial-gradient(circle at 82% 18%,rgba(240,193,91,.16),transparent 10%),
+    linear-gradient(112deg,#07162b 0%,#0a2b50 55%,#0d3a68 100%)!important;
+}
+.dsx-hero:before{
+  content:""!important;
+  position:absolute!important;
+  z-index:-1!important;
+  width:520px!important;height:520px!important;
+  right:70px!important;bottom:-430px!important;
+  border-radius:50%!important;
+  border:1px solid rgba(92,159,235,.44)!important;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(28,100,190,.32),rgba(3,19,42,.12) 52%,transparent 53%)!important;
+  box-shadow:
+    0 0 0 22px rgba(69,138,218,.055),
+    0 0 0 48px rgba(69,138,218,.025),
+    0 -35px 90px rgba(37,112,202,.22)!important;
+}
+.dsx-hero:after{
+  width:240px!important;height:2px!important;
+  right:22px!important;top:31px!important;
+  background:linear-gradient(90deg,transparent,#f0c15b,transparent)!important;
+  box-shadow:0 0 22px rgba(240,193,91,.72)!important;
+}
+.dsx-hero-profile{
+  align-self:center!important;
+  border-color:rgba(240,193,91,.52)!important;
+  box-shadow:0 0 0 1px rgba(240,193,91,.06),0 15px 34px rgba(0,0,0,.22),0 0 24px rgba(240,193,91,.07)!important;
+}
+
+/* KPI cards with semantic icon blocks exactly like approved reference. */
+.dsx-stat{
+  display:grid!important;
+  grid-template-columns:48px 1fr auto!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
+  column-gap:10px!important;
+  min-height:82px!important;
+  padding:11px 12px!important;
+}
+.dsx-stat>.dsx-stat-icon{
+  grid-row:1/3!important;
+  width:44px;height:44px;
+  display:grid!important;place-items:center!important;
+  border-radius:12px!important;
+}
+.dsx-stat>.dsx-stat-icon .ds30-icon{width:23px!important;height:23px!important}
+.dsx-stat>span:not(.dsx-stat-icon){grid-column:2!important;font-size:11px!important}
+.dsx-stat>strong{grid-column:2!important;font-size:24px!important;margin:2px 0 0!important}
+.dsx-stat>small{grid-column:2!important;margin:1px 0 0!important}
+.dsx-stat:after{grid-column:3!important;grid-row:1/3!important;position:static!important;width:24px!important;height:24px!important}
+.dsx-stat-journey{border-color:rgba(24,119,242,.40)!important}
+.dsx-stat-journey .dsx-stat-icon{background:rgba(24,119,242,.15)!important;color:#46a0ff!important}
+.dsx-stat-network{border-color:rgba(45,156,219,.38)!important}
+.dsx-stat-network .dsx-stat-icon{background:rgba(45,156,219,.14)!important;color:#57c7f7!important}
+.dsx-stat-notifications{border-color:rgba(255,77,90,.38)!important}
+.dsx-stat-notifications .dsx-stat-icon{background:rgba(255,77,90,.14)!important;color:#ff7180!important}
+.dsx-stat-announcements{border-color:rgba(240,193,91,.42)!important}
+.dsx-stat-announcements .dsx-stat-icon{background:rgba(240,193,91,.14)!important;color:#f6cd66!important}
+
+/* Dashboard social preview: compact and functional, full Feed remains separate route. */
+.dsx-dashboard-social{
+  min-width:0;
+  border:1px solid rgba(126,168,221,.22);
+  border-radius:16px;
+  overflow:hidden;
+  background:linear-gradient(160deg,rgba(14,37,70,.94),rgba(7,24,48,.97));
+  box-shadow:0 16px 36px rgba(0,0,0,.18);
+}
+.dsx-dashboard-tabs{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 10px;
+  border-bottom:1px solid rgba(126,168,221,.15);
+  background:rgba(4,17,35,.34);
+}
+.dsx-dashboard-tabs a,.dsx-dashboard-tabs span{
+  padding:7px 12px;
+  border-radius:999px;
+  color:#b9c8da!important;
+  text-decoration:none!important;
+  font-size:10.5px!important;
+  font-weight:850!important;
+}
+.dsx-dashboard-tabs .active{
+  color:#2b1d06!important;
+  background:linear-gradient(135deg,#f5d17b,#dca23d)!important;
+  box-shadow:0 0 18px rgba(240,193,91,.16)!important;
+}
+.dsx-dashboard-composer{padding:10px!important}
+.dsx-dashboard-composer-main{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  gap:10px;
+  padding:10px;
+  border:1px solid rgba(126,168,221,.18);
+  border-radius:13px;
+  background:rgba(13,35,66,.66);
+}
+.dsx-dashboard-composer .dsos-feed-avatar{width:42px!important;height:42px!important}
+.dsx-dashboard-composer form{min-width:0}
+.dsx-dashboard-composer textarea{
+  width:100%!important;
+  min-height:42px!important;
+  resize:vertical;
+  padding:10px 13px!important;
+  border:1px solid rgba(126,168,221,.25)!important;
+  border-radius:999px!important;
+  background:rgba(6,22,44,.76)!important;
+  color:#f5f8fc!important;
+  font-size:12px!important;
+}
+.dsx-dashboard-composer-tools{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-top:8px;
+}
+.dsx-dashboard-composer-tools>div{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.dsx-dashboard-composer-tools a{
+  padding:5px 8px;
+  border-radius:8px;
+  color:#9fb2ca!important;
+  text-decoration:none!important;
+  font-size:10px!important;
+  font-weight:750!important;
+}
+.dsx-dashboard-composer-tools a:hover{background:rgba(24,119,242,.08);color:#7fb5ff!important}
+.dsx-dashboard-composer-tools button{
+  min-width:88px!important;
+  min-height:34px!important;
+  padding:0 13px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:linear-gradient(135deg,#2583f7,#0e6be4)!important;
+  color:#fff!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  box-shadow:0 7px 18px rgba(24,119,242,.16)!important;
+}
+.dsx-dashboard-composer-status{display:block;margin-top:5px;font-size:9.5px!important;color:#91a8c0!important}
+.dsx-dashboard-composer-status[data-state="error"]{color:#ff8992!important}
+.dsx-dashboard-composer-status[data-state="success"]{color:#75e7aa!important}
+.dsx-dashboard-feed-preview{padding:0 10px 10px}
+.dsx-dashboard-feed-head{
+  display:flex;align-items:end;justify-content:space-between;gap:10px;
+  padding:5px 2px 8px;
+}
+.dsx-dashboard-feed-head h2{margin:2px 0 0!important;font-size:16px!important;color:#fff!important}
+.dsx-dashboard-feed-head a{font-size:10px!important;font-weight:800!important;color:#78afff!important;text-decoration:none!important}
+#dashboardSocialPreview .ds30-social-post{border-radius:13px!important}
+#dashboardSocialPreview .ds30-post-copy{
+  max-height:118px;
+  overflow:hidden;
+  margin-top:7px!important;
+  font-size:11.5px!important;
+  line-height:1.5!important;
+}
+#dashboardSocialPreview .ds30-post-actions button{min-height:34px!important;font-size:10.5px!important}
+#dashboardSocialPreview .ds30-post-authorbar{padding:11px 12px 7px!important}
+
+/* Avatar containment fix: signed profile photos can never grow into a post body. */
+body.ds-auth-os-page .ds30-author-avatar,
+.dsos-executive .ds30-author-avatar{
+  position:relative!important;
+  overflow:hidden!important;
+  flex:0 0 42px!important;
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  min-height:42px!important;
+  max-width:42px!important;
+  max-height:42px!important;
+  border-radius:50%!important;
+}
+body.ds-auth-os-page .ds30-author-avatar .ds30-author-photo,
+.dsos-executive .ds30-author-avatar .ds30-author-photo{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:cover!important;
+  border-radius:50%!important;
+}
+body.ds-auth-os-page .ds30-author-initials,
+.dsos-executive .ds30-author-initials{
+  width:100%!important;height:100%!important;
+  display:grid!important;place-items:center!important;
+}
+
+/* Right rail: approved compact activity/progress/action/announcement stack. */
+.dsx-side-percent{font:700 23px/1 Georgia,"Times New Roman",serif!important;color:#fff!important}
+.dsx-quick-grid-six{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.dsx-quick-grid-six a{min-height:66px!important;border-radius:11px!important;font-size:9.5px!important}
+.dsx-quick-grid-six .action-blue{background:linear-gradient(145deg,rgba(24,119,242,.22),rgba(24,119,242,.08))!important;border-color:rgba(24,119,242,.34)!important;color:#8fc0ff!important}
+.dsx-quick-grid-six .action-green{background:linear-gradient(145deg,rgba(53,208,127,.20),rgba(53,208,127,.07))!important;border-color:rgba(53,208,127,.30)!important;color:#7beab0!important}
+.dsx-quick-grid-six .action-violet{background:linear-gradient(145deg,rgba(155,140,255,.21),rgba(155,140,255,.07))!important;border-color:rgba(155,140,255,.30)!important;color:#bcb3ff!important}
+.dsx-upcoming .dashboard-appointment-preview,
+.dsx-upcoming .dashboard-empty-compact{padding:10px!important;border-radius:10px!important}
+.dsx-announcement{border-color:rgba(240,193,91,.34)!important}
+.dsx-announcement .dsos-pinned-update{font-size:11px!important}
+.dsx-announcement .dsos-pinned-update h3{font-size:14px!important;margin:5px 0!important}
+.dsx-announcement .dsos-pinned-update p{font-size:10.5px!important;line-height:1.45!important}
+
+/* Full Feed page compactness and post image safety. */
+body.ds-auth-os-page .dsx-feed-page-stream .ds30-social-post{
+  max-width:760px!important;
+}
+body.ds-auth-os-page .dsx-feed-page-stream .ds30-post-copy{
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+body.ds-auth-os-page .dsx-feed-page-stream .ds30-post-actions button{
+  min-height:36px!important;
+  font-size:10.5px!important;
+}
+
+@media(max-width:1040px){
+  .dsos-executive .dsos-topbar.dsx-approved-topbar{grid-template-columns:40px minmax(0,1fr) auto!important}
+  .dsx-mobile-menu{display:grid!important;place-items:center!important}
+  .dsx-global-search{min-width:0!important}
+  .dsos-executive .dsos-top-profile-info{display:none!important}
+  .dsos-executive .dsos-profile-chip{min-width:46px!important;width:46px!important;padding:5px!important}
+}
+@media(max-width:760px){
+  .dsos-executive .dsos-topbar.dsx-approved-topbar{grid-template-columns:38px minmax(0,1fr) auto!important;padding:8px 10px!important}
+  .dsx-global-search small,.dsx-global-search kbd{display:none!important}
+  .dsx-create-action{display:none!important}
+  .dsx-top-action{width:36px;height:36px}
+  .dsos-executive .dsos-top-actions{gap:5px!important}
+  .dsx-hero{grid-template-columns:1fr!important}
+  .dsx-dashboard-grid{grid-template-columns:1fr!important}
+  .dsx-right-rail{grid-template-columns:1fr!important}
+  .dsx-quick-grid-six{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+
+/* Approved right-rail meeting treatment */
+.dsx-founder-event{
+  display:grid!important;
+  gap:5px!important;
+  padding:10px!important;
+  border:1px solid rgba(24,119,242,.26)!important;
+  border-radius:11px!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(24,119,242,.10),transparent 32%),
+    rgba(7,25,49,.66)!important;
+}
+.dsx-founder-event h3{margin:2px 0!important;font-size:13px!important;line-height:1.3!important}
+.dsx-founder-event p,.dsx-founder-event small{margin:0!important;font-size:10.5px!important;color:#a9bdd3!important}
+.dsx-founder-event .dsx-join-link{
+  justify-content:center!important;
+  width:100%!important;
+  margin-top:5px!important;
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  box-shadow:0 7px 18px rgba(24,119,242,.15)!important;
+}
+.dsx-announcement-read{
+  display:inline-flex!important;
+  margin-top:7px!important;
+  color:#78afff!important;
+  font-size:10.5px!important;
+  font-weight:850!important;
+  text-decoration:none!important;
+}
+
+/* Desktop density guardrails matching the approved illustration. */
+@media(min-width:1181px){
+  .dsos-executive .dsos-page{max-width:1460px!important}
+  .dsos-executive .dsos-topbar{max-height:66px!important}
+  .dsx-hero{max-height:190px!important}
+  .dsx-stat{max-height:88px!important}
+  .dsx-dashboard-social{min-height:0!important}
+  .dsx-side-card{min-height:0!important}
+}
