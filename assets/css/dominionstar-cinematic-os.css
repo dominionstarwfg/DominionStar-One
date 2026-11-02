@@ -2893,3 +2893,116 @@ body.ds-auth-os-page .dm-member-panel{
 .dsx-stat-network{box-shadow:inset 0 0 24px rgba(45,156,219,.04)!important}
 .dsx-stat-notifications{box-shadow:inset 0 0 24px rgba(255,77,90,.035)!important}
 .dsx-stat-announcements{box-shadow:inset 0 0 24px rgba(240,193,91,.04)!important}
+
+
+/* ===== Spacing + color-balance audit correction — 2026-11-02 ===== */
+@media(min-width:1181px){
+  /* Fill the authenticated workspace instead of floating a narrow centered canvas. */
+  .dsos-executive .dsos-topbar.dsx-approved-topbar,
+  .dsos-executive .dsos-page{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  body.ds-auth-os-page #feedApp{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  /* More deliberate vertical rhythm. */
+  .dsx-overview{margin:7px 0 8px!important}
+  .dsx-dashboard-grid{gap:8px!important}
+  .dsx-right-rail{gap:7px!important}
+  .dsx-dashboard-tabs{min-height:34px!important}
+  .dsx-dashboard-feed-head{min-height:42px!important}
+  .dsx-feed-workspace{gap:8px!important}
+}
+
+/* Color hierarchy: deeper page, lifted cards, brighter interaction states. */
+.dsos-executive .dsos-main,
+body.ds-auth-os-page{
+  background:
+    radial-gradient(circle at 78% -4%,rgba(31,101,184,.16),transparent 24%),
+    linear-gradient(145deg,#030d1b 0%,#061225 44%,#081a31 100%)!important;
+}
+
+.dsx-dashboard-social,
+.dsx-side-card,
+body.ds-auth-os-page .dsx-feed-page-composer,
+body.ds-auth-os-page .ds30-social-post,
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  background:
+    linear-gradient(155deg,rgba(16,42,78,.96),rgba(8,27,53,.98))!important;
+  border-color:rgba(126,168,221,.23)!important;
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.20),
+    inset 0 1px rgba(255,255,255,.025)!important;
+}
+
+.dsx-dashboard-composer-main,
+body.ds-auth-os-page .dsmedia-draft,
+body.ds-auth-os-page .dm-member-facts{
+  background:rgba(5,22,44,.72)!important;
+  border-color:rgba(126,168,221,.18)!important;
+}
+
+.dsx-stat-journey{
+  background:linear-gradient(145deg,rgba(19,49,88,.98),rgba(8,30,59,.98))!important;
+  border-color:rgba(24,119,242,.42)!important;
+}
+.dsx-stat-network{
+  background:linear-gradient(145deg,rgba(17,52,83,.98),rgba(8,31,57,.98))!important;
+  border-color:rgba(45,156,219,.40)!important;
+}
+.dsx-stat-notifications{
+  background:linear-gradient(145deg,rgba(60,35,62,.88),rgba(18,28,55,.98))!important;
+  border-color:rgba(255,77,90,.42)!important;
+}
+.dsx-stat-announcements{
+  background:linear-gradient(145deg,rgba(54,47,38,.72),rgba(14,30,53,.98))!important;
+  border-color:rgba(240,193,91,.43)!important;
+}
+
+.dsx-stat-journey .dsx-stat-icon{box-shadow:0 0 18px rgba(24,119,242,.14)!important}
+.dsx-stat-network .dsx-stat-icon{box-shadow:0 0 18px rgba(45,156,219,.13)!important}
+.dsx-stat-notifications .dsx-stat-icon{box-shadow:0 0 18px rgba(255,77,90,.12)!important}
+.dsx-stat-announcements .dsx-stat-icon{box-shadow:0 0 18px rgba(240,193,91,.13)!important}
+
+.dsx-dashboard-tabs .active{
+  background:linear-gradient(135deg,#f5cf73,#d99f37)!important;
+  color:#241706!important;
+  box-shadow:0 0 20px rgba(240,193,91,.18)!important;
+}
+
+body.ds-auth-os-page .ds-review-actions .like,
+body.ds-auth-os-page .ds30-post-actions button[data-social="like"].is-liked{
+  background:rgba(24,119,242,.14)!important;
+  color:#78afff!important;
+}
+
+.dsx-founder-event .appointment-status.confirmed{
+  background:rgba(53,208,127,.14)!important;
+  border-color:rgba(53,208,127,.34)!important;
+  color:#7beab0!important;
+}
+
+.dsx-announcement{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(240,193,91,.09),transparent 30%),
+    linear-gradient(155deg,rgba(31,43,62,.96),rgba(9,27,51,.98))!important;
+  border-color:rgba(240,193,91,.38)!important;
+}
