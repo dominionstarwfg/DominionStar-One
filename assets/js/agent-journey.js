@@ -58,7 +58,7 @@
     list.replaceChildren();
     for(const item of items){
       const row=document.createElement('article');
-      row.className='agent-journey-item'+(item.completed?' completed':'');
+      row.className='agent-journey-item'+(item.completed?' completed':(next?.id===item.id?' current':' pending'));
       const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=Boolean(item.completed);checkbox.setAttribute('aria-label','Mark '+(item.title||item.milestone_key)+' complete');
       const copy=document.createElement('div');
       const title=document.createElement('strong');title.textContent=item.title||item.milestone_key;
