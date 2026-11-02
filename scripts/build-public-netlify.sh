@@ -55,7 +55,7 @@ body:before{
 button,input,select,textarea,form{pointer-events:none!important}
 a{cursor:pointer!important}
 .member-hidden[data-preview-show="true"]{display:block!important}
-img:not([src]),img[src=""]{display:none!important}
+img:not([src]),img[src=""],img[src="#"],img[data-preview-broken="true"],video:not([src]),source:not([src]){display:none!important}
 .ds-review-post{padding:13px 14px;border:1px solid rgba(126,168,221,.2);border-radius:13px;background:linear-gradient(155deg,rgba(20,42,75,.96),rgba(7,24,48,.98));box-shadow:0 12px 28px rgba(0,0,0,.16)}
 .ds-review-post+.ds-review-post{margin-top:9px}.ds-review-author{display:flex;align-items:center;gap:9px}.ds-review-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(240,193,91,.55);background:#173354;color:#f3cf7c;font-weight:900}
 .ds-review-author strong{display:block;font-size:12px}.ds-review-author small{display:block;color:#8fa7c0;font-size:9.5px;margin-top:2px}.ds-review-post p{margin:10px 0;color:#c3d0df;font-size:11.5px;line-height:1.55}.ds-review-engagement{display:flex;gap:16px;color:#8ea5bd;font-size:9.5px}.ds-review-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:9px;padding-top:8px;border-top:1px solid rgba(126,168,221,.13)}.ds-review-actions span{padding:6px;border-radius:8px;text-align:center;color:#aabbd0;font-size:9.5px}.ds-review-actions .like{color:#78afff;background:rgba(24,119,242,.09)}
@@ -95,7 +95,8 @@ CSS
   html('dashboardNextAppointment','<article class="ds-review-event"><span class="appointment-status confirmed">Upcoming</span><h3>Saving Your Future</h3><p>Wednesday · 8:00 PM CT</p><small>DominionStar weekly financial awareness session</small><a href="#">Join Meeting</a></article>');
   html('dashboardAnnouncementPreview','<article class="dsos-pinned-update"><div class="dsos-pinned-update-head"><span class="dsos-pinned-label">Founder update</span><small>Today</small></div><h3>Weekly leadership focus</h3><p>Build with consistency, serve with professionalism, and keep your team moving forward.</p><a class="dsos-inline-link dsx-announcement-read" href="#">Read Full Update →</a></article>');
   const post='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Member</strong><small>SMD · Founding Member · 24m</small></span></div><p>Strong week ahead. Keep your follow-up disciplined, support your new agents, and celebrate progress across the team.</p><div class="ds-review-engagement"><span>18 likes</span><span>6 comments</span></div><div class="ds-review-actions"><span class="like">Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>';
-  html('dashboardSocialPreview',post);
+  const dashboardSecond='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · 52m</small></span></div><p>Licensing milestone complete. Next focus is product training and consistent prospecting activity.</p><div class="ds-review-engagement"><span>9 likes</span><span>3 comments</span></div><div class="ds-review-actions"><span class="like">Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>';
+  html('dashboardSocialPreview',post+dashboardSecond);
 
   // Full Feed representative density.
   html('feedPageStream',post+'<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · 1h</small></span></div><p>Congratulations to everyone who completed a licensing milestone this week. Keep learning and keep building.</p><div class="ds-review-engagement"><span>11 likes</span><span>4 comments</span></div><div class="ds-review-actions"><span class="like">Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>');
@@ -115,7 +116,8 @@ CSS
   html('communityFeed','<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Member</strong><small>Discussion · 32m</small></span></div><p>What is one practice that has improved your follow-up consistency this month?</p><div class="ds-review-actions"><span class="like">Like</span><span>Celebrate</span><span>Support</span><span>Insightful</span></div></article><article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>Milestone · 2h</small></span></div><p>Completed another licensing milestone today. Appreciate the support from the team.</p><div class="ds-review-actions"><span class="like">Like</span><span>Celebrate</span><span>Support</span><span>Insightful</span></div></article>');
 
   // Remove browser broken-image placeholders from source-less images.
-  document.querySelectorAll('img:not([src]),img[src=""]').forEach(img=>img.remove());
+  document.querySelectorAll('img').forEach(img=>{if(!img.getAttribute('src'))img.remove();else img.addEventListener('error',()=>img.remove(),{once:true});});
+  document.querySelectorAll('video,iframe,object,embed').forEach(node=>{if(!node.getAttribute('src')&&!node.getAttribute('data'))node.remove();});
 })();
 JS
 
@@ -161,7 +163,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=2"><script src="/assets/js/dominionstar-visual-review-fixtures.js?v=1"></script></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=2"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=2"></script></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
