@@ -484,6 +484,7 @@
         const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
         if (dashboardPulseNotifications) dashboardPulseNotifications.textContent='—';
         notificationCount?.classList.add('member-hidden');
+        document.getElementById('topbarNotificationCount')?.classList.add('member-hidden');
         const panelStatus = document.getElementById('notificationPanelStatus');
         if (panelStatus) panelStatus.textContent = 'Notifications unavailable';
         notificationList.textContent = 'Notifications could not be loaded. Try again later.';
@@ -504,6 +505,11 @@
         messageBadge.textContent = unreadMessages > 99 ? '99+' : String(unreadMessages);
         messageBadge.classList.toggle('member-hidden', unreadMessages === 0);
       }
+      const topbarMessageBadge=document.getElementById('topbarUnreadMessages');
+      if(topbarMessageBadge){
+        topbarMessageBadge.textContent=unreadMessages>99?'99+':String(unreadMessages);
+        topbarMessageBadge.classList.toggle('member-hidden',unreadMessages===0);
+      }
       messageLink?.classList.toggle('ds30-has-unread', unreadMessages > 0);
       window.CommunicationEngine?.setBadge(unread);
       const notificationMetric=document.getElementById('activityNotifications');
@@ -511,11 +517,17 @@
       const dashboardPulseNotifications=document.getElementById('dashboardPulseNotifications');
       if (dashboardPulseNotifications) dashboardPulseNotifications.textContent=unread;
 
+      const topbarNotificationBadge=document.getElementById('topbarNotificationCount');
       if (unread) {
         notificationCount.textContent = unread;
         notificationCount.classList.remove('member-hidden');
+        if(topbarNotificationBadge){
+          topbarNotificationBadge.textContent=unread>99?'99+':String(unread);
+          topbarNotificationBadge.classList.remove('member-hidden');
+        }
       } else {
         notificationCount.classList.add('member-hidden');
+        topbarNotificationBadge?.classList.add('member-hidden');
       }
 
       const panelStatus = document.getElementById('notificationPanelStatus');
