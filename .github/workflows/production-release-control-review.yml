@@ -20,6 +20,7 @@ on:
       - 'assets/js/dashboard-social.js'
       - 'assets/js/dashboard-social-preview.js'
       - 'tests/approved-illustration-fidelity.test.mjs'
+      - 'tests/approved-secondary-workspace-fidelity.test.mjs'
       - 'assets/js/member-dashboard.js'
       - 'assets/js/feed.js'
       - 'direct-messages/**'
