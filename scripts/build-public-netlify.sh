@@ -152,12 +152,21 @@ for rel in workspace_pages:
         return tag if any(name in tag for name in keep_scripts) else ''
     html=re.sub(r'<script\b[^>]*>.*?</script>', strip_script, html, flags=re.I|re.S)
 
-    # Force the authenticated page shell styling for visual review.
-    html=re.sub(
-        r'<body([^>]*)class="([^"]*)"',
-        lambda m: '<body'+m.group(1)+'class="'+m.group(2)+' ds-auth-os-page ds-auth-os-shell-active ds-visual-review"',
-        html, count=1, flags=re.I
-    )
+    # Force authenticated styling for shared-shell pages. The Executive Dashboard
+    # already owns its own dsos-shell/sidebar; adding ds-auth-os-shell-active there
+    # would double-apply the left rail offset and distort visual review geometry.
+    if rel == 'member-dashboard/index.html':
+        html=re.sub(
+            r'<body([^>]*)class="([^"]*)"',
+            lambda m: '<body'+m.group(1)+'class="'+m.group(2)+' ds-visual-review"',
+            html, count=1, flags=re.I
+        )
+    else:
+        html=re.sub(
+            r'<body([^>]*)class="([^"]*)"',
+            lambda m: '<body'+m.group(1)+'class="'+m.group(2)+' ds-auth-os-page ds-auth-os-shell-active ds-visual-review"',
+            html, count=1, flags=re.I
+        )
 
     # Reveal real application markup without running authentication.
     html=re.sub(
