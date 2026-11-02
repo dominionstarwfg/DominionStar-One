@@ -90,7 +90,7 @@ jobs:
           node-version: '22'
       - name: Verify locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Confirm unconfigured Netlify previews are inert and backend-free
+      - name: Confirm unconfigured Netlify previews are static visual reviews and backend-free
         shell: bash
         run: |
           preview="$(mktemp -d)"
@@ -99,15 +99,29 @@ jobs:
           (
             cd "$preview/repo"
             NETLIFY=true CONTEXT=deploy-preview bash scripts/build-public-netlify.sh >/tmp/ds-preview-isolated.log 2>&1
-            grep -Fq "DOMINIONSTAR_DEPLOY_PREVIEW_ISOLATED_PLACEHOLDER_OK" /tmp/ds-preview-isolated.log
-            grep -Fq "intentionally isolated from production services" public-dist/index.html
+            grep -Fq "DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK" /tmp/ds-preview-isolated.log
+            grep -Fq "Visual review hub" public-dist/index.html
+            grep -Fq 'href="/member-dashboard/"' public-dist/index.html
+            grep -Fq 'href="/feed/"' public-dist/index.html
+            grep -Fq 'href="/direct-messages/"' public-dist/index.html
+            grep -Fq 'href="/notifications/"' public-dist/index.html
+            grep -Fq 'href="/community/"' public-dist/index.html
+            grep -Fq 'href="/professional-profile/"' public-dist/index.html
+            grep -Fq 'href="/account-settings/"' public-dist/index.html
+            test -s public-dist/member-dashboard/index.html
+            test -s public-dist/feed/index.html
+            test -s public-dist/direct-messages/index.html
+            test -s public-dist/notifications/index.html
+            test -s public-dist/community/index.html
+            grep -Fq 'dominionstar-visual-review.css' public-dist/member-dashboard/index.html
+            grep -Fq 'connect-src '''none'''' public-dist/_headers
             grep -Fq "Disallow: /" public-dist/robots.txt
             if find netlify/functions -type f -print -quit | grep -q .; then
-              echo "Preview function source survived inert preview build" >&2
+              echo "Preview function source survived static visual review build" >&2
               exit 1
             fi
           )
-          echo "UNCONFIGURED_PREVIEW_ISOLATED_OK"
+          echo "UNCONFIGURED_PREVIEW_STATIC_VISUAL_ISOLATED_OK"
       - name: Confirm current review branch cannot inherit live backend
         shell: bash
         run: |
