@@ -1716,3 +1716,171 @@ body.ds-auth-os-page .moderate-lock{
   color:#f6d86b!important;
   border-color:rgba(242,201,76,.26)!important;
 }
+
+
+/* ===== People and progress semantic colors ===== */
+body.ds-auth-os-page .dsx-action-primary{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border:1px solid rgba(96,164,255,.44)!important;
+  box-shadow:0 8px 20px rgba(24,119,242,.15)!important;
+}
+body.ds-auth-os-page .dsx-action-primary:hover{
+  background:linear-gradient(135deg,#3b91fa,#1877f2)!important;
+  border-color:rgba(120,180,255,.58)!important;
+}
+
+/* Team Members */
+body.ds-auth-os-page .member-directory-avatar>span.online{
+  background:var(--dsx-success)!important;
+  border:2px solid #0b1d34!important;
+  box-shadow:0 0 0 3px rgba(53,208,127,.12),0 0 14px rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .member-directory-avatar>span.offline{
+  background:#667b92!important;
+  border:2px solid #0b1d34!important;
+}
+body.ds-auth-os-page .member-directory-card p{
+  color:#d7e4f2!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .member-directory-card p::first-line{color:#d7e4f2!important}
+body.ds-auth-os-page .member-directory-actions .btn:first-child{
+  color:#8fc0ff!important;
+  border-color:rgba(24,119,242,.30)!important;
+  background:rgba(24,119,242,.08)!important;
+}
+body.ds-auth-os-page .member-directory-actions .connect-member{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(96,164,255,.44)!important;
+}
+body.ds-auth-os-page .member-directory-actions .connect-member:disabled{
+  background:rgba(53,208,127,.12)!important;
+  color:#76e8ab!important;
+  border-color:rgba(53,208,127,.28)!important;
+}
+body.ds-auth-os-page .member-directory-card:has(.online){
+  border-color:rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .member-directory-card:has(.online)::after{
+  border-color:rgba(53,208,127,.13)!important;
+}
+
+/* Journey */
+body.ds-auth-os-page .agent-journey-track span{
+  background:linear-gradient(90deg,#1877f2 0%,#2d9cdb 52%,#35d07f 100%)!important;
+}
+body.ds-auth-os-page .agent-journey-item.pending{
+  border-color:rgba(126,168,221,.17)!important;
+  background:rgba(7,25,49,.58)!important;
+}
+body.ds-auth-os-page .agent-journey-item.current{
+  border-color:rgba(242,201,76,.34)!important;
+  background:
+    radial-gradient(circle at 100% 50%,rgba(242,201,76,.07),transparent 30%),
+    rgba(7,25,49,.72)!important;
+  box-shadow:inset 3px 0 var(--dsx-warning),0 0 20px rgba(242,201,76,.06)!important;
+}
+body.ds-auth-os-page .agent-journey-item.current strong{color:#fff!important}
+body.ds-auth-os-page .agent-journey-item.current a{color:#f5d867!important}
+body.ds-auth-os-page .agent-journey-item.completed{
+  background:rgba(53,208,127,.075)!important;
+  border-color:rgba(53,208,127,.26)!important;
+  box-shadow:inset 3px 0 var(--dsx-success)!important;
+}
+body.ds-auth-os-page .agent-journey-item.completed strong{color:#9aefbd!important}
+body.ds-auth-os-page .agent-journey-item.completed a{color:#76e8ab!important}
+body.ds-auth-os-page .agent-journey-item input[type="checkbox"]{
+  accent-color:var(--dsx-success)!important;
+}
+body.ds-auth-os-page .agent-journey-resources a:hover{
+  border-color:rgba(24,119,242,.35)!important;
+  background:rgba(24,119,242,.06)!important;
+}
+body.ds-auth-os-page .agent-journey-resources a:hover strong{color:#8fc0ff!important}
+
+/* Learning */
+body.ds-auth-os-page #training .agent-learning-icon{
+  color:#78afff!important;background:rgba(24,119,242,.11)!important;border-color:rgba(24,119,242,.27)!important;
+}
+body.ds-auth-os-page #mentorship .agent-learning-icon{
+  color:#68cafa!important;background:rgba(45,156,219,.10)!important;border-color:rgba(45,156,219,.27)!important;
+}
+body.ds-auth-os-page #leadership .agent-learning-icon{
+  color:#f5ce71!important;background:rgba(240,193,91,.10)!important;border-color:rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page #financial-development .agent-learning-icon{
+  color:#75e7aa!important;background:rgba(53,208,127,.10)!important;border-color:rgba(53,208,127,.25)!important;
+}
+body.ds-auth-os-page .agent-learning-actions>a:not(.btn){
+  color:#86baff!important;
+}
+body.ds-auth-os-page .agent-learning-actions>a:not(.btn):hover{
+  color:#b8d5ff!important;
+}
+
+/* Appointment Center */
+body.ds-auth-os-page .appointment-status{
+  display:inline-flex!important;
+  align-items:center;
+  min-height:24px;
+  padding:4px 9px!important;
+  border-radius:999px!important;
+  font-weight:850!important;
+  font-size:10px!important;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  border:1px solid transparent!important;
+}
+body.ds-auth-os-page .appointment-status.pending{
+  background:rgba(242,201,76,.11)!important;color:#f6d86b!important;border-color:rgba(242,201,76,.25)!important;
+}
+body.ds-auth-os-page .appointment-status.confirmed,
+body.ds-auth-os-page .appointment-status.completed{
+  background:rgba(53,208,127,.11)!important;color:#75e7aa!important;border-color:rgba(53,208,127,.25)!important;
+}
+body.ds-auth-os-page .appointment-status.rescheduled{
+  background:rgba(24,119,242,.11)!important;color:#78afff!important;border-color:rgba(24,119,242,.26)!important;
+}
+body.ds-auth-os-page .appointment-status.cancelled{
+  background:rgba(255,77,90,.11)!important;color:#ff8992!important;border-color:rgba(255,77,90,.25)!important;
+}
+body.ds-auth-os-page .cancel-appointment{
+  color:#ff8992!important;
+  border-color:rgba(255,77,90,.28)!important;
+  background:rgba(255,77,90,.06)!important;
+}
+body.ds-auth-os-page .cancel-appointment:hover{
+  background:rgba(255,77,90,.12)!important;
+  border-color:rgba(255,77,90,.42)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.confirmed),
+body.ds-auth-os-page .appointment-card:has(.appointment-status.completed){
+  border-color:rgba(53,208,127,.22)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.pending){
+  border-color:rgba(242,201,76,.20)!important;
+}
+body.ds-auth-os-page .appointment-card:has(.appointment-status.cancelled){
+  opacity:.78;
+}
+
+/* Recognition: this is where achievement gold belongs. */
+body.ds-auth-os-page .recognition-mark{
+  color:#f5ce71!important;
+  background:rgba(240,193,91,.12)!important;
+  border-color:rgba(240,193,91,.32)!important;
+  box-shadow:0 0 24px rgba(240,193,91,.09)!important;
+}
+body.ds-auth-os-page .recognition-post{
+  border-left-color:var(--dsx-gold)!important;
+}
+body.ds-auth-os-page .recognition-post .eyebrow,
+body.ds-auth-os-page .recognition-post a{
+  color:#f5ce71!important;
+}
+body.ds-auth-os-page .recognition-post:hover{
+  border-color:rgba(240,193,91,.38)!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.22),0 0 24px rgba(240,193,91,.06)!important;
+}
