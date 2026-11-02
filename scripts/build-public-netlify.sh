@@ -6,35 +6,130 @@ DIST="$ROOT/public-dist"
 MEET_SOURCE="$ROOT/meet-desktop/ui"
 MEET_DIST="$DIST/meet"
 
-# Netlify Deploy Previews are useful as a GitHub status signal, but an
-# unconfigured PR preview must never inherit DominionStar's production
-# Supabase backend or serverless functions. When isolated staging credentials
-# are not explicitly present, publish a deliberately inert review placeholder
-# instead of failing the Netlify status check. The full application package is
-# still built and validated by the protected GitHub review workflow.
+# Netlify Deploy Previews are useful for visual QA, but an unconfigured
+# PR preview must never inherit DominionStar's production backend.
+# Publish a static, backend-free visual review package: real HTML/CSS and
+# approved layout proportions, with production-backed scripts/actions disabled.
 if [[ "${CONTEXT:-}" == "deploy-preview" &&
       "${DOMINIONSTAR_STAGING_ISOLATION_APPROVED:-}" != "STAGING_ONLY" ]]; then
   rm -rf "$DIST"
   mkdir -p "$DIST"
 
-  cat > "$DIST/index.html" <<'HTML'
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>DominionStar Review Build</title>
-</head>
-<body>
-  <main>
-    <h1>DominionStar review build validated</h1>
-    <p>This pull-request preview is intentionally isolated from production services.</p>
-    <p>The full static package is validated by the protected GitHub review workflow before release.</p>
-  </main>
-</body>
-</html>
-HTML
+  rsync -a "$ROOT/" "$DIST/" \
+    --exclude '.git/' \
+    --exclude '.github/' \
+    --exclude '.env' \
+    --exclude '.env.*' \
+    --exclude 'tests/' \
+    --exclude 'netlify.toml' \
+    --exclude 'public-dist/' \
+    --exclude 'rebuild-dist/' \
+    --exclude 'meet-desktop/' \
+    --exclude 'desktop/' \
+    --exclude 'desktop 2/' \
+    --exclude 'scripts/' \
+    --exclude 'supabase/' \
+    --exclude 'netlify/' \
+    --exclude 'node_modules/' \
+    --exclude '*.md' \
+    --exclude '*.zip'
+
+  mkdir -p "$DIST/assets/css"
+  cat > "$DIST/assets/css/dominionstar-visual-review.css" <<'CSS'
+html{background:#061225!important}
+body:before{
+  content:"VISUAL REVIEW ONLY · backend disabled";
+  position:fixed;left:50%;top:7px;z-index:2147483647;
+  transform:translateX(-50%);
+  padding:5px 10px;border-radius:999px;
+  background:#0b2343;color:#f5d47e;
+  border:1px solid rgba(240,193,91,.45);
+  box-shadow:0 7px 20px rgba(0,0,0,.28);
+  font:800 10px/1.2 system-ui,sans-serif;letter-spacing:.08em;
+  pointer-events:none
+}
+#feedGate,#communityGate,#dmGate,#notificationGate,#directoryGate,
+#agentJourneyGate,#agentLearningGate,#appointmentGate,#profileGate,#settingsGate{display:none!important}
+#feedApp,#communityApp,#dmApp,#notificationApp,#directoryApp,
+#agentJourneyApp,#agentLearningApp,#appointmentApp,#profileApp,#settingsApp{display:block!important}
+button,input,select,textarea,form{pointer-events:none!important}
+a{cursor:pointer!important}
+.member-hidden[data-preview-show="true"]{display:block!important}
+CSS
+
+  python3 - "$DIST" <<'PY'
+from pathlib import Path
+import re, sys
+
+dist=Path(sys.argv[1])
+workspace_pages=[
+  'member-dashboard/index.html','feed/index.html','direct-messages/index.html',
+  'notifications/index.html','community/index.html','member-directory/index.html',
+  'agent-journey/index.html','agent-learning/index.html','appointments/index.html',
+  'professional-profile/index.html','account-settings/index.html'
+]
+keep_scripts=('dominionstar-agent-nav-shell.js',)
+
+for rel in workspace_pages:
+    p=dist/rel
+    if not p.exists():
+        continue
+    html=p.read_text(encoding='utf-8')
+
+    # Keep only the local navigation shell. Remove auth, Supabase, realtime,
+    # functions, and every other production-backed script from visual previews.
+    def strip_script(match):
+        tag=match.group(0)
+        return tag if any(name in tag for name in keep_scripts) else ''
+    html=re.sub(r'<script\b[^>]*>.*?</script>', strip_script, html, flags=re.I|re.S)
+
+    # Force the authenticated page shell styling for visual review.
+    html=re.sub(
+        r'<body([^>]*)class="([^"]*)"',
+        lambda m: '<body'+m.group(1)+'class="'+m.group(2)+' ds-auth-os-page ds-auth-os-shell-active"',
+        html, count=1, flags=re.I
+    )
+
+    # Reveal real application markup without running authentication.
+    html=re.sub(
+        r'(id="(?:feedApp|communityApp|dmApp|notificationApp|directoryApp|agentJourneyApp|agentLearningApp|appointmentApp|profileApp|settingsApp)"[^>]*class=")([^"]*)"',
+        lambda m:m.group(1)+re.sub(r'\bmember-hidden\b','',m.group(2)).strip()+'"',
+        html
+    )
+
+    # Inject the preview-only safety/visibility stylesheet.
+    if 'dominionstar-visual-review.css' not in html:
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=1"></head>',1)
+
+    p.write_text(html,encoding='utf-8')
+
+hub='''<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><title>DominionStar Visual Review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 75% 0,#123a68 0,transparent 28%),linear-gradient(145deg,#041020,#061225 42%,#0a1c36);color:#f5f8fc;font-family:Inter,system-ui,sans-serif}
+main{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:48px 0 64px}.eyebrow{color:#f0c15b;text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:900}
+h1{font:700 clamp(34px,5vw,58px)/1.02 Georgia,serif;margin:10px 0 12px}p{color:#b7c6d9;line-height:1.6}.notice{padding:14px 16px;border:1px solid rgba(53,208,127,.3);background:rgba(53,208,127,.07);border-radius:14px;margin:22px 0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px}.card{display:block;padding:18px;border:1px solid rgba(126,168,221,.2);border-radius:16px;background:linear-gradient(155deg,rgba(20,42,75,.94),rgba(9,25,49,.94));color:#f5f8fc;text-decoration:none;box-shadow:0 16px 36px rgba(0,0,0,.2)}
+.card:hover{border-color:rgba(24,119,242,.55);transform:translateY(-1px)}.card strong{display:block;margin-bottom:5px}.card span{font-size:12px;color:#9eb2c9}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.grid{grid-template-columns:1fr}}
+</style></head><body><main><p class="eyebrow">DominionStar Executive OS</p><h1>Visual review hub</h1>
+<p>Review the real static Agent OS layouts below. Production authentication, Supabase, realtime, calls, uploads, and serverless actions are disabled in this preview.</p>
+<div class="notice"><strong>Design review only.</strong> Use this build to inspect proportions, spacing, colors, cards, typography, sidebar density, and page composition.</div>
+<div class="grid">
+<a class="card" href="/member-dashboard/"><strong>Dashboard</strong><span>Approved illustration composition</span></a>
+<a class="card" href="/feed/"><strong>Feed</strong><span>Social stream and composer</span></a>
+<a class="card" href="/direct-messages/"><strong>Messages</strong><span>Three-column inbox</span></a>
+<a class="card" href="/notifications/"><strong>Notifications</strong><span>Executive inbox</span></a>
+<a class="card" href="/community/"><strong>Community</strong><span>Composer, feed and standards</span></a>
+<a class="card" href="/member-directory/"><strong>Team Members</strong><span>Compact member directory</span></a>
+<a class="card" href="/agent-journey/"><strong>My Journey</strong><span>Progress and milestones</span></a>
+<a class="card" href="/agent-learning/"><strong>Learning</strong><span>Training and development</span></a>
+<a class="card" href="/appointments/"><strong>Calendar</strong><span>Appointments and status</span></a>
+<a class="card" href="/professional-profile/"><strong>My Profile</strong><span>Identity and professional record</span></a>
+<a class="card" href="/account-settings/"><strong>Agent Settings</strong><span>Compact settings workspace</span></a>
+</div></main></body></html>'''
+(dist/'index.html').write_text(hub,encoding='utf-8')
+PY
 
   cat > "$DIST/_headers" <<'HEADERS'
 /*
@@ -42,6 +137,7 @@ HTML
   Cache-Control: no-store
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
+  Content-Security-Policy: default-src 'self' data: blob:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'
 HEADERS
 
   cat > "$DIST/robots.txt" <<'ROBOTS'
@@ -49,14 +145,13 @@ User-agent: *
 Disallow: /
 ROBOTS
 
-  # Netlify packages functions after the build command. On the ephemeral
-  # preview worker, remove function source files so no production-backed
-  # serverless endpoint can be emitted by an unconfigured PR preview.
+  # Netlify packages functions after the build command. Remove them so this
+  # review package cannot expose production-backed serverless endpoints.
   if [[ "${NETLIFY:-}" == "true" && -d "$ROOT/netlify/functions" ]]; then
     find "$ROOT/netlify/functions" -type f -delete
   fi
 
-  echo "DOMINIONSTAR_DEPLOY_PREVIEW_ISOLATED_PLACEHOLDER_OK"
+  echo "DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK"
   exit 0
 fi
 
