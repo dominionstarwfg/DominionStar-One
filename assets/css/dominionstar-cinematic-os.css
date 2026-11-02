@@ -3006,3 +3006,173 @@ body.ds-auth-os-page .ds30-post-actions button[data-social="like"].is-liked{
     linear-gradient(155deg,rgba(31,43,62,.96),rgba(9,27,51,.98))!important;
   border-color:rgba(240,193,91,.38)!important;
 }
+
+
+/* ===== Final approved-illustration composition polish ===== */
+@media(min-width:1181px){
+  /* Sidebar handoff: clean, deliberate, no dead band. */
+  .dsos-executive .dsos-shell{grid-template-columns:220px minmax(0,1fr)!important}
+  .dsos-executive .dsos-sidebar{
+    width:220px!important;
+    box-shadow:
+      8px 0 28px rgba(1,9,20,.18),
+      inset -1px 0 rgba(126,168,221,.08)!important;
+  }
+
+  /* Hero reads as one cinematic stage rather than a box with another box on it. */
+  .dsx-hero{
+    background:
+      radial-gradient(circle at 74% 49%,rgba(39,131,226,.34),transparent 18%),
+      radial-gradient(circle at 88% 13%,rgba(240,193,91,.18),transparent 10%),
+      linear-gradient(112deg,#07162b 0%,#0a2850 50%,#0e3e70 100%)!important;
+    border-color:rgba(105,160,223,.28)!important;
+  }
+  .dsx-hero-copy{position:relative;z-index:2}
+  .dsx-hero-profile{
+    position:relative!important;
+    z-index:3!important;
+    align-self:center!important;
+    min-height:94px!important;
+    padding:12px 14px!important;
+    background:
+      linear-gradient(145deg,rgba(21,52,90,.78),rgba(8,28,54,.88))!important;
+    border:1px solid rgba(240,193,91,.46)!important;
+    box-shadow:
+      0 16px 34px rgba(0,0,0,.20),
+      inset 0 1px rgba(255,255,255,.04),
+      0 0 26px rgba(240,193,91,.055)!important;
+  }
+  .dsx-hero-profile strong{font-size:14px!important;letter-spacing:-.01em!important}
+  .dsx-hero-profile small{font-size:10px!important}
+  .dsx-hero-profile .dsos-founding-hero{
+    display:inline-flex!important;
+    width:max-content!important;
+    margin-top:5px!important;
+    padding:4px 8px!important;
+    border-radius:999px!important;
+    background:linear-gradient(135deg,#f5cf73,#d99f37)!important;
+    color:#281a05!important;
+    font-weight:900!important;
+    letter-spacing:.015em!important;
+  }
+
+  /* KPI row: distinct semantic cards with consistent premium depth. */
+  .dsx-overview>a{
+    position:relative!important;
+    overflow:hidden!important;
+  }
+  .dsx-overview>a:before{
+    content:""!important;
+    position:absolute!important;
+    inset:0 auto 0 0!important;
+    width:3px!important;
+    border-radius:999px!important;
+    opacity:.9!important;
+  }
+  .dsx-stat-journey:before{background:#1877f2!important}
+  .dsx-stat-network:before{background:#2d9cdb!important}
+  .dsx-stat-notifications:before{background:#ff4d5a!important}
+  .dsx-stat-announcements:before{background:#f0c15b!important}
+  .dsx-stat{
+    box-shadow:
+      0 12px 24px rgba(0,0,0,.16),
+      inset 0 1px rgba(255,255,255,.025)!important;
+  }
+  .dsx-stat strong{font-family:Georgia,"Times New Roman",serif!important}
+
+  /* Social center: reduce nested-box feeling. */
+  .dsx-dashboard-social{
+    background:
+      linear-gradient(165deg,rgba(13,38,72,.96),rgba(6,24,48,.985))!important;
+    border-color:rgba(126,168,221,.21)!important;
+  }
+  .dsx-dashboard-tabs{
+    background:linear-gradient(180deg,rgba(4,17,35,.54),rgba(4,17,35,.22))!important;
+    border-bottom-color:rgba(126,168,221,.12)!important;
+  }
+  .dsx-dashboard-composer{
+    padding:8px 8px 6px!important;
+    background:transparent!important;
+  }
+  .dsx-dashboard-composer-main{
+    background:rgba(4,20,40,.48)!important;
+    border-color:rgba(126,168,221,.15)!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.02)!important;
+  }
+  .dsx-dashboard-composer textarea{
+    background:rgba(5,23,45,.72)!important;
+    border-color:rgba(126,168,221,.22)!important;
+  }
+  .dsx-dashboard-feed-preview{
+    border-top:1px solid rgba(126,168,221,.10)!important;
+    padding-top:6px!important;
+  }
+  #dashboardSocialPreview{
+    display:grid!important;
+    gap:7px!important;
+  }
+  #dashboardSocialPreview .ds-review-post{
+    background:
+      linear-gradient(155deg,rgba(20,48,84,.76),rgba(7,27,52,.86))!important;
+    border-color:rgba(126,168,221,.15)!important;
+    box-shadow:none!important;
+  }
+  #dashboardSocialPreview .ds-review-post+.ds-review-post{
+    margin-top:0!important;
+  }
+
+  /* Right rail: hierarchy, not four identical boxes. */
+  .dsx-right-rail{
+    display:grid!important;
+    align-content:start!important;
+  }
+  .dsx-upcoming{
+    border-color:rgba(53,208,127,.22)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(53,208,127,.07),transparent 28%),
+      linear-gradient(155deg,rgba(16,43,72,.97),rgba(7,26,49,.98))!important;
+  }
+  .dsx-journey-card{
+    border-color:rgba(242,201,76,.20)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(242,201,76,.06),transparent 30%),
+      linear-gradient(155deg,rgba(18,42,70,.97),rgba(7,25,48,.98))!important;
+  }
+  .dsx-quick-actions-card{
+    border-color:rgba(126,168,221,.20)!important;
+    background:
+      linear-gradient(155deg,rgba(15,39,73,.97),rgba(7,24,47,.98))!important;
+  }
+  .dsx-announcement{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.17),
+      inset 0 1px rgba(255,255,255,.025),
+      0 0 22px rgba(240,193,91,.035)!important;
+  }
+  .dsx-side-head strong:first-child{
+    letter-spacing:-.01em!important;
+  }
+  .dsx-progress-track{
+    height:7px!important;
+    background:rgba(126,168,221,.14)!important;
+  }
+  .dsx-progress-track span{
+    background:linear-gradient(90deg,#1877f2 0%,#f2c94c 72%,#35d07f 100%)!important;
+    box-shadow:0 0 14px rgba(242,201,76,.16)!important;
+  }
+
+  /* Header identity should complement hero, not compete with it. */
+  .dsos-executive .dsos-profile-chip{
+    background:linear-gradient(145deg,rgba(19,43,75,.86),rgba(8,25,48,.94))!important;
+    border-color:rgba(126,168,221,.22)!important;
+    box-shadow:0 8px 18px rgba(0,0,0,.12)!important;
+  }
+  .dsos-executive .dsos-founding-inline{
+    display:inline-flex!important;
+    width:max-content!important;
+    padding:2px 6px!important;
+    border-radius:999px!important;
+    background:rgba(240,193,91,.14)!important;
+    color:#f2c75f!important;
+  }
+}
