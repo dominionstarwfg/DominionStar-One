@@ -2724,3 +2724,172 @@ body.ds-auth-os-page .dsx-dashboard-feed-preview{min-height:180px!important}
 body.ds-auth-os-page .dsx-feed-workspace{align-items:start!important}
 body.ds-auth-os-page .dsx-feed-page-stream{min-height:220px!important}
 body.ds-auth-os-page .dm-thread{min-height:320px!important}
+
+
+/* ===== Illustration geometry lock — second visual-review correction ===== */
+@media(min-width:1181px){
+  .dsos-executive .dsos-main{
+    background:
+      radial-gradient(circle at 74% -6%,rgba(28,92,169,.16),transparent 24%),
+      radial-gradient(circle at 43% 33%,rgba(18,68,130,.08),transparent 30%),
+      linear-gradient(145deg,#04101f 0%,#061225 42%,#081a31 100%)!important;
+  }
+  .dsos-executive .dsos-topbar.dsx-approved-topbar{
+    width:min(1320px,calc(100% - 34px))!important;
+    margin:0 auto!important;
+    min-height:58px!important;
+    max-height:58px!important;
+    padding:7px 12px!important;
+    border:1px solid rgba(126,168,221,.14)!important;
+    border-top:0!important;
+    border-radius:0 0 14px 14px!important;
+    background:linear-gradient(180deg,rgba(5,18,36,.96),rgba(5,17,33,.88))!important;
+    box-shadow:0 14px 30px rgba(0,0,0,.16)!important;
+  }
+  .dsos-executive .dsos-page{
+    width:min(1320px,calc(100% - 34px))!important;
+    max-width:1320px!important;
+    margin:0 auto!important;
+    padding:12px 0 34px!important;
+  }
+  .dsx-global-search{width:min(560px,100%)!important;min-height:36px!important}
+  .dsx-top-action{width:36px!important;height:36px!important;border-radius:10px!important}
+  .dsx-create-action{font-size:21px!important}
+  .dsos-executive .dsos-profile-chip{min-width:176px!important;min-height:38px!important}
+  .dsos-executive .dsos-top-avatar{width:31px!important;height:31px!important;flex-basis:31px!important}
+
+  .dsx-hero{
+    grid-template-columns:minmax(0,1fr) 278px!important;
+    min-height:162px!important;
+    max-height:162px!important;
+    padding:18px 20px!important;
+    border-radius:17px!important;
+    box-shadow:
+      0 18px 42px rgba(0,0,0,.20),
+      inset 0 1px rgba(255,255,255,.035),
+      0 0 0 1px rgba(126,168,221,.06)!important;
+  }
+  .dsx-hero:before{
+    width:470px!important;height:470px!important;
+    right:42px!important;bottom:-392px!important;
+  }
+  .dsx-hero:after{right:24px!important;top:24px!important;width:210px!important}
+  .dsx-greeting{font-size:clamp(29px,2.65vw,39px)!important;line-height:1.02!important}
+  .dsx-welcome{max-width:660px!important;font-size:12px!important;line-height:1.45!important}
+  .dsx-hero-profile{grid-template-columns:50px 1fr!important;padding:11px 12px!important;border-radius:13px!important}
+  .dsx-hero-profile .dsos-feed-avatar{width:50px!important;height:50px!important}
+
+  .dsx-overview{gap:8px!important;margin:8px 0 9px!important}
+  .dsx-stat{
+    min-height:74px!important;
+    max-height:74px!important;
+    padding:9px 10px!important;
+    border-radius:12px!important;
+  }
+  .dsx-stat>.dsx-stat-icon{width:38px!important;height:38px!important;border-radius:10px!important}
+  .dsx-stat>.dsx-stat-icon .ds30-icon{width:20px!important;height:20px!important}
+  .dsx-stat>strong{font-size:21px!important}
+  .dsx-stat>span:not(.dsx-stat-icon){font-size:10px!important}
+  .dsx-stat>small{font-size:9.5px!important}
+
+  .dsx-dashboard-grid{
+    grid-template-columns:minmax(0,1fr) 304px!important;
+    gap:9px!important;
+    align-items:start!important;
+  }
+  .dsx-dashboard-social{
+    border-radius:14px!important;
+    box-shadow:0 18px 38px rgba(0,0,0,.18)!important;
+  }
+  .dsx-dashboard-tabs{padding:6px 8px!important}
+  .dsx-dashboard-tabs a,.dsx-dashboard-tabs span{padding:6px 10px!important;font-size:9.8px!important}
+  .dsx-dashboard-composer{padding:8px!important}
+  .dsx-dashboard-composer-main{padding:8px!important;grid-template-columns:38px minmax(0,1fr)!important}
+  .dsx-dashboard-composer .dsos-feed-avatar{width:38px!important;height:38px!important}
+  .dsx-dashboard-composer textarea{min-height:38px!important;padding:8px 11px!important;font-size:11px!important}
+  .dsx-dashboard-composer-tools{margin-top:6px!important}
+  .dsx-dashboard-composer-tools a{padding:4px 7px!important;font-size:9px!important}
+  .dsx-dashboard-composer-tools button{min-height:30px!important;min-width:78px!important;font-size:10px!important}
+  .dsx-dashboard-feed-preview{padding:0 8px 8px!important;min-height:0!important}
+  .dsx-dashboard-feed-head{padding:4px 2px 6px!important}
+  .dsx-dashboard-feed-head h2{font-size:14px!important}
+  #dashboardSocialPreview .ds-review-post{padding:10px 11px!important}
+  #dashboardSocialPreview .ds-review-post p{margin:7px 0!important;font-size:10.5px!important}
+  #dashboardSocialPreview .ds-review-actions{margin-top:6px!important;padding-top:6px!important}
+
+  .dsx-right-rail{gap:8px!important}
+  .dsx-side-card{padding:11px!important;border-radius:13px!important;box-shadow:0 12px 28px rgba(0,0,0,.14)!important}
+  .dsx-side-head{margin-bottom:6px!important}
+  .dsx-side-head strong{font-size:12px!important}
+  .dsx-upcoming,.dsx-journey-card,.dsx-quick-actions-card,.dsx-announcement{min-height:0!important}
+  .dsx-quick-grid-six{gap:5px!important}
+  .dsx-quick-grid-six a{min-height:52px!important;font-size:8.8px!important;border-radius:9px!important}
+  .dsx-quick-grid-six a span{font-size:8.8px!important}
+  .dsx-announcement .dsos-pinned-update h3{font-size:12.5px!important}
+  .dsx-announcement .dsos-pinned-update p{font-size:9.6px!important}
+
+  body.ds-auth-os-page #feedApp{
+    width:min(1280px,calc(100% - 28px))!important;
+    max-width:1280px!important;
+    margin:0 auto!important;
+    padding:12px 0 32px!important;
+  }
+  body.ds-auth-os-page .dsx-feed-page-header{
+    padding:14px 16px!important;
+    border-radius:16px!important;
+    min-height:112px!important;
+  }
+  body.ds-auth-os-page .dsx-feed-page-header h1{font-size:clamp(25px,2.4vw,34px)!important;line-height:1.02!important}
+  body.ds-auth-os-page .dsx-feed-page-header p{font-size:11.5px!important}
+  .dsx-feed-workspace{
+    grid-template-columns:minmax(0,1fr) 278px!important;
+    gap:9px!important;
+    margin-top:9px!important;
+  }
+  .dsx-feed-page-composer{padding:12px!important;border-radius:13px!important}
+  .dsx-feed-page-composer textarea{min-height:64px!important}
+  .dsx-feed-page-stream{min-height:0!important}
+  .dsx-feed-page-stream .ds-review-post{max-width:none!important}
+  .dsx-feed-aside{gap:8px!important}
+  .dsx-feed-aside .dsx-side-card{padding:11px!important}
+  .dsx-feed-aside .dsx-side-card p{font-size:10.5px!important;line-height:1.45!important}
+
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:min(1280px,calc(100vw - 236px))!important;
+    max-width:1280px!important;
+    margin:0 auto!important;
+    padding:10px 0 14px!important;
+    grid-template-columns:260px minmax(0,1fr) 240px!important;
+    grid-template-rows:auto minmax(500px,calc(100vh - 116px))!important;
+    gap:8px!important;
+  }
+  body.ds-auth-os-page .dsx-messages-title{
+    min-height:64px!important;
+    padding:11px 14px!important;
+    border-radius:14px!important;
+  }
+  body.ds-auth-os-page .dsx-messages-title h1{font-size:clamp(21px,2vw,28px)!important}
+  body.ds-auth-os-page .dm-sidebar,
+  body.ds-auth-os-page .dm-chat,
+  body.ds-auth-os-page .dm-member-panel{border-radius:12px!important}
+  body.ds-auth-os-page .dm-sidebar-header,
+  body.ds-auth-os-page .dm-chat-header{min-height:48px!important}
+  body.ds-auth-os-page .dm-thread{min-height:0!important;padding:10px!important}
+  body.ds-auth-os-page .dm-composer{padding:7px!important}
+  body.ds-auth-os-page .dm-member-profile{padding:10px!important}
+  body.ds-auth-os-page .dm-member-avatar-large{width:60px!important;height:60px!important}
+}
+
+/* stronger premium depth without turning every surface gold */
+.dsx-hero,.dsx-dashboard-social,.dsx-side-card,
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+}
+.dsx-stat-journey{box-shadow:inset 0 0 24px rgba(24,119,242,.035)!important}
+.dsx-stat-network{box-shadow:inset 0 0 24px rgba(45,156,219,.04)!important}
+.dsx-stat-notifications{box-shadow:inset 0 0 24px rgba(255,77,90,.035)!important}
+.dsx-stat-announcements{box-shadow:inset 0 0 24px rgba(240,193,91,.04)!important}
