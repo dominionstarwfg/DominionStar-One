@@ -1884,3 +1884,223 @@ body.ds-auth-os-page .recognition-post:hover{
   border-color:rgba(240,193,91,.38)!important;
   box-shadow:0 18px 42px rgba(0,0,0,.22),0 0 24px rgba(240,193,91,.06)!important;
 }
+
+
+/* ===== Compact executive density correction — visual QA 2026-11-01 =====
+   Desktop Agent OS should feel like a social operating system, not oversized landing pages. */
+@media(min-width:1041px){
+  body.ds-auth-os-page.ds-auth-os-shell-active{padding-left:218px!important}
+  body.ds-auth-os-page .ds-agent-shell{width:218px!important;padding:14px 11px 12px!important}
+  body.ds-auth-os-page .ds-agent-progress{left:218px!important}
+  body.ds-auth-os-page .ds-agent-head{gap:9px!important;padding:0 2px 11px!important}
+  body.ds-auth-os-page .ds-agent-brand-mark{width:34px!important;height:34px!important;border-radius:10px!important;font-size:20px!important}
+  body.ds-auth-os-page .ds-agent-brand-copy strong{font-size:12px!important}
+  body.ds-auth-os-page .ds-agent-brand-copy small{font-size:10px!important}
+  body.ds-auth-os-page .ds-agent-current{font-size:10px!important}
+  body.ds-auth-os-page .ds-agent-search-trigger{min-height:36px!important;padding:7px 8px!important}
+  body.ds-auth-os-page .ds-agent-nav{gap:2px!important;padding:9px 0 6px!important}
+  body.ds-auth-os-page .ds-agent-nav-item{min-height:36px!important;padding:7px 8px!important;font-size:12px!important;gap:8px!important;border-radius:8px!important}
+  body.ds-auth-os-page .ds-agent-nav-item svg{width:16px!important;height:16px!important;flex-basis:16px!important}
+}
+
+/* Main dashboard shell */
+.dsos-executive .dsos-shell{grid-template-columns:220px minmax(0,1fr)!important}
+.dsos-executive .dsos-sidebar{width:220px!important;padding:16px 12px!important}
+.dsos-executive .dsos-topbar{min-height:64px!important;padding:10px 20px!important}
+.dsos-executive .dsos-page{padding:14px 20px 40px!important}
+.dsx-hero{
+  min-height:178px!important;
+  padding:22px 24px!important;
+  gap:20px!important;
+  border-radius:20px!important;
+}
+.dsx-greeting{font-size:clamp(31px,3.1vw,44px)!important}
+.dsx-welcome{font-size:13.5px!important;line-height:1.55!important;margin-top:9px!important}
+.dsx-kicker{margin-bottom:9px!important;font-size:10px!important}
+.dsx-hero-profile{
+  grid-template-columns:56px 1fr!important;
+  gap:11px!important;
+  padding:13px!important;
+  border-radius:15px!important;
+}
+.dsx-hero-profile .dsos-feed-avatar{width:56px!important;height:56px!important}
+.dsx-hero-profile strong{font-size:14px!important}
+.dsx-hero-profile small{font-size:11px!important}
+.dsx-overview{gap:10px!important;margin:11px 0!important}
+.dsx-stat{min-height:86px!important;padding:13px 14px!important;border-radius:14px!important}
+.dsx-stat strong{font-size:24px!important}
+.dsx-stat small{font-size:10.5px!important;margin-top:5px!important}
+.dsx-dashboard-grid{gap:11px!important;grid-template-columns:minmax(0,1fr) 315px!important}
+.dsx-hub-card{padding:16px!important;border-radius:16px!important}
+.dsx-hub-primary{padding:18px!important}
+.dsx-hub-card h2{font-size:clamp(19px,1.8vw,25px)!important}
+.dsx-hub-card p{font-size:12.5px!important;line-height:1.5!important}
+.dsx-hub-actions{gap:8px!important;margin-top:13px!important}
+.dsx-hub-action{min-height:70px!important;padding:11px 12px!important;border-radius:11px!important}
+.dsx-hub-action strong{font-size:12.5px!important}
+.dsx-hub-action span{font-size:10.5px!important}
+.dsx-network-pulse{gap:7px!important;margin:8px 0 10px!important}
+.dsx-network-pulse>div{padding:10px!important;border-radius:10px!important}
+.dsx-network-pulse strong{font-size:19px!important}
+.dsx-right-rail{gap:10px!important}
+.dsx-side-card{padding:13px!important;border-radius:15px!important}
+.dsx-side-head{margin-bottom:8px!important}
+.dsx-side-head strong{font-size:13px!important}
+.dsx-quick-grid{gap:6px!important}
+.dsx-quick-grid a{min-height:56px!important;padding:8px!important;font-size:10.5px!important}
+.dsx-journey-card .dsx-progress-number{font-size:29px!important}
+
+/* Shared authenticated pages */
+body.ds-auth-os-page main.member-dashboard{
+  max-width:1480px!important;
+  margin:0 auto!important;
+  padding:14px 18px 42px!important;
+}
+body.ds-auth-os-page .member-dashboard-header,
+body.ds-auth-os-page .command-center-header{
+  min-height:0!important;
+  padding:17px 20px!important;
+  border-radius:18px!important;
+  gap:16px!important;
+}
+body.ds-auth-os-page .member-dashboard-header h1,
+body.ds-auth-os-page .command-center-header h1{
+  font-size:clamp(25px,2.5vw,34px)!important;
+  line-height:1.1!important;
+  margin:4px 0 7px!important;
+}
+body.ds-auth-os-page .member-dashboard-header p,
+body.ds-auth-os-page .command-center-header p{
+  max-width:760px!important;
+  font-size:12.5px!important;
+  line-height:1.5!important;
+}
+body.ds-auth-os-page .member-dashboard-actions{gap:7px!important}
+body.ds-auth-os-page .btn{min-height:36px!important;padding:7px 11px!important;font-size:11.5px!important;border-radius:8px!important}
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .member-card,
+body.ds-auth-os-page .profile-section-card,
+body.ds-auth-os-page .settings-panel{padding:16px!important;border-radius:14px!important}
+body.ds-auth-os-page .eyebrow{font-size:10px!important;letter-spacing:.11em!important}
+
+/* Feed */
+body.ds-auth-os-page #feedApp{max-width:1480px!important;padding:14px 18px 42px!important}
+body.ds-auth-os-page .dsx-feed-page-header{min-height:0!important;padding:18px 20px!important}
+body.ds-auth-os-page .dsx-feed-page-header h1{font-size:clamp(26px,2.6vw,36px)!important}
+.dsx-feed-workspace{grid-template-columns:minmax(0,1fr) 290px!important;gap:11px!important;margin-top:11px!important}
+.dsx-feed-aside{gap:9px!important}
+.dsx-feed-page-composer{padding:14px!important}
+.dsx-feed-page-identity{margin-bottom:10px!important}
+.dsx-feed-page-identity .dsos-feed-avatar{width:44px!important;height:44px!important}
+.dsx-feed-page-composer textarea{min-height:74px!important;padding:11px 12px!important;border-radius:11px!important}
+body.ds-auth-os-page .ds30-post-authorbar{padding:13px 14px 9px!important}
+body.ds-auth-os-page .ds30-social-post>h3,
+body.ds-auth-os-page .ds30-post-copy,
+body.ds-auth-os-page .ds30-view-full,
+body.ds-auth-os-page .ds30-post-engagement{margin-left:14px!important;margin-right:14px!important}
+
+/* Messages */
+body.ds-auth-os-page .dm-os.dm-os-three{
+  width:min(1480px,calc(100vw - 218px))!important;
+  padding:12px 14px 18px!important;
+  gap:10px!important;
+  grid-template-columns:minmax(250px,310px) minmax(420px,1fr) minmax(245px,300px)!important;
+  grid-template-rows:auto minmax(560px,calc(100vh - 128px))!important;
+}
+body.ds-auth-os-page .dsx-messages-title{
+  min-height:82px!important;
+  padding:15px 18px!important;
+  border-radius:16px!important;
+}
+body.ds-auth-os-page .dsx-messages-title h1{font-size:clamp(25px,2.5vw,34px)!important}
+body.ds-auth-os-page .dsx-messages-title small{font-size:11.5px!important}
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{border-radius:14px!important}
+body.ds-auth-os-page .dm-sidebar-header,
+body.ds-auth-os-page .dm-chat-header{min-height:60px!important}
+body.ds-auth-os-page .dm-conversation{padding:9px!important}
+
+/* Notifications */
+body.ds-auth-os-page .notification-center{max-width:1480px!important;padding:14px 18px 42px!important}
+body.ds-auth-os-page .notification-center>header{
+  min-height:0!important;
+  padding:18px 20px!important;
+  border-radius:18px!important;
+}
+body.ds-auth-os-page .notification-center>header h1{font-size:clamp(26px,2.6vw,36px)!important}
+body.ds-auth-os-page #notificationFilters{margin:10px 0!important;padding:5px!important}
+body.ds-auth-os-page #notificationFilters button{padding:7px 11px!important;font-size:11.5px!important}
+body.ds-auth-os-page .notification-layout{grid-template-columns:minmax(0,1fr) 280px!important;gap:10px!important}
+body.ds-auth-os-page .notification-item{min-height:72px!important;padding:11px 13px!important;border-radius:13px!important}
+body.ds-auth-os-page .notification-item-icon{width:32px!important;height:32px!important;font-size:15px!important}
+
+/* Directory */
+body.ds-auth-os-page .directory-filter-bar{padding:12px!important}
+body.ds-auth-os-page .member-directory-grid{gap:10px!important}
+body.ds-auth-os-page .member-directory-card{
+  min-height:190px!important;
+  padding:15px!important;
+  border-radius:14px!important;
+}
+body.ds-auth-os-page .member-directory-avatar{width:62px!important;height:62px!important;margin-bottom:9px!important}
+body.ds-auth-os-page .member-directory-card h2{font-size:15px!important;margin:4px 0!important}
+body.ds-auth-os-page .member-directory-card p{font-size:11.5px!important;margin:4px 0!important}
+body.ds-auth-os-page .member-directory-card small{font-size:10.5px!important}
+body.ds-auth-os-page .member-directory-actions{margin-top:10px!important;gap:6px!important}
+
+/* Journey */
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header{min-height:0!important;padding:18px 20px!important}
+body.ds-auth-os-page #agentJourneyApp>.member-dashboard-header h1{font-size:clamp(26px,2.6vw,36px)!important}
+body.ds-auth-os-page .agent-journey-overview{gap:10px!important;margin:12px 0!important}
+body.ds-auth-os-page .agent-journey-score>strong{font-size:36px!important}
+body.ds-auth-os-page .agent-journey-track{height:7px!important;margin:10px 0!important}
+body.ds-auth-os-page .agent-journey-list{gap:7px!important;margin-top:10px!important}
+body.ds-auth-os-page .agent-journey-item{gap:9px!important;padding:10px 11px!important;border-radius:10px!important}
+body.ds-auth-os-page .agent-journey-item input{width:17px!important;height:17px!important}
+body.ds-auth-os-page .agent-journey-item strong{font-size:12.5px!important}
+body.ds-auth-os-page .agent-journey-item span{font-size:11px!important}
+body.ds-auth-os-page .agent-journey-resources{gap:8px!important;margin-top:10px!important}
+body.ds-auth-os-page .agent-journey-resources a{padding:11px!important;border-radius:10px!important}
+
+/* Learning */
+body.ds-auth-os-page .agent-learning-grid{gap:10px!important;margin:12px 0!important}
+body.ds-auth-os-page .agent-learning-card{min-height:178px!important;padding:15px!important}
+body.ds-auth-os-page .agent-learning-icon{width:36px!important;height:36px!important;border-radius:10px!important;font-size:17px!important;margin-bottom:10px!important}
+body.ds-auth-os-page .agent-learning-card h2{font-size:17px!important;margin:4px 0 6px!important}
+body.ds-auth-os-page .agent-learning-card>p:not(.eyebrow){min-height:48px!important;font-size:12px!important;line-height:1.5!important}
+body.ds-auth-os-page .agent-learning-actions{gap:8px!important;margin-top:11px!important}
+
+/* Calendar */
+body.ds-auth-os-page .appointment-center-grid{gap:10px!important;margin-top:12px!important}
+body.ds-auth-os-page .appointment-center-grid>.member-panel{padding:15px!important;border-radius:14px!important}
+body.ds-auth-os-page .appointment-request-form{gap:10px!important}
+body.ds-auth-os-page .appointment-card{padding:12px!important;border-radius:12px!important}
+body.ds-auth-os-page .appointment-card dl{gap:6px!important}
+body.ds-auth-os-page .appointment-card dl div{padding:7px 8px!important;border-radius:8px!important}
+
+/* Recognition */
+body.ds-auth-os-page .recognition-intro{padding:17px 19px!important;margin-bottom:14px!important;border-radius:14px!important;gap:13px!important}
+body.ds-auth-os-page .recognition-mark{width:50px!important;height:50px!important;flex-basis:50px!important;border-radius:13px!important}
+body.ds-auth-os-page .recognition-mark svg{width:28px!important;height:28px!important}
+body.ds-auth-os-page .recognition-intro h2{font-size:20px!important;margin:4px 0 6px!important}
+body.ds-auth-os-page .recognition-intro p{font-size:12px!important;line-height:1.55!important}
+body.ds-auth-os-page .recognition-heading{margin:14px 0 10px!important}
+body.ds-auth-os-page .recognition-heading h2{font-size:18px!important}
+body.ds-auth-os-page .recognition-feed{gap:9px!important}
+body.ds-auth-os-page .recognition-post{padding:14px 16px!important;border-radius:13px!important}
+body.ds-auth-os-page .recognition-post h3{font-size:14px!important;margin:4px 0 8px!important}
+body.ds-auth-os-page .recognition-post p{font-size:12px!important;line-height:1.55!important}
+
+/* Profile / Settings */
+body.ds-auth-os-page .executive-avatar-wrap{width:96px!important;height:96px!important}
+body.ds-auth-os-page .profile-avatar-fallback{font-size:30px!important}
+body.ds-auth-os-page .profile-section-card{padding:15px!important}
+body.ds-auth-os-page .settings-nav{padding:6px!important;gap:4px!important}
+body.ds-auth-os-page .settings-nav button{min-height:34px!important;padding:6px 9px!important;font-size:11.5px!important}
+body.ds-auth-os-page .settings-switch-row{padding:10px 0!important}
+
+@media(max-width:1180px) and (min-width:1041px){
+  .dsx-dashboard-grid{grid-template-columns:1fr!important}
+  .dsx-right-rail{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
