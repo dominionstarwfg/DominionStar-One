@@ -114,6 +114,10 @@ jobs:
             test -s public-dist/notifications/index.html
             test -s public-dist/community/index.html
             grep -Fq 'dominionstar-visual-review.css' public-dist/member-dashboard/index.html
+            grep -Fq 'dominionstar-visual-review-fixtures.js' public-dist/member-dashboard/index.html
+            grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
+            grep -Fq 'Strong week ahead' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'connect-src '''none'''' public-dist/_headers
             grep -Fq "Disallow: /" public-dist/robots.txt
             if find netlify/functions -type f -print -quit | grep -q .; then
