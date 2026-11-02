@@ -16,6 +16,7 @@ on:
       - 'feed/**'
       - 'assets/js/feed.js'
       - 'assets/js/dashboard-social.js'
+      - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
       - 'direct-messages/**'
@@ -61,6 +62,7 @@ on:
       - 'feed/**'
       - 'assets/js/feed.js'
       - 'assets/js/dashboard-social.js'
+      - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
       - 'direct-messages/**'
@@ -101,6 +103,7 @@ jobs:
           node --check assets/js/member-dashboard.js
           node --check assets/js/feed.js
           node --check assets/js/dashboard-social.js
+          node --check assets/js/dashboard-social-preview.js
           node --check assets/js/community-media-draft-review.js
           node --check assets/js/direct-messages.js
           node --check assets/js/notification-feature-flags.js
