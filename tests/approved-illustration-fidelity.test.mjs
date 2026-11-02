@@ -61,3 +61,15 @@ test('Founder dashboard content stays compact instead of dumping raw meeting tex
   assert.match(dashboardJs,/founderEvent=await withTimeout/);
   assert.match(dashboardJs,/Join Meeting/);
 });
+
+
+test('effective illustration geometry uses the final compact desktop overrides',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Illustration geometry lock'));
+  assert.match(tail,/width:min\(1320px,calc\(100% - 34px\)\)!important/);
+  assert.match(tail,/\.dsx-hero\{[\s\S]*min-height:162px!important[\s\S]*max-height:162px!important/);
+  assert.match(tail,/\.dsx-stat\{[\s\S]*min-height:74px!important[\s\S]*max-height:74px!important/);
+  assert.match(tail,/\.dsx-dashboard-grid\{[\s\S]*304px!important/);
+  assert.match(tail,/\.dsx-quick-grid-six a\{min-height:52px!important/);
+  assert.match(tail,/#feedApp\{[\s\S]*1280px/);
+  assert.match(tail,/\.dm-os\.dm-os-three\{[\s\S]*260px[\s\S]*240px/);
+});
