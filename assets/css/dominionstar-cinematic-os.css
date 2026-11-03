@@ -4217,3 +4217,81 @@ body.ds-visual-review .ds-review-feature-media em{
     margin-top:2px!important;
   }
 }
+
+
+/* ===== Social action-row icon-first polish ===== */
+body.ds-auth-os-page .ds30-post-actions,
+.dsos-executive .ds30-post-actions{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;
+  align-items:stretch!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button,
+body.ds-auth-os-page .ds30-react-main,
+.dsos-executive .ds30-post-actions>button,
+.dsos-executive .ds30-react-main{
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:8px 10px!important;
+  border-radius:10px!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  color:#c9d6e4!important;
+}
+body.ds-auth-os-page .ds30-post-actions .ds30-action-icon,
+body.ds-auth-os-page .ds30-react-main .ds30-action-icon,
+.dsos-executive .ds30-post-actions .ds30-action-icon,
+.dsos-executive .ds30-react-main .ds30-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex:0 0 18px!important;
+  stroke-width:2.15!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="comment"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="comment"] .ds30-action-icon{
+  color:#d7e6f5!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="repost"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="repost"] .ds30-action-icon{
+  color:#67cdfb!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="share"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="share"] .ds30-action-icon{
+  color:#82b9ff!important;
+}
+body.ds-auth-os-page .ds30-react-main.reaction-like .ds30-action-icon,
+.dsos-executive .ds30-react-main.reaction-like .ds30-action-icon{
+  color:#5aa0ff!important;
+}
+body.ds-auth-os-page .ds30-react-main.reaction-love .ds30-action-icon,
+.dsos-executive .ds30-react-main.reaction-love .ds30-action-icon{
+  color:#ff5b70!important;
+  fill:currentColor!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button:hover .ds30-action-icon,
+body.ds-auth-os-page .ds30-react-main:hover .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button:hover .ds30-action-icon,
+.dsos-executive .ds30-react-main:hover .ds30-action-icon{
+  transform:scale(1.08)!important;
+}
+@media(max-width:760px){
+  body.ds-auth-os-page .ds30-post-actions>button,
+  body.ds-auth-os-page .ds30-react-main,
+  .dsos-executive .ds30-post-actions>button,
+  .dsos-executive .ds30-react-main{
+    gap:5px!important;
+    padding:7px 5px!important;
+    font-size:9px!important;
+  }
+  body.ds-auth-os-page .ds30-post-actions .ds30-action-icon,
+  body.ds-auth-os-page .ds30-react-main .ds30-action-icon,
+  .dsos-executive .ds30-post-actions .ds30-action-icon,
+  .dsos-executive .ds30-react-main .ds30-action-icon{
+    width:16px!important;
+    height:16px!important;
+    flex-basis:16px!important;
+  }
+}
