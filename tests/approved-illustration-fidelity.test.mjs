@@ -74,3 +74,17 @@ test('effective illustration geometry uses the final compact desktop overrides',
   assert.match(tail,/#feedApp\{[\s\S]*1280px/);
   assert.match(tail,/\.dm-os\.dm-os-three\{[\s\S]*260px[\s\S]*240px/);
 });
+
+
+test('featured social post uses one real media block and no duplicate pseudo banner',()=>{
+  assert.doesNotMatch(css,/#dashboardSocialPreview \.ds-review-post:first-child:after/);
+  assert.match(css,/\.ds-review-feature-media\{[\s\S]*min-height:118px!important/);
+});
+
+test('hero preserves the approved cinematic globe and premium profile anchors',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Final hero\/profile polish'));
+  assert.match(tail,/\.dsx-hero:before\{[\s\S]*width:670px!important[\s\S]*height:670px!important/);
+  assert.match(tail,/\.dsx-hero:after\{[\s\S]*width:390px!important[\s\S]*#ffd86f/);
+  assert.match(tail,/\.dsx-hero-profile\{[\s\S]*max-width:330px!important/);
+  assert.match(tail,/\.dsx-welcome\{[\s\S]*color:#d5e0ec!important/);
+});
