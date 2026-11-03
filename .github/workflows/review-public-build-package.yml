@@ -130,6 +130,11 @@ jobs:
             grep -Fq 'const likeBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'const loveBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             echo 'CAPTIONED_PHOTO_POST_PREVIEW_OK'
+            grep -Fq 'const commentAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const repostAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const shareAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ds-review-action-icon' public-dist/assets/css/dominionstar-visual-review.css
+            echo 'ICON_FIRST_SOCIAL_ACTIONS_OK'
             grep -Fq 'connect-src' public-dist/_headers
             grep -Fq "'none'" public-dist/_headers
             grep -Fq "Disallow: /" public-dist/robots.txt
