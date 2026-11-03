@@ -34,3 +34,12 @@ test('Feed post surfaces preserve readable hierarchy on the dark executive backg
   assert.match(css,/body\.ds-auth-os-page \.ds30-post-engagement,[\s\S]*border-top:1px solid rgba\(126,168,221,.10\)/);
   assert.match(css,/body\.ds-auth-os-page \.dsx-feed-page-composer textarea\{[\s\S]*background:rgba\(5,22,44,.78\)/);
 });
+
+
+test('reaction badges are device-independent SVG colors rather than system emoji',()=>{
+  assert.match(social,/reactionBadge = name =>/);
+  assert.match(css,/\.ds30-reaction-like\{background:#1877f2!important;color:#fff!important\}/);
+  assert.match(css,/\.ds30-reaction-love\{background:#ff3b55!important;color:#fff!important\}/);
+  assert.match(css,/\.ds30-reaction-celebrate\{background:#e8aa28!important;color:#fff!important\}/);
+  assert.doesNotMatch(social,/emoji:'👍'|emoji:'❤️'/);
+});
