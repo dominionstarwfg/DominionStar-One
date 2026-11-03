@@ -97,10 +97,16 @@
         const description=String(post.body||post.description||'');
         const text=description.length>900 ? description.slice(0,900)+'…' : description;
         const stats=counts.get(String(post.id))||{};
-        const likeCount=readableCount(stats.likes||0,stats.reactionsKnown);
+        const reactionCount=readableCount(stats.totalReactions||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
         const initials=author.trim().split(/\s+/).map(word=>word[0]).slice(0,2).join('').toUpperCase();
-        const isLiked=Boolean(stats.viewerLiked);
+        const viewerReaction=String(stats.viewerReaction||'');
+        const reactionChips=reactionOrder
+          .filter(name=>(stats.reactions?.[name]||0)>0)
+          .slice(0,3)
+          .map(name=>'<span class="ds30-reaction-chip ds30-reaction-'+name+'" title="'+reactionMeta[name].label+'">'+reactionMeta[name].emoji+'</span>')
+          .join('');
+        const reactionLabel=viewerReaction?(reactionMeta[viewerReaction]?.label||'React'):'Like';
         return `
         <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
           <header class="ds30-post-authorbar">
