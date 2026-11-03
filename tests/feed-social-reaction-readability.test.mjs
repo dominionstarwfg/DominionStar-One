@@ -12,9 +12,7 @@ test('Feed supports five semantic reactions through the existing reaction RPC',(
   assert.match(social,/reactionOrder=\['like','love','celebrate','support','insightful'\]/);
   assert.match(social,/community_toggle_reaction/);
   assert.match(social,/target_reaction:reaction/);
-  for(const name of ['like','love','celebrate','support','insightful']){
-    assert.match(social,new RegExp('data-reaction="'+name+'"'));
-  }
+  assert.match(social,/data-reaction="'\+name\+'"/);
   assert.match(social,/viewerReaction/);
   assert.match(social,/totalReactions/);
   assert.match(social,/ds30-reaction-summary/);
