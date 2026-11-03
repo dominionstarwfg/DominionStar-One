@@ -3737,3 +3737,88 @@ body.ds-auth-os-page .dsmedia-founding-badge{
     box-shadow:inset 0 1px rgba(255,255,255,.04),0 10px 22px rgba(0,0,0,.15)!important;
   }
 }
+
+
+/* ===== Device-independent social reaction badges ===== */
+.ds30-reaction-chip{
+  width:20px!important;
+  height:20px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  margin-right:-4px!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.ds30-reaction-chip:last-of-type{margin-right:4px!important}
+
+.ds30-reaction-badge{
+  width:20px!important;
+  height:20px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  border:2px solid #0b1f3b!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.22)!important;
+}
+.ds30-reaction-badge .ds30-action-icon{
+  width:11px!important;
+  height:11px!important;
+  stroke-width:2.2!important;
+}
+
+.ds30-reaction-like{background:#1877f2!important;color:#fff!important}
+.ds30-reaction-love{background:#ff3b55!important;color:#fff!important}
+.ds30-reaction-celebrate{background:#e8aa28!important;color:#fff!important}
+.ds30-reaction-support{background:#2fbd78!important;color:#fff!important}
+.ds30-reaction-insightful{background:#8068df!important;color:#fff!important}
+
+.ds30-reaction-love .ds30-action-icon,
+.ds30-reaction-celebrate .ds30-action-icon{
+  fill:currentColor!important;
+}
+.ds30-reaction-like .ds30-action-icon{
+  stroke:currentColor!important;
+  fill:rgba(255,255,255,.18)!important;
+}
+
+.ds30-reaction-picker-icon{
+  display:grid!important;
+  place-items:center!important;
+  min-height:24px!important;
+}
+.ds30-reaction-picker-icon .ds30-reaction-badge{
+  width:28px!important;
+  height:28px!important;
+  border-width:2px!important;
+}
+.ds30-reaction-picker-icon .ds30-action-icon{
+  width:15px!important;
+  height:15px!important;
+}
+
+.ds30-react-main.reaction-like .ds30-action-icon{color:#66a7ff!important}
+.ds30-react-main.reaction-love .ds30-action-icon{color:#ff5b70!important;fill:currentColor!important}
+.ds30-react-main.reaction-celebrate .ds30-action-icon{color:#f2c94c!important;fill:currentColor!important}
+.ds30-react-main.reaction-support .ds30-action-icon{color:#58d696!important}
+.ds30-react-main.reaction-insightful .ds30-action-icon{color:#aa9cff!important}
+
+/* Post containers read as unmistakable social posts. */
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  overflow:visible!important;
+}
+body.ds-auth-os-page .ds30-post-authorbar,
+.dsos-executive .ds30-post-authorbar{
+  border-bottom:0!important;
+}
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  padding-left:12px!important;
+  padding-right:12px!important;
+}
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  justify-content:space-between!important;
+}
