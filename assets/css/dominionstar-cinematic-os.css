@@ -3710,33 +3710,7 @@ body.ds-auth-os-page .dsmedia-founding-badge{
     font-size:9.3px!important;
   }
 
-  /* Social preview post: more substantial, closer to the approved illustrated post. */
-  #dashboardSocialPreview .ds-review-post:first-child,
-  body.ds-auth-os-page .dsx-feed-page-stream .ds-review-post:first-child{
-    position:relative!important;
-    overflow:hidden!important;
   }
-  #dashboardSocialPreview .ds-review-post:first-child:after,
-  body.ds-auth-os-page .dsx-feed-page-stream .ds-review-post:first-child:after{
-    content:"DOMINIONSTAR  ·  SAVING YOUR FUTURE"!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    min-height:76px!important;
-    margin:10px 0 2px!important;
-    padding:12px 18px!important;
-    border-radius:12px!important;
-    background:
-      linear-gradient(115deg,rgba(5,22,44,.96),rgba(14,55,96,.90) 45%,rgba(240,193,91,.22) 100%),
-      radial-gradient(circle at 80% 50%,rgba(255,206,92,.30),transparent 30%)!important;
-    border:1px solid rgba(240,193,91,.28)!important;
-    color:#f5d17b!important;
-    font:800 18px/1.15 Georgia,"Times New Roman",serif!important;
-    letter-spacing:.055em!important;
-    text-align:center!important;
-    box-shadow:inset 0 1px rgba(255,255,255,.04),0 10px 22px rgba(0,0,0,.15)!important;
-  }
-}
 
 
 /* ===== Device-independent social reaction badges ===== */
@@ -4034,4 +4008,124 @@ body.ds-visual-review .ds-review-actions .active-like{
 body.ds-visual-review .ds-review-actions .active-love{
   color:#ff7886!important;
   background:rgba(255,59,85,.13)!important;
+}
+
+
+/* ===== Featured social post fidelity — single media treatment ===== */
+body.ds-visual-review .ds-review-featured{
+  position:relative!important;
+  overflow:hidden!important;
+  padding:14px 15px 13px!important;
+  background:
+    radial-gradient(circle at 92% 7%,rgba(240,193,91,.075),transparent 24%),
+    linear-gradient(150deg,#12375f 0%,#0d2a4f 52%,#08203d 100%)!important;
+  border:1px solid rgba(126,168,221,.31)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.23),
+    inset 0 1px rgba(255,255,255,.035)!important;
+}
+body.ds-visual-review .ds-review-featured .ds-review-author{
+  padding-bottom:9px!important;
+  border-bottom:1px solid rgba(126,168,221,.10)!important;
+}
+body.ds-visual-review .ds-review-featured .ds-review-post-title{
+  margin:11px 0 4px!important;
+  color:#fff!important;
+  font-size:14px!important;
+  line-height:1.25!important;
+}
+body.ds-visual-review .ds-review-featured>p{
+  margin:0 0 9px!important;
+  color:#c6d6e6!important;
+  font-size:10.5px!important;
+}
+body.ds-visual-review .ds-review-feature-media{
+  position:relative!important;
+  min-height:118px!important;
+  overflow:hidden!important;
+  margin:9px 0 8px!important;
+  padding:18px 22px!important;
+  border-radius:13px!important;
+  border:1px solid rgba(240,193,91,.35)!important;
+  background:
+    radial-gradient(circle at 78% 52%,rgba(255,196,74,.28),transparent 20%),
+    linear-gradient(118deg,#07182f 0%,#0d3560 44%,#315174 62%,#8b6a26 100%)!important;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.05),
+    0 12px 26px rgba(0,0,0,.18)!important;
+}
+body.ds-visual-review .ds-review-feature-media:before{
+  content:""!important;
+  position:absolute!important;
+  left:-20px!important;
+  bottom:-62px!important;
+  width:320px!important;
+  height:180px!important;
+  border:1px solid rgba(106,169,237,.26)!important;
+  border-radius:50%!important;
+  box-shadow:
+    0 0 0 22px rgba(64,139,220,.04),
+    0 -28px 65px rgba(45,129,219,.14)!important;
+}
+body.ds-visual-review .ds-review-feature-media:after{
+  content:""!important;
+  position:absolute!important;
+  right:15%!important;
+  top:0!important;
+  width:190px!important;
+  height:2px!important;
+  transform:rotate(-22deg)!important;
+  background:linear-gradient(90deg,transparent,#ffd66a 42%,#fff0a0 54%,transparent)!important;
+  box-shadow:0 0 18px rgba(240,193,91,.70)!important;
+}
+body.ds-visual-review .ds-review-feature-media strong,
+body.ds-visual-review .ds-review-feature-media span{
+  position:relative!important;
+  z-index:2!important;
+}
+body.ds-visual-review .ds-review-feature-media strong{
+  font-size:15px!important;
+  color:#f4cf74!important;
+}
+body.ds-visual-review .ds-review-feature-media span{
+  font-size:25px!important;
+  line-height:1.05!important;
+}
+body.ds-visual-review .ds-review-feature-media em{
+  color:#ffd56e!important;
+}
+
+/* Stronger right-rail distinction like the approved reference. */
+@media(min-width:1181px){
+  .dsx-right-rail{gap:9px!important}
+  .dsx-side-card{
+    border-radius:15px!important;
+    border-color:rgba(126,168,221,.24)!important;
+    box-shadow:
+      0 15px 32px rgba(0,0,0,.19),
+      inset 0 1px rgba(255,255,255,.03)!important;
+  }
+  .dsx-upcoming{
+    border-color:rgba(53,208,127,.28)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(53,208,127,.09),transparent 32%),
+      linear-gradient(155deg,#12375d,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-journey-card{
+    border-color:rgba(242,201,76,.24)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(242,201,76,.075),transparent 30%),
+      linear-gradient(155deg,#12365c,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-quick-actions-card{
+    background:
+      radial-gradient(circle at 100% 0%,rgba(24,119,242,.08),transparent 32%),
+      linear-gradient(155deg,#12375e,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-announcement{
+    border-color:rgba(240,193,91,.44)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(240,193,91,.12),transparent 32%),
+      linear-gradient(155deg,#26374f,#102844 62%,#0a203b)!important;
+  }
 }
