@@ -3822,3 +3822,216 @@ body.ds-auth-os-page .ds30-post-engagement,
 .dsos-executive .ds30-post-engagement{
   justify-content:space-between!important;
 }
+
+
+/* ===== Final contrast + polish lock against approved illustration ===== */
+:root{
+  --dsx-surface-page:#031020;
+  --dsx-surface-panel:#0b2444;
+  --dsx-surface-panel-hi:#12355e;
+  --dsx-text-strong:#f7f9fc;
+  --dsx-text-body:#d8e3ef;
+  --dsx-text-muted:#9fb3c9;
+  --dsx-text-faint:#7890aa;
+  --dsx-line:rgba(126,168,221,.24);
+}
+
+/* Never allow page text to disappear into navy surfaces. */
+body.ds-auth-os-page,
+.dsos-executive{
+  color:var(--dsx-text-body)!important;
+}
+body.ds-auth-os-page h1,
+body.ds-auth-os-page h2,
+body.ds-auth-os-page h3,
+body.ds-auth-os-page h4,
+.dsos-executive h1,
+.dsos-executive h2,
+.dsos-executive h3,
+.dsos-executive h4{
+  color:var(--dsx-text-strong)!important;
+}
+
+/* Feed composer: explicit hierarchy and readable helper text. */
+body.ds-auth-os-page .dsx-feed-page-composer{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(38,113,202,.08),transparent 30%),
+    linear-gradient(155deg,#12335a 0%,#0b2547 58%,#081d39 100%)!important;
+  border:1px solid rgba(126,168,221,.30)!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer label,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-caption-label,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-composer-label{
+  color:var(--dsx-text-strong)!important;
+  opacity:1!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer p,
+body.ds-auth-os-page .dsx-feed-page-composer small,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-note,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-status,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-draft-status,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-help{
+  color:#b9cadc!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea{
+  background:#071b35!important;
+  border:1px solid rgba(126,168,221,.34)!important;
+  color:#f3f7fb!important;
+  caret-color:#7db4ff!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea::placeholder{
+  color:#91a9c2!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsmedia-draft{
+  background:#081d39!important;
+  border-color:rgba(126,168,221,.22)!important;
+}
+body.ds-auth-os-page .dsmedia-draft *{
+  color:#c9d7e6!important;
+}
+body.ds-auth-os-page .dsmedia-draft button,
+body.ds-auth-os-page .dsmedia-draft .btn{
+  color:#9ed6ff!important;
+}
+
+/* Feed posts must read as obvious standalone social posts. */
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(45,116,204,.075),transparent 30%),
+    linear-gradient(150deg,#12345f 0%,#0c284d 52%,#081f3d 100%)!important;
+  border-color:rgba(126,168,221,.31)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.22),
+    inset 0 1px rgba(255,255,255,.035)!important;
+}
+body.ds-auth-os-page .ds30-post-author strong,
+.dsos-executive .ds30-post-author strong{
+  color:#ffffff!important;
+}
+body.ds-auth-os-page .ds30-post-author small,
+body.ds-auth-os-page .ds30-post-rank,
+.dsos-executive .ds30-post-author small,
+.dsos-executive .ds30-post-rank{
+  color:#a9bdd2!important;
+}
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  color:#edf3fa!important;
+}
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  color:#a8bbcf!important;
+}
+body.ds-auth-os-page .ds30-post-actions button,
+body.ds-auth-os-page .ds30-react-main,
+.dsos-executive .ds30-post-actions button,
+.dsos-executive .ds30-react-main{
+  color:#c2d0df!important;
+}
+body.ds-auth-os-page .ds30-post-actions button:hover,
+body.ds-auth-os-page .ds30-react-main:hover,
+.dsos-executive .ds30-post-actions button:hover,
+.dsos-executive .ds30-react-main:hover{
+  color:#ffffff!important;
+  background:rgba(24,119,242,.10)!important;
+}
+
+/* Active semantic reactions: unmistakable and not dependent on emoji colors. */
+.ds30-react-main.reaction-like{
+  color:#73b2ff!important;
+  background:rgba(24,119,242,.14)!important;
+  border-color:rgba(24,119,242,.24)!important;
+}
+.ds30-react-main.reaction-love{
+  color:#ff7180!important;
+  background:rgba(255,59,85,.13)!important;
+  border-color:rgba(255,59,85,.24)!important;
+}
+.ds30-react-main.reaction-celebrate{
+  color:#f5d266!important;
+  background:rgba(232,170,40,.13)!important;
+  border-color:rgba(232,170,40,.23)!important;
+}
+.ds30-react-main.reaction-support{
+  color:#72e2a8!important;
+  background:rgba(47,189,120,.12)!important;
+  border-color:rgba(47,189,120,.23)!important;
+}
+.ds30-react-main.reaction-insightful{
+  color:#c2b6ff!important;
+  background:rgba(128,104,223,.13)!important;
+  border-color:rgba(128,104,223,.24)!important;
+}
+
+/* Dashboard composer gets the same readability contract. */
+.dsos-executive .dsx-dashboard-social{
+  background:
+    linear-gradient(165deg,#0f3158 0%,#0a2546 54%,#071d38 100%)!important;
+  border-color:rgba(126,168,221,.30)!important;
+}
+.dsos-executive .dsx-dashboard-composer textarea{
+  background:#071a34!important;
+  color:#f4f8fc!important;
+  border-color:rgba(126,168,221,.34)!important;
+}
+.dsos-executive .dsx-dashboard-composer textarea::placeholder{
+  color:#92abc4!important;
+  opacity:1!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools a,
+.dsos-executive .dsx-dashboard-composer-tools span{
+  color:#b9cadc!important;
+}
+.dsos-executive .dsx-dashboard-feed-head small,
+.dsos-executive .dsx-dashboard-feed-head a{
+  color:#79b5ff!important;
+}
+
+/* Side rail: no low-contrast labels. */
+.dsx-side-card,
+.dsx-side-card p,
+.dsx-side-card small{
+  color:#b9c9da!important;
+}
+.dsx-side-card h2,
+.dsx-side-card h3,
+.dsx-side-card strong{
+  color:#f5f8fc!important;
+}
+.dsx-side-card a:not(.btn):not(.dsx-quick-link){
+  color:#82bdff!important;
+}
+
+/* Review fixture visibility lock. */
+body.ds-visual-review .ds-review-post{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(45,116,204,.07),transparent 28%),
+    linear-gradient(150deg,#12345f,#0b284c 56%,#081f3d)!important;
+  border-color:rgba(126,168,221,.30)!important;
+}
+body.ds-visual-review .ds-review-post p,
+body.ds-visual-review .ds-review-photo-caption{
+  color:#edf3fa!important;
+}
+body.ds-visual-review .ds-review-author strong{
+  color:#fff!important;
+}
+body.ds-visual-review .ds-review-author small,
+body.ds-visual-review .ds-review-engagement{
+  color:#aabdd1!important;
+}
+body.ds-visual-review .ds-review-actions span{
+  color:#c4d1df!important;
+}
+body.ds-visual-review .ds-review-actions .active-like{
+  color:#7ab7ff!important;
+  background:rgba(24,119,242,.14)!important;
+}
+body.ds-visual-review .ds-review-actions .active-love{
+  color:#ff7886!important;
+  background:rgba(255,59,85,.13)!important;
+}
