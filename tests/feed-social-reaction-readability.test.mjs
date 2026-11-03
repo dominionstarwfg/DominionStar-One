@@ -32,5 +32,5 @@ test('Feed post surfaces preserve readable hierarchy on the dark executive backg
   assert.match(css,/body\.ds-auth-os-page \.ds30-social-post,[\s\S]*rgba\(21,48,84,.985\)/);
   assert.match(css,/body\.ds-auth-os-page \.ds30-post-copy,[\s\S]*color:#e6edf7/);
   assert.match(css,/body\.ds-auth-os-page \.ds30-post-engagement,[\s\S]*border-top:1px solid rgba\(126,168,221,.10\)/);
-  assert.match(css,/body\.ds-auth-os-page \.dsx-feed-page-composer textarea,[\s\S]*background:rgba\(5,22,44,.78\)/);
+  assert.match(css,/body\.ds-auth-os-page \.dsx-feed-page-composer textarea\{[\s\S]*background:rgba\(5,22,44,.78\)/);
 });
