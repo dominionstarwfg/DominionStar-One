@@ -4129,3 +4129,91 @@ body.ds-visual-review .ds-review-feature-media em{
       linear-gradient(155deg,#26374f,#102844 62%,#0a203b)!important;
   }
 }
+
+
+/* ===== Final hero/profile polish against approved reference ===== */
+@media(min-width:1181px){
+  .dsx-hero{
+    isolation:isolate!important;
+    overflow:hidden!important;
+    padding-left:26px!important;
+    padding-right:26px!important;
+    background:
+      radial-gradient(circle at 69% 51%,rgba(57,146,238,.36),transparent 18%),
+      radial-gradient(circle at 82% 12%,rgba(240,193,91,.18),transparent 10%),
+      linear-gradient(110deg,#061226 0%,#082349 41%,#0d3e70 100%)!important;
+  }
+  .dsx-hero:before{
+    z-index:0!important;
+    width:670px!important;
+    height:670px!important;
+    right:8px!important;
+    bottom:-518px!important;
+    border:1px solid rgba(91,161,238,.58)!important;
+    background:
+      radial-gradient(circle at 42% 36%,rgba(39,126,223,.34) 0 8%,transparent 9%),
+      radial-gradient(circle at 58% 31%,rgba(46,137,231,.23) 0 6%,transparent 7%),
+      radial-gradient(circle at 64% 50%,rgba(21,83,163,.58),rgba(5,29,59,.28) 52%,rgba(2,16,34,.10) 53%,transparent 54%)!important;
+    box-shadow:
+      0 0 0 22px rgba(66,139,221,.06),
+      0 0 0 52px rgba(66,139,221,.028),
+      0 -58px 118px rgba(42,129,226,.32),
+      inset 0 0 78px rgba(28,106,201,.24)!important;
+  }
+  .dsx-hero:after{
+    z-index:1!important;
+    width:390px!important;
+    right:20px!important;
+    top:35px!important;
+    height:2px!important;
+    transform:rotate(-17deg)!important;
+    background:linear-gradient(90deg,transparent,#d99f37 32%,#ffd86f 52%,#fff2b0 56%,transparent 82%)!important;
+    box-shadow:
+      0 0 8px rgba(240,193,91,.75),
+      0 0 24px rgba(240,193,91,.42)!important;
+  }
+  .dsx-hero-copy{
+    z-index:3!important;
+    max-width:690px!important;
+  }
+  .dsx-kicker{
+    color:#f0c15b!important;
+    letter-spacing:.18em!important;
+    font-weight:900!important;
+  }
+  .dsx-greeting{
+    margin-top:6px!important;
+    margin-bottom:8px!important;
+    text-shadow:0 3px 18px rgba(0,0,0,.20)!important;
+  }
+  .dsx-welcome{
+    color:#d5e0ec!important;
+    max-width:620px!important;
+  }
+  .dsx-hero-profile{
+    z-index:4!important;
+    align-self:center!important;
+    justify-self:end!important;
+    width:100%!important;
+    max-width:330px!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+  }
+  .dsx-hero-profile>span:last-child{
+    min-width:0!important;
+  }
+  .dsx-hero-profile strong,
+  .dsx-hero-profile small{
+    display:block!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .dsx-hero-profile strong{
+    color:#fff!important;
+  }
+  .dsx-hero-profile small:not(.dsos-founding-hero){
+    color:#bed0e2!important;
+    margin-top:2px!important;
+  }
+}
