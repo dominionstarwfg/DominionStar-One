@@ -37,13 +37,14 @@
   const asPosts = result => Array.isArray(result) ? result : [];
   const readableCount = (count, known) => known ? String(count) : '—';
   const reactionMeta = {
-    like:{label:'Like',emoji:'👍'},
-    love:{label:'Love',emoji:'❤️'},
-    celebrate:{label:'Celebrate',emoji:'✨'},
-    support:{label:'Support',emoji:'🤝'},
-    insightful:{label:'Insightful',emoji:'💡'}
+    like:{label:'Like',icon:'like'},
+    love:{label:'Love',icon:'love'},
+    celebrate:{label:'Celebrate',icon:'celebrate'},
+    support:{label:'Support',icon:'support'},
+    insightful:{label:'Insightful',icon:'insightful'}
   };
   const reactionOrder=['like','love','celebrate','support','insightful'];
+  const reactionBadge = name => '<span class="ds30-reaction-badge ds30-reaction-'+name+'" aria-hidden="true">'+icon(reactionMeta[name]?.icon||'like')+'</span>';
 
   async function mount({client, memberId, target, resultLimit=20}) {
     if (!client || !memberId || !target) throw new Error('The member feed requires a verified session.');
@@ -104,7 +105,7 @@
         const reactionChips=reactionOrder
           .filter(name=>(stats.reactions?.[name]||0)>0)
           .slice(0,3)
-          .map(name=>'<span class="ds30-reaction-chip ds30-reaction-'+name+'" title="'+reactionMeta[name].label+'">'+reactionMeta[name].emoji+'</span>')
+          .map(name=>'<span class="ds30-reaction-chip" title="'+reactionMeta[name].label+'">'+reactionBadge(name)+'</span>')
           .join('');
         const reactionLabel=viewerReaction?(reactionMeta[viewerReaction]?.label||'React'):'Like';
         return `
@@ -142,7 +143,7 @@
             <div class="ds30-react-wrap">
               <button type="button" class="ds30-react-main ${viewerReaction?'has-reaction reaction-'+escapeHtml(viewerReaction):''}" data-social="react" aria-expanded="false" aria-pressed="${Boolean(viewerReaction)}">${icon(viewerReaction||'like')}<span>${escapeHtml(reactionLabel)}</span></button>
               <div class="ds30-reaction-picker" hidden role="menu" aria-label="Choose a reaction">
-                ${reactionOrder.map(name=>'<button type="button" role="menuitem" class="reaction-'+name+'" data-social="reaction" data-reaction="'+name+'" title="'+reactionMeta[name].label+'"><span class="ds30-reaction-emoji">'+reactionMeta[name].emoji+'</span><span>'+reactionMeta[name].label+'</span></button>').join('')}
+                ${reactionOrder.map(name=>'<button type="button" role="menuitem" class="reaction-'+name+'" data-social="reaction" data-reaction="'+name+'" title="'+reactionMeta[name].label+'"><span class="ds30-reaction-picker-icon">'+reactionBadge(name)+'</span><span>'+reactionMeta[name].label+'</span></button>').join('')}
               </div>
             </div>
             <button type="button" data-social="comment" aria-expanded="false">${icon('comment')}<span>Comment</span></button>
