@@ -207,6 +207,7 @@ jobs:
           node --test tests/approved-secondary-workspace-fidelity.test.mjs
           node --test tests/approved-illustration-fidelity.test.mjs
           node --test tests/feed-social-reaction-readability.test.mjs
+          node --test tests/feed-contrast-polish.test.mjs
 
       - name: Notification compatibility regression
         run: |
