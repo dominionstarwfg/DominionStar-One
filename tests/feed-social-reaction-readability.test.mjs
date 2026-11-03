@@ -43,3 +43,13 @@ test('reaction badges are device-independent SVG colors rather than system emoji
   assert.match(css,/\.ds30-reaction-celebrate\{background:#e8aa28!important;color:#fff!important\}/);
   assert.doesNotMatch(social,/emoji:'👍'|emoji:'❤️'/);
 });
+
+
+test('social post actions remain icon-first and glance-readable',()=>{
+  assert.match(social,/data-social="comment"[\s\S]*icon\('comment'\)/);
+  assert.match(social,/data-social="repost"[\s\S]*icon\('repost'\)/);
+  assert.match(social,/data-social="share"[\s\S]*icon\('share'\)/);
+  assert.match(css,/\.ds30-post-actions \.ds30-action-icon,[\s\S]*width:18px!important/);
+  assert.match(css,/data-social="repost"[\s\S]*#67cdfb/);
+  assert.match(css,/data-social="share"[\s\S]*#82b9ff/);
+});
