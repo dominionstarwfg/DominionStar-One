@@ -129,9 +129,8 @@ test('Executive community post action row uses existing Supabase interaction end
   for(const action of ['react','reaction','comment','repost','share']) {
     assert.match(social,new RegExp('data-social="'+action+'"'));
   }
-  for(const reaction of ['like','love','celebrate','support','insightful']){
-    assert.match(social,new RegExp("data-reaction=\\\""+reaction+"\\\""));
-  }
+  assert.match(social,/reactionOrder=\['like','love','celebrate','support','insightful'\]/);
+  assert.match(social,/data-reaction="'\+name\+'"/);
   assert.match(social,/community_toggle_reaction/);
   assert.match(social,/community_comments/);
   assert.match(social,/community_messages/);
