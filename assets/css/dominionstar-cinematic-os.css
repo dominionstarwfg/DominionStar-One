@@ -3583,3 +3583,157 @@ body.ds-auth-os-page .dsmedia-founding-badge{
 @media(max-width:900px){
   body.ds-auth-os-page #feedApp:before{left:0!important}
 }
+
+
+/* ===== Approved illustration signature elements ===== */
+@media(min-width:1181px){
+  /* Hero globe/horizon: much closer to the approved illustration. */
+  .dsx-hero{
+    min-height:188px!important;
+    max-height:188px!important;
+    padding:20px 22px!important;
+    grid-template-columns:minmax(0,1fr) 330px!important;
+    background:
+      radial-gradient(circle at 64% 44%,rgba(57,146,238,.33),transparent 19%),
+      radial-gradient(circle at 82% 11%,rgba(240,193,91,.16),transparent 10%),
+      linear-gradient(110deg,#061226 0%,#0a2850 47%,#0c3c6b 100%)!important;
+  }
+  .dsx-hero:before{
+    width:610px!important;
+    height:610px!important;
+    right:35px!important;
+    bottom:-475px!important;
+    border:1px solid rgba(91,161,238,.52)!important;
+    background:
+      radial-gradient(circle at 50% 38%,rgba(25,99,188,.48),rgba(4,24,49,.18) 52%,transparent 53%)!important;
+    box-shadow:
+      0 0 0 20px rgba(66,139,221,.055),
+      0 0 0 48px rgba(66,139,221,.027),
+      0 -48px 110px rgba(42,129,226,.29),
+      inset 0 0 60px rgba(28,106,201,.20)!important;
+  }
+  .dsx-hero:after{
+    width:330px!important;
+    height:2px!important;
+    right:28px!important;
+    top:24px!important;
+    transform:rotate(-18deg)!important;
+    transform-origin:right center!important;
+    background:linear-gradient(90deg,transparent,#f0c15b 42%,#ffd978 55%,transparent)!important;
+    box-shadow:0 0 22px rgba(240,193,91,.85)!important;
+  }
+  .dsx-greeting{
+    font-size:clamp(38px,3.25vw,52px)!important;
+    max-width:650px!important;
+  }
+  .dsx-greeting strong{
+    color:#f0c15b!important;
+    text-shadow:0 0 18px rgba(240,193,91,.10)!important;
+  }
+  .dsx-welcome{
+    max-width:670px!important;
+    font-size:12.5px!important;
+  }
+
+  /* Profile card becomes a stronger visual anchor like the illustration. */
+  .dsx-hero-profile{
+    grid-template-columns:74px minmax(0,1fr)!important;
+    min-height:112px!important;
+    padding:14px 16px!important;
+    border-radius:16px!important;
+    background:
+      radial-gradient(circle at 0 50%,rgba(47,132,226,.12),transparent 34%),
+      linear-gradient(145deg,rgba(23,55,95,.90),rgba(8,29,56,.95))!important;
+    border:1px solid rgba(240,193,91,.60)!important;
+    box-shadow:
+      0 18px 40px rgba(0,0,0,.25),
+      0 0 28px rgba(240,193,91,.07),
+      inset 0 1px rgba(255,255,255,.045)!important;
+  }
+  .dsx-hero-profile .dsos-feed-avatar{
+    width:74px!important;
+    height:74px!important;
+    border:2px solid rgba(240,193,91,.78)!important;
+    box-shadow:0 0 0 4px rgba(24,119,242,.08),0 10px 24px rgba(0,0,0,.26)!important;
+  }
+  .dsx-hero-profile strong{
+    font-size:16px!important;
+  }
+  .dsx-hero-profile small{
+    font-size:11px!important;
+  }
+  .dsx-hero-profile .dsos-founding-hero{
+    padding:5px 10px!important;
+    font-size:10px!important;
+    box-shadow:0 5px 14px rgba(217,159,55,.18)!important;
+  }
+
+  /* KPI icons become visual anchors instead of small symbols. */
+  .dsx-stat{
+    min-height:84px!important;
+    max-height:84px!important;
+    grid-template-columns:46px 1fr auto!important;
+  }
+  .dsx-stat>.dsx-stat-icon{
+    width:42px!important;
+    height:42px!important;
+  }
+  .dsx-stat>.dsx-stat-icon .ds30-icon{
+    width:24px!important;
+    height:24px!important;
+  }
+  .dsx-stat>strong{
+    font-size:25px!important;
+  }
+
+  /* Right rail receives the stronger light hierarchy in the illustration. */
+  .dsx-upcoming{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(53,208,127,.025)!important;
+  }
+  .dsx-journey-card{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(242,201,76,.022)!important;
+  }
+  .dsx-quick-actions-card{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(24,119,242,.025)!important;
+  }
+  .dsx-quick-grid-six a{
+    min-height:62px!important;
+    font-size:9.3px!important;
+  }
+
+  /* Social preview post: more substantial, closer to the approved illustrated post. */
+  #dashboardSocialPreview .ds-review-post:first-child,
+  body.ds-auth-os-page .dsx-feed-page-stream .ds-review-post:first-child{
+    position:relative!important;
+    overflow:hidden!important;
+  }
+  #dashboardSocialPreview .ds-review-post:first-child:after,
+  body.ds-auth-os-page .dsx-feed-page-stream .ds-review-post:first-child:after{
+    content:"DOMINIONSTAR  ·  SAVING YOUR FUTURE"!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:76px!important;
+    margin:10px 0 2px!important;
+    padding:12px 18px!important;
+    border-radius:12px!important;
+    background:
+      linear-gradient(115deg,rgba(5,22,44,.96),rgba(14,55,96,.90) 45%,rgba(240,193,91,.22) 100%),
+      radial-gradient(circle at 80% 50%,rgba(255,206,92,.30),transparent 30%)!important;
+    border:1px solid rgba(240,193,91,.28)!important;
+    color:#f5d17b!important;
+    font:800 18px/1.15 Georgia,"Times New Roman",serif!important;
+    letter-spacing:.055em!important;
+    text-align:center!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.04),0 10px 22px rgba(0,0,0,.15)!important;
+  }
+}
