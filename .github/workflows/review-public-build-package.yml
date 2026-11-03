@@ -122,7 +122,7 @@ jobs:
             fi
             echo 'DASHBOARD_PREVIEW_SINGLE_SHELL_OK'
             grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
-            grep -Fq 'Strong week ahead' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ZOOM MEETING – SAVING YOUR FUTURE' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'connect-src' public-dist/_headers
             grep -Fq "'none'" public-dist/_headers
