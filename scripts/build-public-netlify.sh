@@ -64,10 +64,13 @@ img:not([src]),img[src=""],img[src="#"],img[data-preview-broken="true"],video:no
 .ds-review-reaction-summary{display:inline-flex;align-items:center;gap:3px;margin-right:8px}
 .ds-review-reaction-dot{width:18px;height:18px;display:inline-grid;place-items:center;border-radius:50%;font-size:10px;border:2px solid #0b1f3b;margin-right:-5px}
 .ds-review-reaction-dot.like{background:#1877f2}.ds-review-reaction-dot.love{background:#ff4d5a}.ds-review-reaction-dot.celebrate{background:#d79b32}
+.ds-review-author{position:relative}.ds-review-pinned{margin-left:auto;color:#f2c75f;font-size:9px}.ds-review-post-title{margin:10px 0 4px;color:#fff;font-size:13px;letter-spacing:.01em}
+.ds-review-feature-media{min-height:92px;display:flex;align-items:center;justify-content:space-between;gap:18px;margin:10px 0;padding:14px 18px;border-radius:12px;border:1px solid rgba(240,193,91,.28);background:radial-gradient(circle at 78% 50%,rgba(248,184,63,.26),transparent 29%),linear-gradient(115deg,#071a35 0%,#0f3560 52%,#735720 100%);box-shadow:inset 0 1px rgba(255,255,255,.04),0 10px 22px rgba(0,0,0,.18)}
+.ds-review-feature-media strong{font:900 15px/1 Georgia,serif;color:#f5d17b;letter-spacing:.06em}.ds-review-feature-media span{font:800 20px/1.05 Georgia,serif;color:#f4f7fb}.ds-review-feature-media em{color:#f0c15b;font-style:normal}
 .ds-review-event{display:grid;gap:4px}.ds-review-event h3{margin:2px 0;font-size:12.5px}.ds-review-event p,.ds-review-event small{margin:0;color:#9fb3ca;font-size:9.5px}.ds-review-event a{margin-top:5px;padding:7px 9px;border-radius:8px;background:#1877f2;color:#fff!important;text-align:center;text-decoration:none;font-size:10px;font-weight:800}
 .ds-review-conversation{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:9px;border:0;border-radius:9px;background:transparent;color:#eef4fb;text-align:left}.ds-review-conversation.active{background:rgba(24,119,242,.12);box-shadow:inset 3px 0 #1877f2}.ds-review-conversation .avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#173354;color:#f2cf7c;font-weight:900}.ds-review-conversation strong,.ds-review-conversation small{display:block}.ds-review-conversation strong{font-size:11px}.ds-review-conversation small{margin-top:2px;color:#8fa5bd;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-review-conversation time{font-size:8.5px;color:#7087a1}.ds-review-message{display:flex;margin:8px 0}.ds-review-message.mine{justify-content:flex-end}.ds-review-bubble{max-width:65%;padding:9px 11px;border-radius:12px;background:#243d5c;color:#eef4fb;font-size:10.5px;line-height:1.45}.ds-review-message.mine .ds-review-bubble{background:linear-gradient(145deg,#1877f2,#0d63d9);color:#fff}.ds-review-bubble small{display:block;margin-top:4px;opacity:.7;font-size:8px}
 body.ds-visual-review .dm-member-panel{display:block!important}
-body.ds-visual-review img:not([src="/assets/logo.jpeg"]){display:none!important}
+body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/founder-blue.jpeg"]){display:none!important}
 body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review object,body.ds-visual-review embed{display:none!important}
 body.ds-visual-review .dm-welcome{display:none!important}
 CSS
@@ -85,12 +88,19 @@ CSS
   document.body.classList.add('ds-visual-review');
 
   // Shared preview identity. This is visual-review sample content only.
-  for(const id of ['topbarMemberName','heroProfileFullName','feedPageName'])set(id,'DominionStar Member');
+  for(const id of ['topbarMemberName','heroProfileFullName','feedPageName'])set(id,'Levismous Aken');
   for(const id of ['topbarContractLevel','heroContractLevel','feedPageRank'])set(id,'Contract Level: SMD');
-  set('heroMemberName','Member');
-  set('topbarFoundingBadge','Founding Member');
-  set('heroFoundingBadge','Founding Member');
-  set('feedPageFounding','Founding Member');
+  set('heroMemberName','Levismous');
+  set('topbarFoundingBadge','Founding Member #01');
+  set('heroFoundingBadge','Founding Member #01');
+  set('feedPageFounding','Founding Member #01');
+  ['dashboardAvatar','heroProfileAvatar','dashboardComposerAvatar','feedPageAvatar'].forEach(id=>{
+    const img=byId(id); if(!img)return;
+    img.src='/assets/founder-blue.jpeg';
+    img.classList.remove('member-hidden');
+    const initials=img.parentElement?.querySelector('.dsos-avatar-initials');
+    initials?.classList.add('member-hidden');
+  });
   show('topbarFoundingBadge');show('heroFoundingBadge');show('feedPageFounding');
 
   // Dashboard representative state.
@@ -102,7 +112,7 @@ CSS
   const bar=byId('journeyProgressBar');if(bar)bar.style.width='67%';
   html('dashboardNextAppointment','<article class="ds-review-event"><span class="appointment-status confirmed">Upcoming</span><h3>Saving Your Future</h3><p>Wednesday · 8:00 PM CT</p><small>DominionStar weekly financial awareness session</small><a href="#">Join Meeting</a></article>');
   html('dashboardAnnouncementPreview','<article class="dsos-pinned-update"><div class="dsos-pinned-update-head"><span class="dsos-pinned-label">Founder update</span><small>Today</small></div><h3>Weekly leadership focus</h3><p>Build with consistency, serve with professionalism, and keep your team moving forward.</p><a class="dsos-inline-link dsx-announcement-read" href="#">Read Full Update →</a></article>');
-  const post='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Member</strong><small>SMD · Founding Member · 24m</small></span></div><p>Strong week ahead. Keep your follow-up disciplined, support your new agents, and celebrate progress across the team.</p><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary"><i class="ds-review-reaction-dot like">👍</i><i class="ds-review-reaction-dot love">❤️</i><i class="ds-review-reaction-dot celebrate">✨</i></span>24 reactions</span><span>6 comments</span></div><div class="ds-review-actions"><span class="active-like">👍 Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>';
+  const post='<article class="ds-review-post ds-review-featured"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismous Aken</strong><small>SMD · Founding Member #01 · Jul 22, 2026</small></span><b class="ds-review-pinned">★ Pinned</b></div><h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3><p>Wednesday, July 22 · 9 PM ET · 8 PM CT · 6 PM PT</p><div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary"><i class="ds-review-reaction-dot like">👍</i><i class="ds-review-reaction-dot love">❤️</i><i class="ds-review-reaction-dot celebrate">✨</i></span>24 reactions</span><span>8 comments</span></div><div class="ds-review-actions"><span class="active-like">👍 Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>';
   const dashboardSecond='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · 52m</small></span></div><p>Licensing milestone complete. Next focus is product training and consistent prospecting activity.</p><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary"><i class="ds-review-reaction-dot like">👍</i><i class="ds-review-reaction-dot love">❤️</i></span>12 reactions</span><span>3 comments</span></div><div class="ds-review-actions"><span class="active-like">👍 Like</span><span>Comment</span><span>Repost</span><span>Share</span></div></article>';
   html('dashboardSocialPreview',post+dashboardSecond);
 
@@ -182,7 +192,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=5"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=5"></script></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=6"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=6"></script></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
