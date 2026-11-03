@@ -124,6 +124,12 @@ jobs:
             grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
             grep -Fq 'ZOOM MEETING – SAVING YOUR FUTURE' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ds-review-post-photo' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq '/assets/founder-blue.jpeg' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'Leadership is built through consistency' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const likeBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const loveBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            echo 'CAPTIONED_PHOTO_POST_PREVIEW_OK'
             grep -Fq 'connect-src' public-dist/_headers
             grep -Fq "'none'" public-dist/_headers
             grep -Fq "Disallow: /" public-dist/robots.txt
