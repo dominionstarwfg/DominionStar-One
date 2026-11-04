@@ -83,7 +83,7 @@ test('member profile links are read-only and never open the wrong editable accou
   const end=html.indexOf('<section id="ownProfileLayout"');
   const memberSection=html.slice(start,end);
   assert.ok(start>=0&&end>start);
-  assert.doesNotMatch(memberSection,/input|verifiedEmail|phone|address_line|Save Profile Changes/i);
+  assert.doesNotMatch(memberSection,/<input\\b|verifiedEmail|name="phone"|name="address_line|Save Profile Changes/i);
   assert.match(memberSection,/Private email, phone, and address details are not shared/);
   assert.match(preview,/Member Profile · Visual Sample/);
   assert.match(preview,/00000000-0000-4000-8000-000000000001/);
