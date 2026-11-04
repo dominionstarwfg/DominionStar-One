@@ -4772,3 +4772,81 @@ body.ds-auth-os-page .dm-active-copy small{
   body.ds-auth-os-page.dm-os-body .dm-os.conversation-open .dm-sidebar{visibility:hidden!important}
   body.ds-auth-os-page.dm-os-body #dmMobileBack{display:block!important}
 }
+
+
+/* ===== Approved-member read-only profile and mobile Messages height correction ===== */
+body.ds-auth-os-page .dsx-member-public-view{
+  max-width:920px!important;
+  margin:14px auto 30px!important;
+}
+body.ds-auth-os-page .dsx-member-public-card{
+  padding:clamp(18px,2.5vw,30px)!important;
+  border:1px solid rgba(126,168,221,.28)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(18,53,95,.97),rgba(8,27,53,.98))!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.22)!important;
+}
+body.ds-auth-os-page .dsx-member-public-identity{
+  display:flex!important;
+  align-items:center!important;
+  gap:20px!important;
+  padding-bottom:20px!important;
+  border-bottom:1px solid rgba(126,168,221,.20)!important;
+}
+body.ds-auth-os-page .dsx-member-public-avatar{
+  position:relative;
+  flex:0 0 94px;
+  width:94px;height:94px;
+  overflow:hidden;
+  display:grid;place-items:center;
+  border-radius:50%;
+  border:2px solid #f0c15b;
+  background:#15375e;
+  color:#f0c15b;
+  font:800 31px/1 system-ui,sans-serif;
+}
+body.ds-auth-os-page .dsx-member-public-avatar img{
+  position:absolute;inset:0;
+  width:100%;height:100%;object-fit:cover;
+}
+body.ds-auth-os-page .dsx-member-public-identity h2{
+  margin:4px 0!important;
+  color:#f5f8fc!important;
+  font:700 clamp(22px,2.5vw,31px)/1.2 Georgia,serif!important;
+}
+body.ds-auth-os-page .dsx-member-public-identity p:not(.eyebrow){
+  color:#bdd0e5!important;font-size:13px!important;margin:6px 0 10px!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;margin:18px 0!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts>div{
+  display:grid!important;gap:5px!important;
+  padding:13px!important;
+  background:rgba(4,18,38,.44)!important;
+  border:1px solid rgba(126,168,221,.19)!important;
+  border-radius:11px!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts span{
+  color:#acc1d9!important;font-size:11px!important;font-weight:650!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts strong{
+  color:#f5f8fc!important;font-size:13px!important;overflow-wrap:anywhere!important;
+}
+body.ds-auth-os-page .dsx-member-public-privacy{
+  color:#b7c6d9!important;
+  font-size:11.5px!important;
+  line-height:1.55!important;
+}
+body.ds-auth-os-page .dsx-member-public-actions{
+  display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:18px!important;
+}
+@media(max-width:680px){
+  body.ds-auth-os-page .dsx-member-public-identity{align-items:flex-start!important;gap:12px!important}
+  body.ds-auth-os-page .dsx-member-public-avatar{flex-basis:66px;width:66px;height:66px;font-size:23px}
+  body.ds-auth-os-page .dsx-member-public-facts{grid-template-columns:1fr!important}
+  body.ds-auth-os-page.dm-os-body .dsx-messages-title{display:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-composer textarea{min-width:0!important}
+}

@@ -206,8 +206,31 @@ CSS
     node.innerHTML=reviewSvg(noticePaths[Math.min(index,noticePaths.length-1)]);
   });
 
+  // A representative member-only profile, linked from the Messages visual sample.
+  const reviewMemberId='00000000-0000-4000-8000-000000000001';
+  const directMemberLink=byId('dmViewProfileLink');
+  if(directMemberLink)directMemberLink.href='/professional-profile/?member='+reviewMemberId;
+  const menuMemberLink=byId('dmMenuViewProfile');
+  if(menuMemberLink)menuMemberLink.href='/professional-profile/?member='+reviewMemberId;
+  if(byId('profileApp')&&new URLSearchParams(location.search).get('member')===reviewMemberId){
+    byId('ownProfileLayout')?.classList.add('member-hidden');
+    byId('memberPublicProfile')?.classList.remove('member-hidden');
+    const heading=byId('profileApp')?.querySelector('.member-dashboard-header h1');
+    if(heading)heading.textContent='Member Profile · Visual Sample';
+    set('memberPublicName','Sample Team Member');
+    set('memberPublicRank','Contract level: MD');
+    set('memberPublicInitials','TM');
+    set('memberPublicContract','MD');
+    set('memberPublicCode','Sample only');
+    set('memberPublicSmd','Not connected in preview');
+    set('memberPublicLocation','Not shared');
+    set('memberPublicStatus','Preview only');
+    const profileLink=byId('memberPublicMessage');
+    if(profileLink)profileLink.href='/direct-messages/';
+  }
+
   // Auth-disabled Profile is a visual illustration, not an authenticated professional record.
-  if(byId('profileApp')){
+  if(byId('profileApp')&&!new URLSearchParams(location.search).has('member')){
     set('profileDisplayName','Levismous Aken');
     set('profileDisplayRank','SMD · Visual preview');
     set('verifiedFullName','Levismous Aken');

@@ -21,10 +21,15 @@
 
   document.body.classList.add('ds-auth-os-page');
   if(founderMode) document.body.classList.add('ds-founder-os-page');
+  let syncMessageViewport=()=>{};
   const syncShellVisibility=()=>{
     const visible=!app.classList.contains('member-hidden')&&!app.hidden&&!app.hasAttribute('hidden');
     document.body.classList.toggle('ds-auth-os-shell-active',visible);
-    if(app.id==='dmApp') shell?.classList?.toggle('member-hidden',!visible);
+    if(app.id==='dmApp'){
+      shell?.classList?.toggle('member-hidden',!visible);
+      // The shell starts hidden until auth succeeds. Re-measure after it is shown.
+      syncMessageViewport();
+    }
   };
   const releaseFooter=document.querySelector('.platform-release-footer');
   if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
@@ -134,12 +139,16 @@
   // At tablet/mobile sizes the shell enters document flow; reserve its real
   // height for the Messages workspace so the composer stays above the viewport edge.
   if(app.id==='dmApp'){
-    const syncMessageViewport=()=>{
+    syncMessageViewport=()=>{
       const compact=window.matchMedia('(max-width:1040px)').matches;
-      app.style.setProperty('--ds-agent-shell-compact-height',compact?Math.ceil(shell.getBoundingClientRect().height)+'px':'0px');
+      const visible=!shell.classList.contains('member-hidden');
+      const height=compact&&visible?Math.ceil(shell.getBoundingClientRect().height):0;
+      app.style.setProperty('--ds-agent-shell-compact-height',height+'px');
     };
-    syncMessageViewport();
     window.addEventListener('resize',syncMessageViewport,{passive:true});
+    if(typeof ResizeObserver==='function'){
+      new ResizeObserver(syncMessageViewport).observe(shell);
+    }
   }
   syncShellVisibility();
   new MutationObserver(syncShellVisibility).observe(app,{attributes:true,attributeFilter:['class','hidden']});

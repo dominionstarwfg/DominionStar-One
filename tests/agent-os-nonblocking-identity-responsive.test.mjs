@@ -54,3 +54,38 @@ test('no production behavior was traded for invented preview identity data',()=>
   assert.match(directory,/member-avatars/);
   assert.match(preview,/VISUAL REVIEW ONLY/);
 });
+
+
+test('Messages compact viewport remeasures after authenticated shell becomes visible',()=>{
+  const visibility=nav.indexOf('const syncShellVisibility=()=>');
+  const toggled=nav.indexOf("shell?.classList?.toggle('member-hidden',!visible);",visibility);
+  const measured=nav.indexOf('syncMessageViewport();',toggled);
+  assert.ok(visibility>=0&&toggled>visibility&&measured>toggled);
+  assert.match(nav,/let syncMessageViewport=\(\)=>\{\};/);
+  assert.match(nav,/new ResizeObserver\(syncMessageViewport\)\.observe\(shell\)/);
+});
+
+test('member profile links are read-only and never open the wrong editable account',()=>{
+  const profileJs=read('assets/js/professional-profile.js');
+  const html=read('professional-profile/index.html');
+  const inbox=read('assets/js/direct-messages.js');
+  assert.match(inbox,/\`\/professional-profile\/\?member=\$\{encodeURIComponent\(member\.id\)\}/);
+  assert.match(profileJs,/new URLSearchParams\(location\.search\)\.get\('member'\)/);
+  assert.match(profileJs,/if\(requestedMemberId && requestedMemberId!==session\.user\.id\)/);
+  assert.match(profileJs,/\.select\('verification_status'\)\.eq\('id',session\.user\.id\)/);
+  assert.match(profileJs,/\.eq\('id',requestedMemberId\)\.eq\('verification_status','approved'\)/);
+  assert.match(profileJs,/document\.getElementById\('ownProfileLayout'\)\?\.classList\.add\('member-hidden'\)/);
+  assert.match(profileJs,/document\.getElementById\('memberPublicProfile'\)\?\.classList\.remove\('member-hidden'\)/);
+  assert.match(profileJs,/if\(messageLink\)messageLink\.href='\/direct-messages\/\?member='/);
+  assert.match(html,/id="memberPublicProfile"/);
+  assert.match(html,/id="ownProfileLayout"/);
+  const start=html.indexOf('<section id="memberPublicProfile"');
+  const end=html.indexOf('<section id="ownProfileLayout"');
+  const memberSection=html.slice(start,end);
+  assert.ok(start>=0&&end>start);
+  assert.doesNotMatch(memberSection,/input|verifiedEmail|phone|address_line|Save Profile Changes/i);
+  assert.match(memberSection,/Private email, phone, and address details are not shared/);
+  assert.match(preview,/Member Profile · Visual Sample/);
+  assert.match(preview,/00000000-0000-4000-8000-000000000001/);
+  assert.doesNotThrow(()=>new vm.Script(profileJs));
+});
