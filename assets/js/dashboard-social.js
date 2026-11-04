@@ -325,7 +325,7 @@
         options[next].focus();
       }
     });
-    document.addEventListener('click',event=>{
+    document.addEventListener?.('click',event=>{
       // A picker must not stay open after the member clicks elsewhere.
       if(!target.contains(event.target))closeMenus();
     });
