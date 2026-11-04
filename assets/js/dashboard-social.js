@@ -141,7 +141,7 @@
           </div>
           <div class="ds30-post-actions" role="group" aria-label="Post actions">
             <div class="ds30-react-wrap">
-              <button type="button" class="ds30-react-main ${viewerReaction?'has-reaction reaction-'+escapeHtml(viewerReaction):''}" data-social="react" aria-expanded="false" aria-pressed="${Boolean(viewerReaction)}">${icon(viewerReaction||'like')}<span>${escapeHtml(reactionLabel)}</span></button>
+              <button type="button" class="ds30-react-main ${viewerReaction?'has-reaction reaction-'+escapeHtml(viewerReaction):''}" data-social="react" aria-haspopup="menu" aria-expanded="false" aria-pressed="${Boolean(viewerReaction)}">${icon(viewerReaction||'like')}<span>${escapeHtml(reactionLabel)}</span></button>
               <div class="ds30-reaction-picker" hidden role="menu" aria-label="Choose a reaction">
                 ${reactionOrder.map(name=>'<button type="button" role="menuitem" class="reaction-'+name+'" data-social="reaction" data-reaction="'+name+'" title="'+reactionMeta[name].label+'"><span class="ds30-reaction-picker-icon">'+reactionBadge(name)+'</span><span>'+reactionMeta[name].label+'</span></button>').join('')}
               </div>
@@ -223,7 +223,10 @@
     };
     target.addEventListener('click', event => {
       const button=event.target.closest('button[data-social]');
-      if(!button||!target.contains(button))return;
+      if(!button||!target.contains(button)){
+        if(!event.target.closest('.ds30-react-wrap,.ds30-post-options'))closeMenus();
+        return;
+      }
       const card=button.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       if(!post)return;
@@ -233,20 +236,22 @@
         closeMenus();menu.hidden=!willOpen;
         button.setAttribute('aria-expanded',String(willOpen));return;
       }
+      if(action==='react'){
+        const picker=card.querySelector('.ds30-reaction-picker');
+        // Inspect state before closing other menus so the same control can toggle off.
+        const willOpen=picker.hidden;
+        closeMenus();
+        picker.hidden=!willOpen;
+        button.setAttribute('aria-expanded',String(willOpen));
+        if(willOpen)picker.querySelector('button[data-social="reaction"]')?.focus();
+        return;
+      }
       closeMenus();
       if(action==='comment'){
         const form=card.querySelector('.ds30-comment-form');
         form.hidden=!form.hidden;
         button.setAttribute('aria-expanded',String(!form.hidden));
         if(!form.hidden)form.querySelector('textarea')?.focus();
-        return;
-      }
-      if(action==='react'){
-        const picker=card.querySelector('.ds30-reaction-picker');
-        const willOpen=picker.hidden;
-        closeMenus();
-        picker.hidden=!willOpen;
-        button.setAttribute('aria-expanded',String(willOpen));
         return;
       }
       if(action==='reaction')return void inFlight(async()=>{
@@ -294,6 +299,35 @@
           await refresh();notice('Reposted to the community.');
         });
       }
+    });
+    // Treat the reaction choices as a keyboard-navigable menu, not a mouse-only popup.
+    target.addEventListener('keydown',event=>{
+      if(event.key==='Escape'){
+        const expanded=target.querySelector('[data-social="react"][aria-expanded="true"],[data-social="menu"][aria-expanded="true"]');
+        if(!expanded)return;
+        event.preventDefault();
+        closeMenus();
+        expanded.focus();
+        return;
+      }
+      const picker=event.target.closest?.('.ds30-reaction-picker');
+      if(!picker||picker.hidden)return;
+      const options=Array.from(picker.querySelectorAll('button[data-social="reaction"]'));
+      if(!options.length)return;
+      const index=options.indexOf(document.activeElement);
+      let next=-1;
+      if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%options.length;
+      else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index+options.length-1)%options.length;
+      else if(event.key==='Home')next=0;
+      else if(event.key==='End')next=options.length-1;
+      if(next>=0){
+        event.preventDefault();
+        options[next].focus();
+      }
+    });
+    document.addEventListener('click',event=>{
+      // A picker must not stay open after the member clicks elsewhere.
+      if(!target.contains(event.target))closeMenus();
     });
     target.addEventListener('submit',event=>{
       const form=event.target.closest('.ds30-comment-form');
