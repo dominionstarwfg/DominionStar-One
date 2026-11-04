@@ -14,8 +14,12 @@ const css=read('assets/css/dominionstar-cinematic-os.css');
 const preview=read('scripts/build-public-netlify.sh');
 
 test('Dashboard quick actions retain their routes and carry SVG pictograms',()=>{
+  const quickStart=dashboard.indexOf('class="dsx-quick-grid dsx-quick-grid-six"');
+  assert.ok(quickStart>=0,'Dashboard quick-action grid missing');
+  const quickEnd=dashboard.indexOf('</div>',quickStart);
+  const quick=dashboard.slice(quickStart,quickEnd);
   const expected=[
-    ['dashboardComposerBody','ds30-edit'],
+    ['#dashboardComposerBody','ds30-edit'],
     ['/meet/','ds30-video'],
     ['/appointments/','ds30-calendar'],
     ['/agent-learning/','ds30-book'],
@@ -23,15 +27,16 @@ test('Dashboard quick actions retain their routes and carry SVG pictograms',()=>
     ['/community/','ds30-community']
   ];
   for(const [destination,symbol] of expected){
-    const link=dashboard.match(new RegExp('<a[^>]*href="[^"]*'+destination.replaceAll('/','\\/')+'[^"]*"[^>]*>[\\s\\S]*?<\\/a>'));
-    assert.ok(link,'Missing quick action for '+destination);
-    assert.ok(link[0].includes('href="#'+symbol+'"'),'Missing identifiable icon: '+symbol);
-    assert.match(link[0],/aria-label="/);
+    const pos=quick.indexOf('href="'+destination+'"');
+    assert.ok(pos>=0,'Missing quick action for '+destination);
+    const link=quick.slice(quick.lastIndexOf('<a',pos),quick.indexOf('</a>',pos)+4);
+    assert.ok(link.includes('href="#'+symbol+'"'),'Missing identifiable icon: '+symbol);
+    assert.match(link,/aria-label="/);
   }
   for(const id of ['ds30-photo','ds30-video','ds30-attach','ds30-poll','ds30-send']){
     assert.ok(dashboard.includes('href="#'+id+'"'),id+' must have a recognizable icon');
   }
-  assert.doesNotMatch(dashboard,/<a class="action-blue" href="#dashboardComposerBody">✎/);
+  assert.doesNotMatch(quick,/>✎/);
 });
 
 test('Notifications have recognizable category SVGs and labeled filter controls',()=>{
