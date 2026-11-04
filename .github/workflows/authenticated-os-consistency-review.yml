@@ -55,6 +55,7 @@ on:
       - 'netlify/functions/founder-data.mjs'
       - 'scripts/security/direct-message-integrity.DO-NOT-RUN.review.sql'
       - 'scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql'
+      - 'tests/icon-first-agent-os-review.test.mjs'
       - 'tests/authenticated-os-consistency-review.test.mjs'
       - 'tests/approved-secondary-workspace-fidelity.test.mjs'
       - 'tests/founder-os-integrity-review.test.mjs'
@@ -208,6 +209,7 @@ jobs:
           node --test tests/approved-illustration-fidelity.test.mjs
           node --test tests/feed-social-reaction-readability.test.mjs
           node --test tests/feed-contrast-polish.test.mjs
+          node --test tests/icon-first-agent-os-review.test.mjs
 
       - name: Notification compatibility regression
         run: |
