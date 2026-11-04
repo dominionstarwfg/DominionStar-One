@@ -4459,3 +4459,16 @@ body.ds-auth-os-page #dmSoundToggle[aria-pressed="true"] .dsx-inline-action-icon
   .dsos-executive .dsx-quick-grid-six .dsx-action-symbol{width:21px!important;height:21px!important;flex-basis:21px!important}
   body.ds-auth-os-page #notificationFilters .dsx-icon-action{min-height:40px!important}
 }
+
+/* Keep the existing primary-button selector intact while displaying its pictogram. */
+body.ds-auth-os-page #markAllNotifications{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page #markAllNotifications .dsx-inline-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex-basis:18px!important;
+}
