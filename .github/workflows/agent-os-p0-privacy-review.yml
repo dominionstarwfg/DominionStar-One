@@ -1,0 +1,41 @@
+name: DominionStar — Agent OS P0 Privacy Review (No Database Changes)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/AGENT_OS_P0_PRIVACY_RELEASE_GATE.md'
+      - 'scripts/security/agent-os-privacy-baseline.READ-ONLY.review.sql'
+      - 'scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql'
+      - 'tests/agent-os-p0-privacy-review.test.mjs'
+      - '.github/workflows/agent-os-p0-privacy-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Verify P0 privacy review artifacts only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static review unit tests
+        run: node --test tests/agent-os-p0-privacy-review.test.mjs
+      - name: Ensure remediation SQL cannot run in this review workflow
+        run: |
+          set -euo pipefail
+          grep -Fq 'DO NOT RUN' scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql
+          grep -Fq 'READ ONLY' scripts/security/agent-os-privacy-baseline.READ-ONLY.review.sql
+          if grep -nE '^[[:space:]]+(psql |supabase db push|netlify deploy --prod|supabase migration up|apply_migration)' .github/workflows/agent-os-p0-privacy-review.yml; then
+            echo 'Mutation command forbidden in review-only workflow' >&2
+            exit 1
+          fi
+      - name: Affirm P0 security remains unapproved for release
+        run: |
+          grep -Fq 'production changes prohibited' docs/AGENT_OS_P0_PRIVACY_RELEASE_GATE.md
+          echo 'P0_PRIVACY_REVIEW_ONLY_OK — staging authorization tests still required'
