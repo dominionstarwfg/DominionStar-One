@@ -97,6 +97,14 @@
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
+  const auxiliaryLabels={
+    '/agent-journey':'My Journey',
+    '/agent-learning':'Learning & Development',
+    '/workspace/drive':'Drive',
+    '/workspace/tasks':'Tasks'
+  };
+  // Keep the approved sidebar group title; retain route-specific titles for assistive context.
+  section.title=(items.find(item=>normalized(item[1])===path)||[])[0]||auxiliaryLabels[path]||(founderMode?'Founder Operations':'My Space');
   section.textContent=founderMode?'FOUNDER SPACE':'MY SPACE';
 
   const search=document.createElement('button');
