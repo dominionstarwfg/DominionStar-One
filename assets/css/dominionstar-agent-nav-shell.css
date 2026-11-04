@@ -106,3 +106,11 @@
 @media(max-width:620px){
   .ds-agent-brand-mark{flex-basis:34px;width:34px;height:34px}
 }
+
+/* Specificity lock: gold means selected; blue means hover only. */
+body.ds-auth-os-page .ds-agent-nav .ds-agent-nav-item:hover:not(.active){
+  color:#fff!important;
+  border-color:rgba(64,151,250,.34)!important;
+  background:linear-gradient(90deg,rgba(24,119,242,.20),rgba(16,47,88,.16))!important;
+  box-shadow:inset 2px 0 #2688ff!important;
+}

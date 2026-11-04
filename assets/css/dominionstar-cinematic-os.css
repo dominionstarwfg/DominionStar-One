@@ -4472,3 +4472,22 @@ body.ds-auth-os-page #markAllNotifications .dsx-inline-action-icon{
   height:18px!important;
   flex-basis:18px!important;
 }
+
+/* Shared icon scale for Feed quick links, matching Dashboard semantic glyphs. */
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a .dsx-feed-quick-icon{
+  display:block!important;
+  flex:0 0 20px!important;
+  width:20px!important;
+  height:20px!important;
+  color:#88bdff!important;
+  stroke:currentColor!important;
+}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(3) .dsx-feed-quick-icon{color:#f0c15b!important}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(4) .dsx-feed-quick-icon{color:#ff8291!important}

@@ -132,18 +132,20 @@ test('approved Dashboard and secondary Agent pages share one brand and navigatio
   const shell=read('assets/js/dominionstar-agent-nav-shell.js');
   const dashboard=read('member-dashboard/index.html');
   const sidebarCss=read('assets/css/dominionstar-agent-nav-shell.css');
-  assert.match(dashboard,/class="dsos-brand"[\\s\\S]*?<img src="\\/assets\\/logo\\.jpeg"/);
-  assert.match(shell,/ds-agent-brand-mark"><img src="\\/assets\\/logo\\.jpeg"/);
-  assert.match(shell,/ds-agent-brand-copy"><strong>DominionStar<\\/strong>/);
-  assert.match(shell,/section\\.textContent=founderMode\\?'FOUNDER SPACE':'MY SPACE'/);
-  assert.match(shell,/group\\.textContent='MY ACCOUNT'/);
-  assert.match(shell,/if\\(!founderMode && name==='My Profile'\\)/);
-  assert.match(sidebarCss,/\\.ds-agent-brand-mark img\\{/);
-  assert.match(sidebarCss,/\\.ds-agent-nav-item\\.active\\{[\\s\\S]*#f0c15b/);
-  assert.match(sidebarCss,/\\.ds-agent-nav-item:hover:not\\(\\.active\\)/);
+  assert.ok(dashboard.includes('class="dsos-brand"'));
+  assert.ok(dashboard.includes('<img src="/assets/logo.jpeg"'));
+  assert.ok(shell.includes('ds-agent-brand-mark"><img src="/assets/logo.jpeg"'));
+  assert.ok(shell.includes('ds-agent-brand-copy"><strong>DominionStar</strong>'));
+  assert.ok(shell.includes("section.textContent=founderMode?'FOUNDER SPACE':'MY SPACE'"));
+  assert.ok(shell.includes("group.textContent='MY ACCOUNT'"));
+  assert.ok(shell.includes("if(!founderMode && name==='My Profile')"));
+  assert.ok(sidebarCss.includes('.ds-agent-brand-mark img{'));
+  assert.ok(sidebarCss.includes('.ds-agent-nav-item.active{'));
+  assert.ok(sidebarCss.includes('inset 3px 0 #f0c15b'));
+  assert.ok(sidebarCss.includes('.ds-agent-nav-item:hover:not(.active)'));
 });
 
-test('Feed quick links use icons with the same meaning as the Agent navigation',()=>{
+test('Feed quick links use sized SVG icons and the same Agent routes',()=>{
   const feed=read('feed/index.html');
   for(const [route,label] of [
     ['/direct-messages/','Messages'],
@@ -155,12 +157,15 @@ test('Feed quick links use icons with the same meaning as the Agent navigation',
     assert.ok(pos>=0,'Missing '+label+' quick link');
     const end=feed.indexOf('</a>',pos);
     const link=feed.slice(pos,end);
-    assert.match(link,/<svg[^>]*dsx-feed-quick-icon/);
-    assert.match(link,/<span>/);
+    assert.ok(link.includes('class="dsx-feed-quick-icon" width="18" height="18"'));
+    assert.ok(link.includes('<span>'+label+'</span>'));
   }
   const social=read('assets/js/dashboard-social.js');
-  assert.match(social,/reactionOrder=\\['like','love','celebrate','support','insightful'\\]/);
-  assert.match(social,/data-social="comment"/);
-  assert.match(social,/data-social="repost"/);
-  assert.match(social,/data-social="share"/);
+  assert.ok(social.includes("reactionOrder=['like','love','celebrate','support','insightful']"));
+  for(const action of ['comment','repost','share']){
+    assert.ok(social.includes('data-social="'+action+'"'));
+  }
+  const css=read('assets/css/dominionstar-cinematic-os.css');
+  assert.ok(css.includes('.dsx-feed-quick-icon{'));
+  assert.ok(css.includes('color:#ff8291!important'));
 });
