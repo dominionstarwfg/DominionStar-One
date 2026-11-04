@@ -114,15 +114,21 @@
   const initials = name => String(name || 'DS')
     .split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
 
+  const avatarRequests = new Map();
   const resolveAvatar = async member => {
     if (!member?.avatar_path) return '';
     if (avatarUrls.has(member.id)) return avatarUrls.get(member.id);
-    const result = await client.storage
-      .from('member-avatars')
-      .createSignedUrl(member.avatar_path, 3600);
-    const url = result.data?.signedUrl || '';
-    avatarUrls.set(member.id, url);
-    return url;
+    if (avatarRequests.has(member.id)) return avatarRequests.get(member.id);
+    const task = Promise.race([
+      client.storage.from('member-avatars').createSignedUrl(member.avatar_path, 3600),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Avatar request timeout')),5000))
+    ]).then(result=>{
+      const url=result?.error?'':(result?.data?.signedUrl||'');
+      if(url)avatarUrls.set(member.id,url);
+      return url;
+    }).catch(()=> '').finally(()=>avatarRequests.delete(member.id));
+    avatarRequests.set(member.id,task);
+    return task;
   };
 
   const avatarMarkup = member => {
@@ -438,10 +444,7 @@
     display_name: member.preferred_name || member.full_name || 'Member'
   }));
 
-  await Promise.all(members.map(member => resolveAvatar(member)));
-
-  if(window.DominionStarPresence){try{await window.DominionStarPresence.init();await window.DominionStarPresence.refresh(members.map(m=>m.id));window.DominionStarPresence.onChange(async()=>{await window.DominionStarPresence.refresh(members.map(m=>m.id));updatePresenceDisplays();});}catch(error){console.warn('Presence engine unavailable:',error);}}
-
+  // Names, initials and conversation metadata must not depend on Storage or presence.
   forwardMember.innerHTML = '<option value="">Choose a member</option>' +
     members.map(member => `<option value="${member.id}">${escapeHtml(member.display_name)}</option>`).join('');
 
@@ -1487,6 +1490,36 @@
 
   await loadConversationSummaries();
   renderMembers('');
+  // Hydrate real profile photos in small batches after the inbox is usable.
+  // Initials remain visible if a signed URL is unavailable or its image fails.
+  void (async()=>{
+    for(let index=0;index<members.length;index+=8){
+      const batch=members.slice(index,index+8).filter(member=>member.avatar_path);
+      if(!batch.length)continue;
+      await Promise.allSettled(batch.map(resolveAvatar));
+      renderMembers(search?.value);
+      const current=members.find(member=>member.id===activeMemberId);
+      if(current){
+        setAvatarElement(activeAvatar,current);
+        setAvatarElement(memberAvatarLarge,current);
+      }
+      updatePresenceDisplays();
+    }
+  })().catch(error=>console.warn('Member photo refresh unavailable:',error));
+  // Presence is optional, and cannot block messaging or incoming call handling.
+  if(window.DominionStarPresence){
+    void (async()=>{
+      try{
+        await window.DominionStarPresence.init();
+        await window.DominionStarPresence.refresh(members.map(m=>m.id));
+        updatePresenceDisplays();
+        window.DominionStarPresence.onChange(async()=>{
+          await window.DominionStarPresence.refresh(members.map(m=>m.id));
+          updatePresenceDisplays();
+        });
+      }catch(error){console.warn('Presence engine unavailable:',error);}
+    })();
+  }
   // The global listener deliberately skips /direct-messages/. Subscribe to
   // the same inbox here to receive calls from agents outside the open chat.
   await subscribeIncomingCallInbox();

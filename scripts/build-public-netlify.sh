@@ -55,6 +55,11 @@ body:before{
 /* Messages must remain a three-column desktop grid in the visual preview.
    A generic #dmApp display:block!important had overridden production geometry. */
 #dmApp.dm-os.dm-os-three{display:grid!important}
+@media(max-width:680px){
+  body.ds-visual-review #dmApp.dm-os.dm-os-three{display:block!important;position:relative!important}
+  body.ds-visual-review #dmApp .dm-chat{transform:none!important;visibility:visible!important}
+  body.ds-visual-review #dmApp .dm-sidebar{visibility:hidden!important}
+}
 button,input,select,textarea,form{pointer-events:none!important}
 a{cursor:pointer!important}
 .member-hidden[data-preview-show="true"]{display:block!important}

@@ -4732,3 +4732,43 @@ body.ds-auth-os-page .dm-conversation-copy small,
 body.ds-auth-os-page .dm-active-copy small{
   color:#aebfd2!important;
 }
+
+
+/* ===== Responsive / identity readiness: preserve the approved desktop aesthetic ===== */
+@media(max-width:1040px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    width:100%!important;
+    max-width:none!important;
+    height:calc(100dvh - var(--ds-agent-shell-compact-height, 122px))!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:8px!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-sidebar,
+  body.ds-auth-os-page.dm-os-body .dm-chat{
+    min-height:0!important;
+  }
+}
+@media(max-width:680px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    display:block!important;
+    position:relative!important;
+    overflow:hidden!important;
+    grid-template-columns:none!important;
+    grid-template-rows:none!important;
+    border-radius:0!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-sidebar,
+  body.ds-auth-os-page.dm-os-body .dm-chat{
+    position:absolute!important;
+    inset:0!important;
+    height:100%!important;
+    min-height:0!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-member-panel{display:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-chat{transform:translateX(100%)!important}
+  body.ds-auth-os-page.dm-os-body .dm-os.conversation-open .dm-chat{transform:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-os.conversation-open .dm-sidebar{visibility:hidden!important}
+  body.ds-auth-os-page.dm-os-body #dmMobileBack{display:block!important}
+}

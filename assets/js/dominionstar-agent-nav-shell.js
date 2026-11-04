@@ -131,6 +131,16 @@
   shell.append(head,nav);
   if(app.id==='dmApp') app.parentNode.insertBefore(shell,app);
   else app.prepend(shell);
+  // At tablet/mobile sizes the shell enters document flow; reserve its real
+  // height for the Messages workspace so the composer stays above the viewport edge.
+  if(app.id==='dmApp'){
+    const syncMessageViewport=()=>{
+      const compact=window.matchMedia('(max-width:1040px)').matches;
+      app.style.setProperty('--ds-agent-shell-compact-height',compact?Math.ceil(shell.getBoundingClientRect().height)+'px':'0px');
+    };
+    syncMessageViewport();
+    window.addEventListener('resize',syncMessageViewport,{passive:true});
+  }
   syncShellVisibility();
   new MutationObserver(syncShellVisibility).observe(app,{attributes:true,attributeFilter:['class','hidden']});
 

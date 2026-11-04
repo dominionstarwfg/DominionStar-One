@@ -29,12 +29,22 @@
         .catch(()=>{});
     }catch(error){showError(error.message);}
   }
+  const avatarCache=new Map(),avatarRequests=new Map();
   async function avatar(path){
     if(!path)return null;
-    try{
-      const r=await timeout(client.storage.from('member-avatars').createSignedUrl(path,3600),5000);
-      return r.error?null:(r.data?.signedUrl||null);
-    }catch{return null;}
+    const cached=avatarCache.get(path);
+    if(cached&&cached.expiresAt>Date.now())return cached.url;
+    if(avatarRequests.has(path))return avatarRequests.get(path);
+    const request=(async()=>{
+      try{
+        const r=await timeout(client.storage.from('member-avatars').createSignedUrl(path,3600),5000);
+        const url=r.error?null:(r.data?.signedUrl||null);
+        if(url)avatarCache.set(path,{url,expiresAt:Date.now()+55*60*1000});
+        return url;
+      }catch{return null;}
+    })().finally(()=>avatarRequests.delete(path));
+    avatarRequests.set(path,request);
+    return request;
   }
   const initials=name=>String(name||'M').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'M';
   const wireAvatarFallbacks=root=>{
@@ -42,27 +52,49 @@
       image.addEventListener('error',()=>image.remove(),{once:true});
     });
   };
-  async function render(){
+  let renderVersion=0;
+  function render(){
+    const version=++renderVersion;
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
-    const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
-    const cards=await Promise.all(filtered.map(async m=>{
-      const pic=await avatar(m.avatar_path);const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
+    const filtered=members.filter(m=>{
+      const hay=[m.full_name,m.preferred_name,m.rank,m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();
+      return(!q||hay.includes(q))&&(!rank||m.rank===rank);
+    });
+    // Render names, initials and actions immediately; signed profile photos are optional.
+    const cards=filtered.map(m=>{
+      const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
       const memberName=m.preferred_name||m.full_name||'Member';
-      return `<article class="member-directory-card">
-        <div class="member-directory-avatar"><span class="member-directory-fallback" aria-hidden="true">${esc(initials(memberName))}</span>${pic?`<img class="member-directory-photo" src="${esc(pic)}" alt="${esc(memberName)}">`:''}<span class="${active?'online':'offline'}"></span></div>
-        <h2>${esc(m.preferred_name||m.full_name||'Member')}</h2>
+      return `<article class="member-directory-card" data-member-id="${esc(m.id)}">
+        <div class="member-directory-avatar"><span class="member-directory-fallback" aria-hidden="true">${esc(initials(memberName))}</span><span class="${active?'online':'offline'}"></span></div>
+        <h2>${esc(memberName)}</h2>
         <p>${esc(m.rank||'TA')}${m.exclusive_member_number?` · Exclusive #${m.exclusive_member_number}`:''}</p>
         <small>${esc([m.city,m.state].filter(Boolean).join(', ')||'Location not listed')}</small>
         <div class="member-directory-actions">
           <a class="btn btn-outline" href="/direct-messages/?member=${encodeURIComponent(m.id)}">Message</a>
-          <button class="btn btn-outline connect-member" data-id="${m.id}" type="button">Connect</button>
+          <button class="btn btn-outline connect-member" data-id="${esc(m.id)}" type="button">Connect</button>
         </div>
       </article>`;
-    }));
+    });
     grid.innerHTML=cards.length?cards.join(''):'<div class="member-empty-state"><h2>No members found.</h2></div>';
-    wireAvatarFallbacks(grid);
-    grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;const r=await client.from('member_connections').insert({requester_id:session.user.id,recipient_id:b.dataset.id});b.textContent=r.error?(r.error.code==='23505'?'Requested':'Unable'):'Requested';}));
+    grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{
+      b.disabled=true;
+      const r=await client.from('member_connections').insert({requester_id:session.user.id,recipient_id:b.dataset.id});
+      b.textContent=r.error?(r.error.code==='23505'?'Requested':'Unable'):'Requested';
+    }));
+    // Ignore responses from a previous search, rank filter or presence refresh.
+    filtered.filter(m=>m.avatar_path).forEach(m=>{
+      void avatar(m.avatar_path).then(url=>{
+        if(!url||version!==renderVersion)return;
+        const card=Array.from(grid.querySelectorAll('.member-directory-card'))
+          .find(node=>node.dataset.memberId===String(m.id));
+        const frame=card?.querySelector('.member-directory-avatar');
+        if(!frame||frame.querySelector('img'))return;
+        const name=m.preferred_name||m.full_name||'Member';
+        frame.insertAdjacentHTML('beforeend',`<img class="member-directory-photo" src="${esc(url)}" alt="${esc(name)}">`);
+        wireAvatarFallbacks(frame);
+      });
+    });
   }
   document.getElementById('directorySearch').addEventListener('input',render);
   document.getElementById('directoryRank').addEventListener('change',render);
