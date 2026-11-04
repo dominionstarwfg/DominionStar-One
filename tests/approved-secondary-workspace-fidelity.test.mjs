@@ -89,3 +89,15 @@ test('directory member loading is independent of presence and has explicit retry
   assert.match(build,/VISUAL SAMPLE ONLY/);
   assert.match(build,/Sample profile · no live data/);
 });
+
+
+test('isolated visual review keeps the desktop Messages workspace in its true grid',()=>{
+  const preview=read('scripts/build-public-netlify.sh');
+  assert.match(preview,/#dmApp\.dm-os\.dm-os-three\{display:grid!important\}/);
+  assert.doesNotMatch(preview,/#feedApp,#communityApp,#dmApp,#notificationApp/);
+  assert.match(messages,/<main id="dmApp" class="dm-os dm-os-three member-hidden">/);
+  assert.match(messages,/<aside class="dm-sidebar">/);
+  assert.match(messages,/<section class="dm-chat">/);
+  assert.match(messages,/<aside id="dmMemberPanel" class="dm-member-panel">/);
+  assert.match(messages,/<form id="dmForm" class="dm-composer">/);
+});

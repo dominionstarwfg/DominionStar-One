@@ -50,8 +50,11 @@ body:before{
 }
 #feedGate,#communityGate,#dmGate,#notificationGate,#directoryGate,
 #agentJourneyGate,#agentLearningGate,#appointmentGate,#profileGate,#settingsGate{display:none!important}
-#feedApp,#communityApp,#dmApp,#notificationApp,#directoryApp,
+#feedApp,#communityApp,#notificationApp,#directoryApp,
 #agentJourneyApp,#agentLearningApp,#appointmentApp,#profileApp,#settingsApp{display:block!important}
+/* Messages must remain a three-column desktop grid in the visual preview.
+   A generic #dmApp display:block!important had overridden production geometry. */
+#dmApp.dm-os.dm-os-three{display:grid!important}
 button,input,select,textarea,form{pointer-events:none!important}
 a{cursor:pointer!important}
 .member-hidden[data-preview-show="true"]{display:block!important}
