@@ -4644,3 +4644,91 @@ body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button:focus-visible{
   outline:2px solid #82b9ff!important;
   outline-offset:2px!important;
 }
+
+
+/* ===== Messages polish: verified visual review, 2026-11-03 =====
+   Preserve three-column workspace while granting member details breathing room.
+   Keep real text entry autosizing on input (do not force a fixed height in production). */
+@media (min-width:1181px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    grid-template-columns:minmax(240px,270px) minmax(0,1fr) minmax(265px,285px)!important;
+    gap:9px!important;
+  }
+}
+@media (min-width:981px) and (max-width:1180px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    grid-template-columns:minmax(210px,240px) minmax(0,1fr) minmax(230px,260px)!important;
+    gap:8px!important;
+  }
+}
+body.ds-auth-os-page .dm-member-panel{
+  padding:14px 12px!important;
+}
+body.ds-auth-os-page .dm-member-facts>div{
+  display:grid!important;
+  grid-template-columns:minmax(85px,1fr) minmax(0,1.15fr)!important;
+  align-items:start!important;
+  gap:10px!important;
+  padding:11px 3px!important;
+}
+body.ds-auth-os-page .dm-member-facts>div span{
+  color:#b0c2d6!important;
+  line-height:1.45!important;
+}
+body.ds-auth-os-page .dm-member-facts>div strong{
+  display:block!important;
+  max-width:none!important;
+  min-width:0!important;
+  color:#f5f8fc!important;
+  line-height:1.45!important;
+  text-align:right!important;
+  overflow-wrap:break-word!important;
+}
+body.ds-auth-os-page .dm-member-actions .btn{
+  min-height:39px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:10px!important;
+  color:#e5f1ff!important;
+  background:rgba(34,81,134,.23)!important;
+  border:1px solid rgba(126,168,221,.26)!important;
+}
+body.ds-auth-os-page .dm-member-actions .btn:hover,
+body.ds-auth-os-page .dm-member-actions .btn:focus-visible{
+  background:rgba(24,119,242,.22)!important;
+  border-color:rgba(120,184,253,.58)!important;
+  color:#fff!important;
+}
+body.ds-auth-os-page #dmAttachmentButton{
+  color:#87baff!important;
+  background:rgba(24,119,242,.12)!important;
+  border:1px solid rgba(101,163,241,.36)!important;
+}
+body.ds-auth-os-page #dmEmojiButton{
+  color:#f0c15b!important;
+  background:rgba(240,193,91,.09)!important;
+  border:1px solid rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page .dm-composer{
+  align-items:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page .dm-composer textarea{
+  min-height:44px!important;
+  max-height:130px!important;
+  line-height:1.4!important;
+  border-radius:16px!important;
+  padding:11px 14px!important;
+}
+body.ds-auth-os-page .dm-composer>button{
+  flex-shrink:0!important;
+}
+body.ds-auth-os-page .dm-conversation-copy strong,
+body.ds-auth-os-page .dm-active-copy strong{
+  color:#f5f8fc!important;
+}
+body.ds-auth-os-page .dm-conversation-copy small,
+body.ds-auth-os-page .dm-active-copy small{
+  color:#aebfd2!important;
+}

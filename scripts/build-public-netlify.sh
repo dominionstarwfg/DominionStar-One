@@ -84,6 +84,26 @@ img:not([src]),img[src=""],img[src="#"],img[data-preview-broken="true"],video:no
 .ds-review-event{display:grid;gap:4px}.ds-review-event h3{margin:2px 0;font-size:12.5px}.ds-review-event p,.ds-review-event small{margin:0;color:#9fb3ca;font-size:9.5px}.ds-review-event a{margin-top:5px;padding:7px 9px;border-radius:8px;background:#1877f2;color:#fff!important;text-align:center;text-decoration:none;font-size:10px;font-weight:800}
 .ds-review-conversation{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:9px;border:0;border-radius:9px;background:transparent;color:#eef4fb;text-align:left}.ds-review-conversation.active{background:rgba(24,119,242,.12);box-shadow:inset 3px 0 #1877f2}.ds-review-conversation .avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#173354;color:#f2cf7c;font-weight:900}.ds-review-conversation strong,.ds-review-conversation small{display:block}.ds-review-conversation strong{font-size:11px}.ds-review-conversation small{margin-top:2px;color:#8fa5bd;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-review-conversation time{font-size:8.5px;color:#7087a1}.ds-review-message{display:flex;margin:8px 0}.ds-review-message.mine{justify-content:flex-end}.ds-review-bubble{max-width:65%;padding:9px 11px;border-radius:12px;background:#243d5c;color:#eef4fb;font-size:10.5px;line-height:1.45}.ds-review-message.mine .ds-review-bubble{background:linear-gradient(145deg,#1877f2,#0d63d9);color:#fff}.ds-review-bubble small{display:block;margin-top:4px;opacity:.7;font-size:8px}
 body.ds-visual-review .dm-member-panel{display:block!important}
+/* Preview only: show short sample conversations at their natural end position.
+   Never impose a fixed composer height on authenticated real conversations. */
+@media(min-width:981px){
+  body.ds-visual-review #dmThread{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-end!important;
+    gap:7px!important;
+  }
+  body.ds-visual-review #dmThread .ds-review-message{margin:0!important}
+  body.ds-visual-review #dmForm textarea{
+    height:44px!important;
+    min-height:44px!important;
+    max-height:44px!important;
+    padding:11px 13px!important;
+    box-sizing:border-box!important;
+  }
+}
+body.ds-visual-review .dm-member-panel .dm-member-facts strong{word-break:normal!important}
+
 body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/founder-blue.jpeg"]){display:none!important}
 body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review object,body.ds-visual-review embed{display:none!important}
 body.ds-visual-review .dm-welcome{display:none!important}

@@ -101,3 +101,19 @@ test('isolated visual review keeps the desktop Messages workspace in its true gr
   assert.match(messages,/<aside id="dmMemberPanel" class="dm-member-panel">/);
   assert.match(messages,/<form id="dmForm" class="dm-composer">/);
 });
+
+
+test('Messages member details have sufficient width and hierarchy on desktop',()=>{
+  assert.match(css,/\.dm-os\.dm-os-three\{[\s\S]*minmax\(265px,285px\)!important/);
+  assert.match(css,/\.dm-member-facts>div\{[\s\S]*grid-template-columns:minmax\(85px,1fr\) minmax\(0,1\.15fr\)!important/);
+  assert.match(css,/#dmAttachmentButton\{[\s\S]*color:#87baff!important/);
+  assert.match(css,/#dmEmojiButton\{[\s\S]*color:#f0c15b!important/);
+});
+
+test('review preview anchors short conversations at bottom with compact message entry',()=>{
+  const build=read('scripts/build-public-netlify.sh');
+  assert.match(build,/body\.ds-visual-review #dmThread\{[\s\S]*justify-content:flex-end!important/);
+  assert.match(build,/body\.ds-visual-review #dmForm textarea\{[\s\S]*height:44px!important/);
+  assert.match(build,/body\.ds-visual-review \.dm-member-panel\{display:block!important\}/);
+  assert.match(css,/\.dm-composer textarea\{[\s\S]*max-height:130px!important/);
+});
