@@ -60,7 +60,7 @@ test('privacy remediation explicitly blocks view-only masking and production rel
 test('currently displayed directory/member views request a public-safe subset, not account notes',()=>{
   assert.match(directory,/\.select\('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number'\)/);
   assert.doesNotMatch(directory,/\.select\('[^']*(?:email|phone|account_notes|address_line1)[^']*'\)/);
-  assert.match(profile,/memberPublicProfile/);
+  assert.match(profile,/function renderProfile\(\)/);
   // This is UI-side hygiene, not a substitute for database authorization.
   assert.match(plan,/A read-only professional-profile page is NOT a data/);
 });
