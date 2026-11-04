@@ -93,17 +93,11 @@
   const brand=document.createElement('a');
   brand.href=founderMode?'/founder-control/':'/member-dashboard/';
   brand.className='ds-agent-brand';
-  brand.innerHTML='<span class="ds-agent-brand-mark">✦</span><span class="ds-agent-brand-copy"><strong>DOMINIONSTAR</strong><small>'+(founderMode?'FOUNDER OS':'EXECUTIVE OS')+'</small></span>';
+  brand.innerHTML='<span class="ds-agent-brand-mark"><img src="/assets/logo.jpeg" alt="" loading="eager" decoding="async"></span><span class="ds-agent-brand-copy"><strong>DominionStar</strong><small>'+(founderMode?'FOUNDER OS':'EXECUTIVE OS')+'</small></span>';
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
-  const auxiliaryLabels={
-    '/agent-journey':'My Journey',
-    '/agent-learning':'Learning & Development',
-    '/workspace/drive':'Drive',
-    '/workspace/tasks':'Tasks'
-  };
-  section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || auxiliaryLabels[path] || (founderMode?'Founder Operations':'My Space');
+  section.textContent=founderMode?'FOUNDER SPACE':'MY SPACE';
 
   const search=document.createElement('button');
   search.className='ds-agent-search-trigger';search.type='button';
@@ -115,6 +109,13 @@
   nav.className='ds-agent-nav';
   nav.setAttribute('aria-label',founderMode?'Founder OS navigation':'Agent OS navigation');
   for(const [name,url,key] of items){
+    // Match the approved Dashboard's separation between workspaces and account controls.
+    if(!founderMode && name==='My Profile'){
+      const group=document.createElement('small');
+      group.className='ds-agent-nav-group';
+      group.textContent='MY ACCOUNT';
+      nav.appendChild(group);
+    }
     const link=document.createElement('a');link.href=url;link.className='ds-agent-nav-item';
     if(normalized(url)===path){link.classList.add('active');link.setAttribute('aria-current','page');}
     link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);

@@ -126,3 +126,41 @@ test('legacy authenticated build labels are normalized at runtime',()=>{
   assert.match(shell,/DominionStar · Founder OS/);
   assert.match(shell,/DominionStar · Executive OS/);
 });
+
+
+test('approved Dashboard and secondary Agent pages share one brand and navigation hierarchy',()=>{
+  const shell=read('assets/js/dominionstar-agent-nav-shell.js');
+  const dashboard=read('member-dashboard/index.html');
+  const sidebarCss=read('assets/css/dominionstar-agent-nav-shell.css');
+  assert.match(dashboard,/class="dsos-brand"[\\s\\S]*?<img src="\\/assets\\/logo\\.jpeg"/);
+  assert.match(shell,/ds-agent-brand-mark"><img src="\\/assets\\/logo\\.jpeg"/);
+  assert.match(shell,/ds-agent-brand-copy"><strong>DominionStar<\\/strong>/);
+  assert.match(shell,/section\\.textContent=founderMode\\?'FOUNDER SPACE':'MY SPACE'/);
+  assert.match(shell,/group\\.textContent='MY ACCOUNT'/);
+  assert.match(shell,/if\\(!founderMode && name==='My Profile'\\)/);
+  assert.match(sidebarCss,/\\.ds-agent-brand-mark img\\{/);
+  assert.match(sidebarCss,/\\.ds-agent-nav-item\\.active\\{[\\s\\S]*#f0c15b/);
+  assert.match(sidebarCss,/\\.ds-agent-nav-item:hover:not\\(\\.active\\)/);
+});
+
+test('Feed quick links use icons with the same meaning as the Agent navigation',()=>{
+  const feed=read('feed/index.html');
+  for(const [route,label] of [
+    ['/direct-messages/','Messages'],
+    ['/member-directory/','Members'],
+    ['/recognition/','Recognition'],
+    ['/notifications/','Alerts']
+  ]){
+    const pos=feed.indexOf('href="'+route+'" aria-label="'+label+'"');
+    assert.ok(pos>=0,'Missing '+label+' quick link');
+    const end=feed.indexOf('</a>',pos);
+    const link=feed.slice(pos,end);
+    assert.match(link,/<svg[^>]*dsx-feed-quick-icon/);
+    assert.match(link,/<span>/);
+  }
+  const social=read('assets/js/dashboard-social.js');
+  assert.match(social,/reactionOrder=\\['like','love','celebrate','support','insightful'\\]/);
+  assert.match(social,/data-social="comment"/);
+  assert.match(social,/data-social="repost"/);
+  assert.match(social,/data-social="share"/);
+});

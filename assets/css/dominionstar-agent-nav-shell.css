@@ -57,3 +57,52 @@
 }
 @media(prefers-reduced-motion:reduce){.ds-agent-nav-item,.ds-agent-progress,.ds-agent-progress span{transition:none}}
 @view-transition{navigation:auto}
+
+
+/* Approved Executive OS navigation parity: same branded identity as Dashboard. */
+.ds-agent-brand-mark{
+  flex:0 0 40px;
+  width:40px;
+  height:40px;
+  overflow:hidden;
+  background:#07162b;
+}
+.ds-agent-brand-mark img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+}
+.ds-agent-brand-copy strong{
+  letter-spacing:-.015em;
+  font-size:14px;
+  font-weight:850;
+  text-transform:none;
+}
+.ds-agent-nav-group{
+  display:block;
+  margin:16px 9px 5px;
+  padding:0;
+  font-size:10.5px;
+  font-weight:850;
+  letter-spacing:.18em;
+  color:#a3b8d2;
+  text-transform:uppercase;
+}
+.ds-agent-nav-item:hover:not(.active){
+  color:#fff;
+  background:rgba(30,103,180,.16);
+  border-color:rgba(80,155,235,.26);
+  box-shadow:inset 2px 0 #2688ff;
+}
+.ds-agent-nav-item.active{
+  border-color:rgba(240,193,91,.55);
+  box-shadow:inset 3px 0 #f0c15b,0 0 18px rgba(240,193,91,.09);
+}
+@media(max-width:1040px){
+  .ds-agent-nav-group{display:none}
+}
+@media(max-width:620px){
+  .ds-agent-brand-mark{flex-basis:34px;width:34px;height:34px}
+}
