@@ -63,6 +63,8 @@ img:not([src]),img[src=""],img[src="#"],img[data-preview-broken="true"],video:no
 .ds-review-actions .active-like{color:#72acff!important;background:rgba(24,119,242,.14)!important}
 .ds-review-actions .active-love{color:#ff7180!important;background:rgba(255,59,85,.13)!important}
 .ds-review-actions .comment-action{color:#d5e4f3}.ds-review-actions .repost-action{color:#67cdfb}.ds-review-actions .share-action{color:#82b9ff}
+.ds-review-actions .celebrate{color:#f5cf73}.ds-review-actions .support{color:#72e6ab}.ds-review-actions .insightful{color:#c3b7ff}
+.ds-review-actions .dsx-inline-action-icon{width:15px;height:15px;flex:0 0 15px}
 .ds-review-actions .active-like{color:#78afff;background:rgba(24,119,242,.11)}
 .ds-review-actions .active-love{color:#ff7d88;background:rgba(255,77,90,.10)}
 .ds-review-reaction-summary{display:inline-flex;align-items:center;gap:3px;margin-right:8px}
@@ -152,6 +154,28 @@ CSS
   // Community representative feed.
   html('communityFeed','<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Member</strong><small>Discussion · 32m</small></span></div><p>What is one practice that has improved your follow-up consistency this month?</p><div class="ds-review-actions"><span class="like">Like</span><span>Celebrate</span><span>Support</span><span>Insightful</span></div></article><article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>Milestone · 2h</small></span></div><p>Completed another licensing milestone today. Appreciate the support from the team.</p><div class="ds-review-actions"><span class="like">Like</span><span>Celebrate</span><span>Support</span><span>Insightful</span></div></article>');
 
+  // Show the same recognizable pictograms in backend-free Community and Inbox samples.
+  const reviewSvg = path => '<svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+path+'"/></svg>';
+  const reviewActionIcons={
+    Like:['M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7','like'],
+    Celebrate:['m12 2 2.2 6.7L21 11l-5.6 4.2 2.1 6.8L12 18l-5.5 4 2.1-6.8L3 11l6.8-2.3L12 2','celebrate'],
+    Support:['M4 12v-2a3 3 0 0 1 3-3h2l3 3 3-3h2a3 3 0 0 1 3 3v2M3 14l6 6h6l6-6','support'],
+    Insightful:['M9 18h6M10 22h4M8.5 14.5a6 6 0 1 1 7 0c-.9.8-1.5 1.7-1.5 2.5h-4c0-.8-.6-1.7-1.5-2.5','insightful']
+  };
+  document.querySelectorAll('#communityFeed .ds-review-actions span').forEach(node=>{
+    const label=node.textContent.trim();
+    const config=reviewActionIcons[label];
+    if(config){node.classList.add(config[1]);node.innerHTML=reviewSvg(config[0])+'<span>'+label+'</span>';}
+  });
+  const noticePaths=[
+    'M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z',
+    'M5 19 19 5M8 5h11v11',
+    'M7 4h10v5a5 5 0 0 1-10 0V4ZM12 14v7M8 21h8'
+  ];
+  document.querySelectorAll('#notificationList .notification-item-icon').forEach((node,index)=>{
+    node.innerHTML=reviewSvg(noticePaths[Math.min(index,noticePaths.length-1)]);
+  });
+
   // Remove browser broken-image placeholders from source-less images.
   document.querySelectorAll('img').forEach(img=>{if(!img.getAttribute('src'))img.remove();else img.addEventListener('error',()=>img.remove(),{once:true});});
   document.querySelectorAll('video,iframe,object,embed').forEach(node=>node.remove());
@@ -211,7 +235,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=8"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=8"></script></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=9"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=9"></script></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
