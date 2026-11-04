@@ -21,10 +21,15 @@
 
   document.body.classList.add('ds-auth-os-page');
   if(founderMode) document.body.classList.add('ds-founder-os-page');
+  let syncMessageViewport=()=>{};
   const syncShellVisibility=()=>{
     const visible=!app.classList.contains('member-hidden')&&!app.hidden&&!app.hasAttribute('hidden');
     document.body.classList.toggle('ds-auth-os-shell-active',visible);
-    if(app.id==='dmApp') shell?.classList?.toggle('member-hidden',!visible);
+    if(app.id==='dmApp'){
+      shell?.classList?.toggle('member-hidden',!visible);
+      // The shell starts hidden until auth succeeds. Re-measure after it is shown.
+      syncMessageViewport();
+    }
   };
   const releaseFooter=document.querySelector('.platform-release-footer');
   if(releaseFooter) releaseFooter.textContent=founderMode?'DominionStar · Founder OS':'DominionStar · Executive OS';
@@ -93,7 +98,7 @@
   const brand=document.createElement('a');
   brand.href=founderMode?'/founder-control/':'/member-dashboard/';
   brand.className='ds-agent-brand';
-  brand.innerHTML='<span class="ds-agent-brand-mark">✦</span><span class="ds-agent-brand-copy"><strong>DOMINIONSTAR</strong><small>'+(founderMode?'FOUNDER OS':'EXECUTIVE OS')+'</small></span>';
+  brand.innerHTML='<span class="ds-agent-brand-mark"><img src="/assets/logo.jpeg" alt="" loading="eager" decoding="async"></span><span class="ds-agent-brand-copy"><strong>DominionStar</strong><small>'+(founderMode?'FOUNDER OS':'EXECUTIVE OS')+'</small></span>';
 
   const section=document.createElement('div');
   section.className='ds-agent-current';
@@ -103,7 +108,9 @@
     '/workspace/drive':'Drive',
     '/workspace/tasks':'Tasks'
   };
-  section.textContent=(items.find(item=>normalized(item[1])===path)||[])[0] || auxiliaryLabels[path] || (founderMode?'Founder Operations':'My Space');
+  // Keep the approved sidebar group title; retain route-specific titles for assistive context.
+  section.title=(items.find(item=>normalized(item[1])===path)||[])[0]||auxiliaryLabels[path]||(founderMode?'Founder Operations':'My Space');
+  section.textContent=founderMode?'FOUNDER SPACE':'MY SPACE';
 
   const search=document.createElement('button');
   search.className='ds-agent-search-trigger';search.type='button';
@@ -115,6 +122,13 @@
   nav.className='ds-agent-nav';
   nav.setAttribute('aria-label',founderMode?'Founder OS navigation':'Agent OS navigation');
   for(const [name,url,key] of items){
+    // Match the approved Dashboard's separation between workspaces and account controls.
+    if(!founderMode && name==='My Profile'){
+      const group=document.createElement('small');
+      group.className='ds-agent-nav-group';
+      group.textContent='MY ACCOUNT';
+      nav.appendChild(group);
+    }
     const link=document.createElement('a');link.href=url;link.className='ds-agent-nav-item';
     if(normalized(url)===path){link.classList.add('active');link.setAttribute('aria-current','page');}
     link.innerHTML=svg(key)+'<span></span>';link.lastElementChild.textContent=name;nav.appendChild(link);
@@ -122,6 +136,20 @@
   shell.append(head,nav);
   if(app.id==='dmApp') app.parentNode.insertBefore(shell,app);
   else app.prepend(shell);
+  // At tablet/mobile sizes the shell enters document flow; reserve its real
+  // height for the Messages workspace so the composer stays above the viewport edge.
+  if(app.id==='dmApp'){
+    syncMessageViewport=()=>{
+      const compact=window.matchMedia('(max-width:1040px)').matches;
+      const visible=!shell.classList.contains('member-hidden');
+      const height=compact&&visible?Math.ceil(shell.getBoundingClientRect().height):0;
+      app.style.setProperty('--ds-agent-shell-compact-height',height+'px');
+    };
+    window.addEventListener('resize',syncMessageViewport,{passive:true});
+    if(typeof ResizeObserver==='function'){
+      new ResizeObserver(syncMessageViewport).observe(shell);
+    }
+  }
   syncShellVisibility();
   new MutationObserver(syncShellVisibility).observe(app,{attributes:true,attributeFilter:['class','hidden']});
 

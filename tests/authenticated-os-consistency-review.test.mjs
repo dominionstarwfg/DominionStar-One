@@ -126,3 +126,46 @@ test('legacy authenticated build labels are normalized at runtime',()=>{
   assert.match(shell,/DominionStar · Founder OS/);
   assert.match(shell,/DominionStar · Executive OS/);
 });
+
+
+test('approved Dashboard and secondary Agent pages share one brand and navigation hierarchy',()=>{
+  const shell=read('assets/js/dominionstar-agent-nav-shell.js');
+  const dashboard=read('member-dashboard/index.html');
+  const sidebarCss=read('assets/css/dominionstar-agent-nav-shell.css');
+  assert.ok(dashboard.includes('class="dsos-brand"'));
+  assert.ok(dashboard.includes('<img src="/assets/logo.jpeg"'));
+  assert.ok(shell.includes('ds-agent-brand-mark"><img src="/assets/logo.jpeg"'));
+  assert.ok(shell.includes('ds-agent-brand-copy"><strong>DominionStar</strong>'));
+  assert.ok(shell.includes("section.textContent=founderMode?'FOUNDER SPACE':'MY SPACE'"));
+  assert.ok(shell.includes("group.textContent='MY ACCOUNT'"));
+  assert.ok(shell.includes("if(!founderMode && name==='My Profile')"));
+  assert.ok(sidebarCss.includes('.ds-agent-brand-mark img{'));
+  assert.ok(sidebarCss.includes('.ds-agent-nav-item.active{'));
+  assert.ok(sidebarCss.includes('inset 3px 0 #f0c15b'));
+  assert.ok(sidebarCss.includes('.ds-agent-nav-item:hover:not(.active)'));
+});
+
+test('Feed quick links use sized SVG icons and the same Agent routes',()=>{
+  const feed=read('feed/index.html');
+  for(const [route,label] of [
+    ['/direct-messages/','Messages'],
+    ['/member-directory/','Members'],
+    ['/recognition/','Recognition'],
+    ['/notifications/','Alerts']
+  ]){
+    const pos=feed.indexOf('href="'+route+'" aria-label="'+label+'"');
+    assert.ok(pos>=0,'Missing '+label+' quick link');
+    const end=feed.indexOf('</a>',pos);
+    const link=feed.slice(pos,end);
+    assert.ok(link.includes('class="dsx-feed-quick-icon" width="18" height="18"'));
+    assert.ok(link.includes('<span>'+label+'</span>'));
+  }
+  const social=read('assets/js/dashboard-social.js');
+  assert.ok(social.includes("reactionOrder=['like','love','celebrate','support','insightful']"));
+  for(const action of ['comment','repost','share']){
+    assert.ok(social.includes('data-social="'+action+'"'));
+  }
+  const css=read('assets/css/dominionstar-cinematic-os.css');
+  assert.ok(css.includes('.dsx-feed-quick-icon{'));
+  assert.ok(css.includes('color:#ff8291!important'));
+});

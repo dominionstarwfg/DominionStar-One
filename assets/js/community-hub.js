@@ -140,13 +140,16 @@
   gate.classList.add('member-hidden');
   app.classList.remove('member-hidden');
 
+  const communityIconPaths={
+    like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
+    celebrate:'<path d="m12 2 2.2 6.7L21 11l-5.6 4.2 2.1 6.8L12 18l-5.5 4 2.1-6.8L3 11l6.8-2.3L12 2Z"/>',
+    support:'<path d="M4 12v-2a3 3 0 0 1 3-3h2l3 3 3-3h2a3 3 0 0 1 3 3v2"/><path d="m3 14 6 6h6l6-6M9 14l3 3 3-3"/>',
+    insightful:'<path d="M9 18h6M10 22h4"/><path d="M8.5 14.5a6 6 0 1 1 7 0c-.9.8-1.5 1.7-1.5 2.5h-4c0-.8-.6-1.7-1.5-2.5Z"/>',
+    comment:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>'
+  };
+  const communityIcon=name=>'<svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+communityIconPaths[name]+'</svg>';
   function reactionLabel(type) {
-    return {
-      like:'👍 Like',
-      celebrate:'🎉 Celebrate',
-      support:'🤝 Support',
-      insightful:'💡 Insightful'
-    }[type];
+    return {like:'Like',celebrate:'Celebrate',support:'Support',insightful:'Insightful'}[type];
   }
 
   async function fetchProfiles(userIds) {
@@ -238,7 +241,7 @@
         <div class="community-reaction-row">
           ${['like','celebrate','support','insightful'].map(reaction=>{
             const active=reactions.some(item=>item.user_id===session.user.id&&item.reaction===reaction);
-            return '<button class="community-reaction-button '+(active?'is-active':'')+'" data-reaction="'+reaction+'" type="button" aria-pressed="'+(active?'true':'false')+'">'+reactionLabel(reaction)+' <b>'+reactionCounts[reaction]+'</b></button>';
+            return '<button class="community-reaction-button '+(active?'is-active':'')+'" data-reaction="'+reaction+'" type="button" aria-label="'+reactionLabel(reaction)+' ('+reactionCounts[reaction]+')" aria-pressed="'+(active?'true':'false')+'">'+communityIcon(reaction)+'<span>'+reactionLabel(reaction)+'</span><b>'+reactionCounts[reaction]+'</b></button>';
           }).join('')}
         </div>
         <div class="ds-community-social-actions" role="group" aria-label="Share post">
@@ -274,7 +277,7 @@
           ${post.is_locked?'':`
             <form class="community-comment-form">
               <input name="body" maxlength="1500" required placeholder="Write a comment…">
-              <button class="btn btn-outline" type="submit">Reply</button>
+              <button class="btn btn-outline dsx-icon-action" type="submit" aria-label="Send comment">${communityIcon('comment')}<span>Reply</span></button>
             </form>`}
         </section>
       </article>`;

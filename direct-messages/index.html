@@ -22,7 +22,7 @@
     <header class="dm-sidebar-header">
       <a href="/member-dashboard/" class="dm-back" aria-label="Back to dashboard">←</a>
       <div><strong>Messages</strong><small>Private conversations</small></div>
-      <button id="dmSoundToggle" type="button" aria-pressed="true" title="Toggle message sound">🔊</button>
+      <button id="dmSoundToggle" type="button" aria-label="Message sounds on" aria-pressed="true" title="Toggle message sound"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/></svg></button>
     </header>
 
     <div class="dm-search-wrap">
@@ -55,7 +55,7 @@
         <button id="dmSearchConversationButton" type="button" aria-label="Search conversation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></button>
         <button id="dmAudioCallButton" type="button" aria-label="Start audio call"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 2.5 9 7.2 6.9 9.3c1.1 2.3 2.9 4.1 5.2 5.2l2.1-2.1 4.7 2.4c.4.2.6.6.5 1-.4 2.4-2.5 4.2-5 4.2C8.6 20 4 15.4 4 9.6c0-2.5 1.8-4.6 4.2-5 .4-.1.8.1 1 .5Z"></path></svg></button>
         <button id="dmVideoCallButton" type="button" aria-label="Start video call"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"></rect><path d="m16 10 5-3v10l-5-3"></path></svg></button>
-        <button id="dmMeetButton" type="button" aria-label="Start DominionStar Meet" title="Start Meet">🎥+</button>
+        <button id="dmMeetButton" type="button" aria-label="Start DominionStar Meet" title="Start Meet"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="12" height="14" rx="2"/><path d="m15 10 5-3v10l-5-3M8 9v6M5 12h6"/></svg></button>
         <button id="dmShareScreenButton" type="button" aria-label="Share screen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4M8 10l4-4 4 4M12 6v7"></path></svg></button>
         <button id="dmConversationMenuButton" type="button" aria-label="Conversation actions"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg></button>
       </div>
@@ -78,12 +78,12 @@
 
     <form id="dmForm" class="dm-composer">
       <div id="dmReplyPreview" class="dm-reply-preview member-hidden"><div><small>Replying to</small><strong id="dmReplyText"></strong></div><button id="dmCancelReply" type="button">×</button></div>
-      <button id="dmEmojiButton" class="dm-composer-icon" type="button" aria-label="Choose emoji">☺</button>
+      <button id="dmEmojiButton" class="dm-composer-icon" type="button" aria-label="Choose emoji"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2 2.5 3 4 3s3-1 4-3"/><path d="M8.5 9h.01M15.5 9h.01"/></svg></button>
       <button id="dmAttachmentButton" class="dm-composer-icon" type="button" aria-label="Attach a file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.5 11.5-8.7 8.7a6 6 0 0 1-8.5-8.5l9.4-9.4a4 4 0 0 1 5.7 5.7l-9.5 9.5a2 2 0 1 1-2.8-2.8l8.8-8.8"></path></svg></button>
       <input id="dmAttachmentInput" type="file" hidden multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
       <textarea name="body" maxlength="2000" rows="1" placeholder="Write a message"></textarea>
       <button id="dmMicButton" class="dm-mic-button" type="button" aria-label="Record voice note"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"></path></svg></button>
-      <button id="dmSendButton" type="submit" aria-label="Send message">➤</button>
+      <button id="dmSendButton" type="submit" aria-label="Send message" title="Send message"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
       <div id="dmEmojiPicker" class="dm-emoji-picker member-hidden">😀 😃 😄 😂 😊 ❤️ 👍 👏 🔥 🎉 🙏 💯</div>
       <div id="dmVoicePreview" class="dm-voice-preview member-hidden">
         <audio id="dmVoicePreviewAudio" controls></audio>
@@ -111,7 +111,7 @@
     <div class="dm-member-actions">
       <a id="dmViewProfileLink" class="btn btn-outline" href="/member-directory/">View Profile</a>
       <a id="dmScheduleMeetingLink" class="btn btn-outline" href="/appointments/">Schedule Meeting</a>
-      <a id="dmRecognitionLink" class="btn btn-outline" href="/journey/">View Journey</a>
+      <a id="dmRecognitionLink" class="btn btn-outline" href="/agent-journey/">View Journey</a>
     </div>
 
     <section class="dm-shared-summary">
@@ -140,7 +140,7 @@
   <div class="dm-modal-card">
     <header><div><strong>Forward message</strong><small>Select a DominionStar member</small></div><button id="dmCloseForward" type="button">×</button></header>
     <select id="dmForwardMember"></select>
-    <button id="dmConfirmForward" class="btn btn-gold" type="button">Forward</button>
+    <button id="dmConfirmForward" class="btn dsx-action-primary" type="button">Forward</button>
   </div>
 </div>
 

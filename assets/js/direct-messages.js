@@ -114,15 +114,21 @@
   const initials = name => String(name || 'DS')
     .split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
 
+  const avatarRequests = new Map();
   const resolveAvatar = async member => {
     if (!member?.avatar_path) return '';
     if (avatarUrls.has(member.id)) return avatarUrls.get(member.id);
-    const result = await client.storage
-      .from('member-avatars')
-      .createSignedUrl(member.avatar_path, 3600);
-    const url = result.data?.signedUrl || '';
-    avatarUrls.set(member.id, url);
-    return url;
+    if (avatarRequests.has(member.id)) return avatarRequests.get(member.id);
+    const task = Promise.race([
+      client.storage.from('member-avatars').createSignedUrl(member.avatar_path, 3600),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Avatar request timeout')),5000))
+    ]).then(result=>{
+      const url=result?.error?'':(result?.data?.signedUrl||'');
+      if(url)avatarUrls.set(member.id,url);
+      return url;
+    }).catch(()=> '').finally(()=>avatarRequests.delete(member.id));
+    avatarRequests.set(member.id,task);
+    return task;
   };
 
   const avatarMarkup = member => {
@@ -381,8 +387,10 @@
   const broadcastTyping=async isTyping=>{if(!typingChannel||!activeMemberId)return;await typingChannel.send({type:'broadcast',event:'typing',payload:{from:session.user.id,to:activeMemberId,isTyping}});};
 
   const updateSoundButton = () => {
-    soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
-    soundToggle.setAttribute('aria-pressed', String(soundEnabled));
+    if(!soundToggle)return;
+    soundToggle.innerHTML='<svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5 6 9H3v6h3l5 4V5Z"/>'+(soundEnabled?'<path d="M15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>':'<path d="m16 9 5 6m0-6-5 6"/>')+'</svg>';
+    soundToggle.setAttribute('aria-pressed',String(soundEnabled));
+    soundToggle.setAttribute('aria-label',soundEnabled?'Message sounds on':'Message sounds off');
   };
 
   soundToggle?.addEventListener('click', () => {
@@ -436,10 +444,7 @@
     display_name: member.preferred_name || member.full_name || 'Member'
   }));
 
-  await Promise.all(members.map(member => resolveAvatar(member)));
-
-  if(window.DominionStarPresence){try{await window.DominionStarPresence.init();await window.DominionStarPresence.refresh(members.map(m=>m.id));window.DominionStarPresence.onChange(async()=>{await window.DominionStarPresence.refresh(members.map(m=>m.id));updatePresenceDisplays();});}catch(error){console.warn('Presence engine unavailable:',error);}}
-
+  // Names, initials and conversation metadata must not depend on Storage or presence.
   forwardMember.innerHTML = '<option value="">Choose a member</option>' +
     members.map(member => `<option value="${member.id}">${escapeHtml(member.display_name)}</option>`).join('');
 
@@ -599,7 +604,7 @@
       const raw=String(message.body||'');
       const reply=raw.startsWith('[reply]')?raw.slice(7).split('\n---\n'):null;
       const content=attachment?attachmentMarkup(attachment):raw.startsWith('[voice-note]')?`<div class="dm-voice-shell"><audio class="dm-voice-message" controls src="${escapeHtml(raw.slice(12))}"></audio><button class="dm-speed" type="button">1×</button></div>`:raw.startsWith('[call-event]')?(()=>{const p=raw.slice(12).split('|');return `<div class="dm-call-event ${escapeHtml(p[0]||'missed')}"><span>${p[1]==='video'?'▣':'☎'}</span><div><strong>${escapeHtml(p.slice(2).join('|')||'Call event')}</strong><small>${p[1]==='video'?'Video call':'Audio call'}</small></div></div>`;})():reply?`<div class="dm-inline-reply"><small>Reply</small><span>${escapeHtml(reply[0])}</span></div><p>${linkify(reply.slice(1).join('\n---\n'))}</p>`:`<p>${linkify(raw)}</p>`;
-      return `${dateSep}<article id="message-${message.id}" class="dm-message-row ${mine?'mine':'theirs'} ${pinnedIds.has(message.id)?'pinned':''}" data-message-id="${message.id}"><div class="dm-message-bubble"><div class="dm-hover-actions"><button data-quick-action="react">♡</button><button data-quick-action="reply">↩</button><button data-quick-action="menu">•••</button></div>${pinnedIds.has(message.id)?'<span class="dm-pin-mark">📌</span>':''}${content}<small class="dm-message-meta">${new Date(message.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${message.updated_at&&message.updated_at!==message.created_at?' · edited':''}${messageStatusMarkup(message)}</small>${renderReactions(message.id)}</div></article>`;
+      return `${dateSep}<article id="message-${message.id}" class="dm-message-row ${mine?'mine':'theirs'} ${pinnedIds.has(message.id)?'pinned':''}" data-message-id="${message.id}"><div class="dm-message-bubble"><div class="dm-hover-actions"><button data-quick-action="react" type="button" aria-label="React to message" title="React"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/></svg></button><button data-quick-action="reply" type="button" aria-label="Reply to message" title="Reply"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 10-5 5 5 5"/><path d="M4 15h10a6 6 0 0 0 6-6V6"/></svg></button><button data-quick-action="menu" type="button" aria-label="More message actions" title="More"><svg class="dsx-inline-action-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button></div>${pinnedIds.has(message.id)?'<span class="dm-pin-mark">📌</span>':''}${content}<small class="dm-message-meta">${new Date(message.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}${message.updated_at&&message.updated_at!==message.created_at?' · edited':''}${messageStatusMarkup(message)}</small>${renderReactions(message.id)}</div></article>`;
     }).join(''):`<div class="dm-welcome"><span>✦</span><h2>${filter?'No matching messages':'No messages yet'}</h2><p>${filter?'Try another search term.':'Send the first private message in this conversation.'}</p></div>`;
     thread.querySelectorAll('[data-message-id]').forEach(row=>{const message=visible.find(x=>String(x.id)===row.dataset.messageId);row.querySelector('[data-quick-action="menu"]')?.addEventListener('click',e=>{e.stopPropagation();openMessageMenu(e,message)});row.querySelector('[data-quick-action="reply"]')?.addEventListener('click',()=>setReplyTarget(message));row.querySelector('[data-quick-action="react"]')?.addEventListener('click',e=>{selectedMessage=message;reactionPicker.classList.remove('member-hidden');reactionPicker.style.left=`${Math.min(e.clientX,window.innerWidth-260)}px`;reactionPicker.style.top=`${Math.min(e.clientY,window.innerHeight-80)}px`;});row.addEventListener('contextmenu',e=>{e.preventDefault();openMessageMenu(e,message)});});
     thread.querySelectorAll('.dm-speed').forEach(btn=>btn.addEventListener('click',()=>{const audio=btn.previousElementSibling;const speeds=[1,1.5,2];const next=speeds[(speeds.indexOf(audio.playbackRate)+1)%speeds.length];audio.playbackRate=next;btn.textContent=`${next}×`;}));
@@ -1485,6 +1490,36 @@
 
   await loadConversationSummaries();
   renderMembers('');
+  // Hydrate real profile photos in small batches after the inbox is usable.
+  // Initials remain visible if a signed URL is unavailable or its image fails.
+  void (async()=>{
+    for(let index=0;index<members.length;index+=8){
+      const batch=members.slice(index,index+8).filter(member=>member.avatar_path);
+      if(!batch.length)continue;
+      await Promise.allSettled(batch.map(resolveAvatar));
+      renderMembers(search?.value);
+      const current=members.find(member=>member.id===activeMemberId);
+      if(current){
+        setAvatarElement(activeAvatar,current);
+        setAvatarElement(memberAvatarLarge,current);
+      }
+      updatePresenceDisplays();
+    }
+  })().catch(error=>console.warn('Member photo refresh unavailable:',error));
+  // Presence is optional, and cannot block messaging or incoming call handling.
+  if(window.DominionStarPresence){
+    void (async()=>{
+      try{
+        await window.DominionStarPresence.init();
+        await window.DominionStarPresence.refresh(members.map(m=>m.id));
+        updatePresenceDisplays();
+        window.DominionStarPresence.onChange(async()=>{
+          await window.DominionStarPresence.refresh(members.map(m=>m.id));
+          updatePresenceDisplays();
+        });
+      }catch(error){console.warn('Presence engine unavailable:',error);}
+    })();
+  }
   // The global listener deliberately skips /direct-messages/. Subscribe to
   // the same inbox here to receive calls from agents outside the open chat.
   await subscribeIncomingCallInbox();

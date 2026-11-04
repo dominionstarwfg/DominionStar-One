@@ -109,6 +109,10 @@ jobs:
           grep -Fq '.appointment-status.rescheduled' production-smoke/cinematic.css
           grep -Fq '.recognition-mark' production-smoke/cinematic.css
           grep -Fq '.dsx-action-primary' production-smoke/cinematic.css
+          grep -Fq '#communityApp>.member-dashboard-header' production-smoke/cinematic.css
+          grep -Fq '.profile-stable-layout' production-smoke/cinematic.css
+          grep -Fq '.settings-layout' production-smoke/cinematic.css
+          grep -Fq '.notification-item' production-smoke/cinematic.css
           grep -Fq -- '--dsx-blue:#1877f2' production-smoke/cinematic.css
           grep -Fq -- '--dsx-danger:#ff4d5a' production-smoke/cinematic.css
           grep -Fq -- '--dsx-success:#35d07f' production-smoke/cinematic.css
@@ -150,6 +154,7 @@ jobs:
           echo 'COMMUNICATION_COLOR_STATES_OK: message, notification, and community semantic states found on production domain.'
           echo 'PEOPLE_PROGRESS_COLOR_STATES_OK: directory, journey, calendar, learning, and recognition semantic states found on production domain.'
           echo 'APPROVED_ILLUSTRATION_DASHBOARD_OK: compact dashboard composition, social preview, and avatar containment found on production domain.'
+          echo 'SECONDARY_WORKSPACE_FIDELITY_OK: compact Community, Profile, Settings, Messages, and Notifications styling found on production domain.'
           echo 'AGENT_OS_PRODUCTION_SMOKE_OK: cinematic workspaces and resilient member identity assets found on production domain.'
           echo 'PUBLIC_RELEASE_SMOKE_OK: current Executive OS, browser-call source, and trusted-message flag state found on production domain.'
           echo 'This checks deployed file content, NOT private call security, authentication, or end-to-end media.'
