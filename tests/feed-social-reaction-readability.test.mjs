@@ -53,3 +53,20 @@ test('social post actions remain icon-first and glance-readable',()=>{
   assert.match(css,/data-social="repost"[\s\S]*#67cdfb/);
   assert.match(css,/data-social="share"[\s\S]*#82b9ff/);
 });
+
+test('reaction menu toggles correctly and supports keyboard and outside dismissal',()=>{
+  const clickHandler=social.indexOf("target.addEventListener('click', event =>");
+  const reactHandler=social.indexOf("if(action==='react')",clickHandler);
+  const genericClose=social.indexOf("      closeMenus();\n      if(action==='comment')",clickHandler);
+  assert.ok(clickHandler>=0&&reactHandler>clickHandler&&genericClose>reactHandler,
+    'Reaction toggle must run before the general menu close');
+  const reactBlock=social.slice(reactHandler,genericClose);
+  assert.ok(reactBlock.indexOf('const willOpen=picker.hidden;')<reactBlock.indexOf('closeMenus();'));
+  assert.ok(reactBlock.includes("picker.querySelector('button[data-social=\"reaction\"]')?.focus()"));
+  assert.ok(social.includes('aria-haspopup="menu" aria-expanded="false"'));
+  assert.ok(social.includes("target.addEventListener('keydown',event=>"));
+  assert.ok(social.includes("if(event.key==='Escape')"));
+  assert.ok(social.includes("event.key==='ArrowRight'||event.key==='ArrowDown'"));
+  assert.ok(social.includes("else if(event.key==='Home')next=0"));
+  assert.ok(social.includes("if(!target.contains(event.target))closeMenus();"));
+});
