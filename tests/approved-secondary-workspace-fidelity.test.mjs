@@ -55,3 +55,37 @@ test('approved semantic color hierarchy remains intact',()=>{
   assert.match(css,/--dsx-warning:#f2c94c/);
   assert.doesNotMatch(css,/\b2030\b/);
 });
+
+
+test('account settings, profile and Community labels are readable over dark surfaces',()=>{
+  const selectors=[
+    '.settings-panel .settings-field',
+    '.profile-section-card .member-grid label',
+    '.dsmedia-caption-label',
+    '.dsmedia-post-options summary',
+    '.dsmedia-action-row .dsmedia-attach-button'
+  ];
+  for(const selector of selectors)assert.ok(css.includes(selector),selector+' contrast lock missing');
+  assert.match(css,/\.settings-panel \.settings-field,[\s\S]*color:#dbe7f5!important/);
+  assert.match(css,/\.profile-section-card \.member-grid label,[\s\S]*color:#dce8f6!important/);
+  assert.match(css,/\.dsmedia-caption-label,[\s\S]*color:#e5eef9!important/);
+  assert.match(css,/\.dsmedia-action-row \.dsmedia-attach-button,[\s\S]*color:#e6f2ff!important/);
+});
+
+test('Notifications preview does not render dead native preference toggles',()=>{
+  assert.match(notifications,/class="dsx-preferences-link" href="\/account-settings\/#notifications"/);
+  assert.doesNotMatch(notifications,/id="notificationSoundSetting"/);
+  assert.doesNotMatch(notifications,/id="notificationBrowserSetting"/);
+});
+
+test('directory member loading is independent of presence and has explicit retry state',()=>{
+  const directory=read('assets/js/member-directory.js');
+  assert.match(directory,/await load\(\);/);
+  assert.doesNotMatch(directory,/await client\.rpc\('community_set_presence'.*\);await load\(\)/);
+  assert.match(directory,/id="directoryRetry"/);
+  assert.match(directory,/Promise\.race/);
+  assert.match(directory,/try\{[\s\S]*createSignedUrl\(path,3600\)/);
+  const build=read('scripts/build-public-netlify.sh');
+  assert.match(build,/VISUAL SAMPLE ONLY/);
+  assert.match(build,/Sample profile · no live data/);
+});

@@ -84,6 +84,7 @@ body.ds-visual-review .dm-member-panel{display:block!important}
 body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/founder-blue.jpeg"]){display:none!important}
 body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review object,body.ds-visual-review embed{display:none!important}
 body.ds-visual-review .dm-welcome{display:none!important}
+.ds-directory-review-note,.dsx-directory-review-note{grid-column:1/-1;color:#b9cbe0;font:750 11px/1.4 system-ui,sans-serif;letter-spacing:.06em;padding:6px 0}
 CSS
 
   mkdir -p "$DIST/assets/js"
@@ -175,6 +176,16 @@ CSS
   document.querySelectorAll('#notificationList .notification-item-icon').forEach((node,index)=>{
     node.innerHTML=reviewSvg(noticePaths[Math.min(index,noticePaths.length-1)]);
   });
+
+  // Static directory preview: sample cards only, never real database records.
+  const sampleDirectory=byId('directoryGrid');
+  if(sampleDirectory){
+    sampleDirectory.innerHTML='<div class="dsx-directory-review-note" role="note">VISUAL SAMPLE ONLY · Live members load after sign-in.</div>'+
+      [{name:'Sample Agent',initials:'SA',rank:'Senior Associate'},{name:'Sample Team Member',initials:'TM',rank:'Marketing Director'}].map(member=>
+        '<article class="member-directory-card"><div class="member-directory-avatar"><span class="member-directory-fallback">'+member.initials+'</span><span class="offline"></span></div>'+
+        '<h2>'+member.name+'</h2><p>'+member.rank+'</p><small>Sample profile · no live data</small><div class="member-directory-actions"><span class="btn btn-outline">Message</span><span class="btn btn-outline">Connect</span></div></article>'
+      ).join('');
+  }
 
   // Remove browser broken-image placeholders from source-less images.
   document.querySelectorAll('img').forEach(img=>{if(!img.getAttribute('src'))img.remove();else img.addEventListener('error',()=>img.remove(),{once:true});});

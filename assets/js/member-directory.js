@@ -8,15 +8,34 @@
   const own=await client.from('member_profiles').select('verification_status').eq('id',session.user.id).single();
   if(own.error||own.data?.verification_status!=='approved'){gate.innerHTML='<h1>Founder approval is required.</h1>';return;}
   gate.classList.add('member-hidden');app.classList.remove('member-hidden');
+  const timeout=(promise,ms=12000)=>Promise.race([
+    Promise.resolve(promise),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('The directory request took too long.')),ms))
+  ]);
+  const showError=message=>{
+    grid.innerHTML='<div class="dsx-directory-feedback" role="alert"><strong>Member Directory unavailable</strong><p>'+esc(message||'Unable to load approved members.')+'</p><button type="button" id="directoryRetry">Retry loading members</button></div>';
+    document.getElementById('directoryRetry')?.addEventListener('click',load,{once:true});
+  };
   async function load(){
-    const [m,p]=await Promise.all([
-      client.from('member_profiles').select('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number').eq('verification_status','approved').order('full_name'),
-      client.from('community_presence').select('user_id,is_online,last_seen_at')
-    ]);
-    if(m.error){grid.innerHTML=`<p>${esc(m.error.message)}</p>`;return;}
-    members=m.data||[];presence=Object.fromEntries((p.data||[]).map(x=>[x.user_id,x]));render();
+    grid.innerHTML='<div class="dsx-directory-feedback" role="status"><strong>Loading approved members…</strong><p>Connecting to the secure directory.</p></div>';
+    try{
+      const m=await timeout(client.from('member_profiles').select('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number').eq('verification_status','approved').order('full_name'));
+      if(m.error)throw new Error(m.error.message||'Could not load member profiles.');
+      members=m.data||[];
+      render();
+      // Presence is optional: its availability must not block the approved directory.
+      Promise.resolve(client.from('community_presence').select('user_id,is_online,last_seen_at'))
+        .then(p=>{if(!p.error){presence=Object.fromEntries((p.data||[]).map(x=>[x.user_id,x]));render();}})
+        .catch(()=>{});
+    }catch(error){showError(error.message);}
   }
-  async function avatar(path){if(!path)return null;const r=await client.storage.from('member-avatars').createSignedUrl(path,3600);return r.data?.signedUrl||null;}
+  async function avatar(path){
+    if(!path)return null;
+    try{
+      const r=await timeout(client.storage.from('member-avatars').createSignedUrl(path,3600),5000);
+      return r.error?null:(r.data?.signedUrl||null);
+    }catch{return null;}
+  }
   const initials=name=>String(name||'M').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'M';
   const wireAvatarFallbacks=root=>{
     root?.querySelectorAll?.('img.member-directory-photo').forEach(image=>{
@@ -47,5 +66,8 @@
   }
   document.getElementById('directorySearch').addEventListener('input',render);
   document.getElementById('directoryRank').addEventListener('change',render);
-  await client.rpc('community_set_presence',{area:'member-directory',online:true});await load();
+  await load();
+  // Presence is best-effort and must never hold the directory in a loading state.
+  Promise.resolve(client.rpc('community_set_presence',{area:'member-directory',online:true})).catch(()=>{});
+
 })();

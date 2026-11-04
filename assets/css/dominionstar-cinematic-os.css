@@ -4491,3 +4491,156 @@ body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a .dsx-feed-quick-icon{
 }
 body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(3) .dsx-feed-quick-icon{color:#f0c15b!important}
 body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(4) .dsx-feed-quick-icon{color:#ff8291!important}
+
+
+/* ===== Approved Agent OS: dark-surface legibility and control consistency ===== */
+/* User-reviewed 2026-11-03: avoid legacy light-page labels on dark cards. */
+body.ds-auth-os-page .settings-panel .settings-field,
+body.ds-auth-os-page .settings-panel label.settings-field,
+body.ds-auth-os-page .settings-panel .settings-form label{
+  color:#dbe7f5!important;
+  font-weight:800!important;
+  font-size:12px!important;
+  letter-spacing:.01em!important;
+}
+body.ds-auth-os-page .settings-panel .settings-field select,
+body.ds-auth-os-page .settings-panel .settings-form input,
+body.ds-auth-os-page .settings-panel .settings-form select{
+  margin-top:6px!important;
+  color:#f5f8fc!important;
+  background:#091d3a!important;
+  border:1px solid rgba(143,180,224,.43)!important;
+  border-radius:9px!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid label,
+body.ds-auth-os-page .profile-section-card form label,
+body.ds-auth-os-page .profile-section-card .member-grid>label{
+  color:#dce8f6!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid input,
+body.ds-auth-os-page .profile-section-card .member-grid select{
+  display:block!important;
+  width:100%!important;
+  margin-top:6px!important;
+  color:#f4f8ff!important;
+  background:#081c38!important;
+  border:1px solid rgba(143,180,224,.43)!important;
+  border-radius:9px!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid input::placeholder,
+body.ds-auth-os-page .settings-panel input::placeholder{
+  color:#adbed2!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsmedia-caption-label,
+body.ds-auth-os-page .community-composer-card .dsmedia-caption-label{
+  color:#e5eef9!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary,
+body.ds-auth-os-page .community-composer-card .dsmedia-post-options summary{
+  color:#bed7f2!important;
+  font-size:11.5px!important;
+  font-weight:800!important;
+  background:rgba(21,62,109,.32)!important;
+  border:1px solid rgba(143,180,224,.16)!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary span{
+  color:#a8bdd4!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary svg{
+  width:17px!important;
+  height:17px!important;
+  color:#88bcff!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button,
+body.ds-auth-os-page .community-composer-card .dsmedia-attach-button,
+body.ds-auth-os-page .dsx-feed-media-actions .dsmedia-attach-button{
+  min-height:40px!important;
+  color:#e6f2ff!important;
+  background:linear-gradient(145deg,#123d68,#0b2c50)!important;
+  border:1px solid rgba(87,164,239,.45)!important;
+  border-radius:10px!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05)!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button svg{
+  color:#80c5ff!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button:hover{
+  background:linear-gradient(145deg,#1a5087,#103a68)!important;
+  border-color:#78b9ff!important;
+}
+body.ds-auth-os-page .community-composer-card .dsmedia-note,
+body.ds-auth-os-page .community-composer-card .dsmedia-attach-hint,
+body.ds-auth-os-page .dsx-feed-media-actions .dsmedia-attach-hint{
+  color:#b7c8db!important;
+}
+body.ds-auth-os-page .community-composer-card .dsmedia-draft{
+  border-color:rgba(126,168,221,.27)!important;
+}
+body.ds-auth-os-page .dsmedia-post-options .member-grid label,
+body.ds-auth-os-page .community-post-form .member-grid label{
+  color:#dbe7f5!important;
+  font-weight:750!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  margin-top:10px!important;
+  min-height:38px!important;
+  color:#e8f3ff!important;
+  background:rgba(24,119,242,.16)!important;
+  border:1px solid rgba(115,173,244,.36)!important;
+  border-radius:10px!important;
+  padding:8px 12px!important;
+  font-weight:800!important;
+  text-decoration:none!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link svg{
+  display:block!important;width:18px!important;height:18px!important;flex:0 0 18px!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link:hover{
+  color:#fff!important;border-color:#83beff!important;background:rgba(24,119,242,.26)!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback{
+  grid-column:1/-1!important;
+  display:grid!important;
+  gap:8px!important;
+  width:100%!important;
+  min-height:90px!important;
+  padding:18px!important;
+  border-radius:14px!important;
+  color:#d9e7f7!important;
+  border:1px solid rgba(143,180,224,.28)!important;
+  background:linear-gradient(145deg,#122c4e,#0a213f)!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback strong{
+  color:#f5f8fc!important;font-size:14px!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback p{
+  color:#b9cbe0!important;margin:0!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback button{
+  width:max-content!important;min-height:38px!important;
+  padding:8px 13px!important;border-radius:9px!important;
+  color:#fff!important;background:#1877f2!important;
+  border:1px solid rgba(115,173,244,.38)!important;
+  cursor:pointer!important;
+}
+body.ds-auth-os-page .settings-panel .settings-field:focus-within,
+body.ds-auth-os-page .profile-section-card .member-grid label:focus-within{
+  color:#fff!important;
+}
+body.ds-auth-os-page .settings-panel :is(input,select):focus-visible,
+body.ds-auth-os-page .profile-section-card :is(input,select):focus-visible,
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button:focus-visible{
+  outline:2px solid #82b9ff!important;
+  outline-offset:2px!important;
+}
