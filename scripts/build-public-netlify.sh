@@ -85,6 +85,7 @@ body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/found
 body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review object,body.ds-visual-review embed{display:none!important}
 body.ds-visual-review .dm-welcome{display:none!important}
 .ds-directory-review-note,.dsx-directory-review-note{grid-column:1/-1;color:#b9cbe0;font:750 11px/1.4 system-ui,sans-serif;letter-spacing:.06em;padding:6px 0}
+.dsx-profile-review-notice{margin:0 0 10px!important;padding:8px 11px!important;color:#cfe4f7!important;background:rgba(24,119,242,.12)!important;border:1px solid rgba(126,168,221,.27)!important;border-radius:9px!important;font:800 10.5px/1.5 system-ui,sans-serif}
 CSS
 
   mkdir -p "$DIST/assets/js"
@@ -176,6 +177,32 @@ CSS
   document.querySelectorAll('#notificationList .notification-item-icon').forEach((node,index)=>{
     node.innerHTML=reviewSvg(noticePaths[Math.min(index,noticePaths.length-1)]);
   });
+
+  // Auth-disabled Profile is a visual illustration, not an authenticated professional record.
+  if(byId('profileApp')){
+    set('profileDisplayName','Levismous Aken');
+    set('profileDisplayRank','SMD · Visual preview');
+    set('verifiedFullName','Levismous Aken');
+    set('verifiedRank','SMD');
+    set('verifiedEmail','Not connected in preview');
+    set('verifiedAgentCode','Not connected in preview');
+    set('verifiedSmd','Not connected in preview');
+    set('verifiedStatus','Preview only');
+    const picture=byId('profileAvatarPreview');
+    if(picture){picture.src='/assets/founder-blue.jpeg';picture.classList.remove('member-hidden');byId('profileAvatarInitials')?.classList.add('member-hidden');}
+    const contactForm=byId('contactProfileForm');
+    if(contactForm){
+      const fullName=contactForm.querySelector('input[name="full_name"]');
+      if(fullName)fullName.value='Levismous Aken';
+    }
+    const verified=byId('verifiedStatus');
+    if(verified){
+      const explanation=document.createElement('p');
+      explanation.className='dsx-profile-review-notice';
+      explanation.textContent='VISUAL SAMPLE ONLY · Verified details and account changes require sign-in.';
+      verified.closest('.verified-profile-card')?.prepend(explanation);
+    }
+  }
 
   // Static directory preview: sample cards only, never real database records.
   const sampleDirectory=byId('directoryGrid');
