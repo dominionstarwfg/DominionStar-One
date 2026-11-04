@@ -55,11 +55,21 @@ html,body{width:100%!important;height:100%!important;max-width:none!important;ma
 #meetingOverlay .stage>#localMeetingVideo,
 #meetingOverlay .stage>#remoteActiveSpeakerStage,
 #meetingOverlay .stage>.shared-content-video,
-#meetingOverlay .stage>#remoteShareVideo{
+#meetingOverlay .stage>#remoteMediaLayer>#remoteShareVideo{
   width:100%!important;
   height:100%!important;
   max-width:none!important;
   max-height:none!important;
+}
+#meetingOverlay .stage>#remoteMediaLayer{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
 }
 
 /* Stable Zoom-style toolbar zones. Audio/Video, meeting actions, and End/Leave
