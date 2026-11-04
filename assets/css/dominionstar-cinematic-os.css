@@ -4295,3 +4295,167 @@ body.ds-auth-os-page .ds30-react-main:hover .ds30-action-icon,
     flex-basis:16px!important;
   }
 }
+
+
+/* ===== Icon-first OS accessibility: Dashboard, Community, Inbox, Messages ===== */
+.dsx-inline-action-icon,
+.dsx-action-symbol,
+.dsx-notice-symbol{
+  width:20px!important;
+  height:20px!important;
+  flex:0 0 20px!important;
+  display:block!important;
+  stroke:currentColor!important;
+  fill:none!important;
+  stroke-width:2!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+.dsos-executive .dsx-quick-grid-six a{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-height:68px!important;
+  padding:8px 5px!important;
+  text-align:center!important;
+  line-height:1.2!important;
+}
+.dsos-executive .dsx-quick-grid-six .dsx-action-symbol{
+  width:23px!important;
+  height:23px!important;
+  flex-basis:23px!important;
+  filter:drop-shadow(0 0 7px currentColor);
+}
+.dsos-executive .dsx-quick-grid-six a span{
+  font-size:10px!important;
+  font-weight:800!important;
+  color:inherit!important;
+  line-height:1.2!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools a,
+.dsos-executive .dsx-dashboard-composer-tools button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools .dsx-action-symbol{
+  width:17px!important;
+  height:17px!important;
+  flex-basis:17px!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools button .dsx-action-symbol{color:#fff!important}
+
+/* All action controls keep an accessible focus ring, not only a hover color. */
+.dsos-executive .dsx-quick-grid-six a:focus-visible,
+.dsos-executive .dsx-dashboard-composer-tools a:focus-visible,
+body.ds-auth-os-page .dsx-icon-action:focus-visible,
+body.ds-auth-os-page .community-reaction-button:focus-visible,
+body.ds-auth-os-page .dm-hover-actions button:focus-visible,
+body.ds-auth-os-page .dm-composer button:focus-visible{
+  outline:2px solid #9ecaff!important;
+  outline-offset:2px!important;
+}
+body.ds-auth-os-page .dsx-icon-action{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page .dsx-icon-action .dsx-inline-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex-basis:18px!important;
+}
+body.ds-auth-os-page #notificationFilters{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-icon-action{
+  min-height:38px!important;
+  padding:7px 10px!important;
+  color:#c3d3e5!important;
+  border:1px solid rgba(126,168,221,.20)!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-icon-action.active{
+  background:rgba(24,119,242,.22)!important;
+  border-color:rgba(92,160,245,.48)!important;
+  color:#f4f9ff!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-filter-communications .dsx-inline-action-icon{color:#7cb5ff!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-calls .dsx-inline-action-icon{color:#ff8190!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-meetings .dsx-inline-action-icon{color:#59d5b5!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-journey .dsx-inline-action-icon{color:#75bbff!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-recognition .dsx-inline-action-icon{color:#f0c15b!important}
+body.ds-auth-os-page .notification-item-icon .dsx-notice-symbol{
+  width:21px!important;
+  height:21px!important;
+  flex-basis:21px!important;
+}
+
+/* Community reaction symbols carry semantic color; text remains supporting context. */
+body.ds-auth-os-page .community-reaction-button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:38px!important;
+  padding:7px 10px!important;
+}
+body.ds-auth-os-page .community-reaction-button .dsx-inline-action-icon{
+  width:20px!important;
+  height:20px!important;
+  flex-basis:20px!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="like"] .dsx-inline-action-icon{color:#65aaff!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="celebrate"] .dsx-inline-action-icon{color:#f5c94c!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="support"] .dsx-inline-action-icon{color:#65db9b!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="insightful"] .dsx-inline-action-icon{color:#b4a7ff!important}
+body.ds-auth-os-page .ds-community-social-actions button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:39px!important;
+}
+body.ds-auth-os-page .ds-community-social-actions svg{
+  width:19px!important;
+  height:19px!important;
+  flex-basis:19px!important;
+}
+body.ds-auth-os-page .community-comment-form .dsx-inline-action-icon{
+  color:#8fc0ff!important;
+}
+
+/* Messages: retain distinct icons when sound state and message actions change. */
+body.ds-auth-os-page .dm-header-actions .dsx-inline-action-icon,
+body.ds-auth-os-page .dm-composer .dsx-inline-action-icon,
+body.ds-auth-os-page #dmSoundToggle .dsx-inline-action-icon{
+  width:20px!important;
+  height:20px!important;
+  flex-basis:20px!important;
+}
+body.ds-auth-os-page .dm-hover-actions .dsx-inline-action-icon{
+  width:17px!important;
+  height:17px!important;
+  flex-basis:17px!important;
+}
+body.ds-auth-os-page .dm-hover-actions button{
+  display:inline-grid!important;
+  place-items:center!important;
+  min-width:32px!important;
+  min-height:32px!important;
+}
+body.ds-auth-os-page #dmSendButton .dsx-inline-action-icon{color:#fff!important}
+body.ds-auth-os-page #dmSoundToggle[aria-pressed="false"] .dsx-inline-action-icon{color:#98abc1!important}
+body.ds-auth-os-page #dmSoundToggle[aria-pressed="true"] .dsx-inline-action-icon{color:#79b6ff!important}
+
+@media(max-width:760px){
+  .dsos-executive .dsx-quick-grid-six a{min-height:66px!important}
+  .dsos-executive .dsx-quick-grid-six .dsx-action-symbol{width:21px!important;height:21px!important;flex-basis:21px!important}
+  body.ds-auth-os-page #notificationFilters .dsx-icon-action{min-height:40px!important}
+}
