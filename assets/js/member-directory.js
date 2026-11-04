@@ -77,6 +77,8 @@
       </article>`;
     });
     grid.innerHTML=cards.length?cards.join(''):'<div class="member-empty-state"><h2>No members found.</h2></div>';
+    // Maintain the original fallback initializer for any already-present photos.
+    wireAvatarFallbacks(grid);
     grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{
       b.disabled=true;
       const r=await client.from('member_connections').insert({requester_id:session.user.id,recipient_id:b.dataset.id});
