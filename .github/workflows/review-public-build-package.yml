@@ -90,7 +90,7 @@ jobs:
           node-version: '22'
       - name: Verify locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Confirm unconfigured Netlify previews are inert and backend-free
+      - name: Confirm unconfigured Netlify previews are static visual reviews and backend-free
         shell: bash
         run: |
           preview="$(mktemp -d)"
@@ -99,15 +99,51 @@ jobs:
           (
             cd "$preview/repo"
             NETLIFY=true CONTEXT=deploy-preview bash scripts/build-public-netlify.sh >/tmp/ds-preview-isolated.log 2>&1
-            grep -Fq "DOMINIONSTAR_DEPLOY_PREVIEW_ISOLATED_PLACEHOLDER_OK" /tmp/ds-preview-isolated.log
-            grep -Fq "intentionally isolated from production services" public-dist/index.html
+            grep -Fq "DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK" /tmp/ds-preview-isolated.log
+            grep -Fq "Visual review hub" public-dist/index.html
+            grep -Fq 'href="/member-dashboard/"' public-dist/index.html
+            grep -Fq 'href="/feed/"' public-dist/index.html
+            grep -Fq 'href="/direct-messages/"' public-dist/index.html
+            grep -Fq 'href="/notifications/"' public-dist/index.html
+            grep -Fq 'href="/community/"' public-dist/index.html
+            grep -Fq 'href="/professional-profile/"' public-dist/index.html
+            grep -Fq 'href="/account-settings/"' public-dist/index.html
+            test -s public-dist/member-dashboard/index.html
+            test -s public-dist/feed/index.html
+            test -s public-dist/direct-messages/index.html
+            test -s public-dist/notifications/index.html
+            test -s public-dist/community/index.html
+            grep -Fq 'dominionstar-visual-review.css' public-dist/member-dashboard/index.html
+            grep -Fq 'dominionstar-visual-review-fixtures.js' public-dist/member-dashboard/index.html
+            grep -Fq 'dsos-body dsos-executive ds-visual-review' public-dist/member-dashboard/index.html
+            if grep -Fq 'ds-auth-os-shell-active' public-dist/member-dashboard/index.html; then
+              echo 'Dashboard preview must not double-apply authenticated shell spacing' >&2
+              exit 1
+            fi
+            echo 'DASHBOARD_PREVIEW_SINGLE_SHELL_OK'
+            grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
+            grep -Fq 'ZOOM MEETING – SAVING YOUR FUTURE' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ds-review-post-photo' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq '/assets/founder-blue.jpeg' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'Leadership is built through consistency' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const likeBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const loveBadge=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            echo 'CAPTIONED_PHOTO_POST_PREVIEW_OK'
+            grep -Fq 'const commentAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const repostAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'const shareAction=' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ds-review-action-icon' public-dist/assets/css/dominionstar-visual-review.css
+            echo 'ICON_FIRST_SOCIAL_ACTIONS_OK'
+            grep -Fq 'connect-src' public-dist/_headers
+            grep -Fq "'none'" public-dist/_headers
             grep -Fq "Disallow: /" public-dist/robots.txt
             if find netlify/functions -type f -print -quit | grep -q .; then
-              echo "Preview function source survived inert preview build" >&2
+              echo "Preview function source survived static visual review build" >&2
               exit 1
             fi
           )
-          echo "UNCONFIGURED_PREVIEW_ISOLATED_OK"
+          echo "UNCONFIGURED_PREVIEW_STATIC_VISUAL_ISOLATED_OK"
       - name: Confirm current review branch cannot inherit live backend
         shell: bash
         run: |
