@@ -142,6 +142,15 @@ been executed in any database.
   `member_profiles` after explicit backend + frontend testing and approval.
   The remaining owner and Founder SELECT policies keep their access.
 
+### Legacy member opt-out preservation
+
+The preparation candidate explicitly imports `directoryVisible=false` from the
+previous metadata-only Settings preference into the server-owned
+`profile_visibility='private'` value **before** the safe projection
+is backfilled. This migration only restricts visibility; it never treats
+user-controlled metadata as a reason to grant access. A separate staging
+verification must prove every previous opt-out remains hidden.
+
 ### Additional blockers before any production cutover
 
 1. **PR dependency**: PR #196 independently changes Member Directory, Messages,
