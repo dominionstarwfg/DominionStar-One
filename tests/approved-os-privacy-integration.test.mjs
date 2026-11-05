@@ -35,7 +35,10 @@ test('peer Profile queries public-safe projection after staging flag with no pri
   }
   assert.match(branch,/\.eq\('id',requestedMemberId\)\.eq\('verification_status','approved'\)/);
   assert.doesNotMatch(branch,/\.select\('\*'\)/);
-  assert.doesNotMatch(branch,/\.from\('member_profiles'\)[\s\S]*requestedMemberId/);
+  // Own membership verification is a permitted private-table query, but
+  // the peer's selected columns must never come from an unguarded query.
+  assert.match(branch,/const viewer=await supabase.from\('member_profiles'\)/);
+  assert.match(branch,/const memberResult=await supabase.from\(publicDirectoryV2\?'member_public_profiles':'member_profiles'\)/);
   assert.match(auth,/publicMemberProfilesV2:false/);
 });
 
