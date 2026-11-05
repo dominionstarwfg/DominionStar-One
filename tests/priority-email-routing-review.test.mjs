@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   PRIORITY_EMAIL_EVENTS,priorityEmailCategory,priorityEmailDecision
+  ,safeDominionStarEmailUrl
 } from '../netlify/functions/_shared/priority-email-policy.mjs';
-import { safeDominionStarEmailUrl } from '../netlify/functions/process-email-outbox.mjs';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const sql=read('scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql');
