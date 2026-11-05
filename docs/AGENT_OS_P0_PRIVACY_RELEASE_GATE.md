@@ -108,3 +108,81 @@ Scope: Agent One website, signed-in Members, Founder authorization. **Not Domini
 
 **This document does not certify production security. No production SQL has
 been executed, no user records examined, and no production merge performed.**
+
+
+## Phase A / Phase B / Phase C coordinated implementation (2026-11-04)
+
+The review branch now contains an **opt-in** browser route and two separate
+**DO NOT RUN** SQL candidates. This is a preparatory design; they have not
+been executed in any database.
+
+- **Phase A (prepare staging database)**:
+  `scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql`
+  creates `public.member_public_profiles` with only approved, opted-in,
+  public-safe identity fields. An `AFTER INSERT OR UPDATE` trigger keeps
+  the projection synchronized. It also provides an authenticated
+  `set_my_member_directory_visibility` RPC to persist the member's real
+  `profile_visibility` setting. Feed and Community Chat RPC author identity
+  resolve through this safe projection after preparation.
+- **Phase B (switch clients in isolated staging)**:
+  `window.DOMINIONSTAR_AGENT_DATA_FEATURES.publicMemberProfilesV2`
+  remains **false** by default. During a separately approved, coordinated
+  test release, switch it to true *only after* Phase A is validated. When
+  enabled, Member Directory, Messages peer identity, Community peer
+  profiles, Community Chat lookups, and incoming-call identity use
+  `member_public_profiles` and deliberately do not fall back to raw
+  `member_profiles`. Own Profile and Founder Admin continue using
+  `member_profiles` because their RLS policies authorize own/Founder reads.
+  The Settings directory toggle reads `profile_visibility` from the server
+  and writes the server-verified RPC, rather than relying on mutable Auth
+  metadata as a privacy enforcement mechanism.
+- **Phase C (enforce after live client verification)**:
+  `scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql`
+  removes the unsafe approved-directory SELECT policy on
+  `member_profiles` after explicit backend + frontend testing and approval.
+  The remaining owner and Founder SELECT policies keep their access.
+
+### Additional blockers before any production cutover
+
+1. **PR dependency**: PR #196 independently changes Member Directory, Messages,
+   Community, and the read-only cross-member Professional Profile. Reconcile
+   those diffs with this security branch before approving either for deployment.
+   In particular, the `/professional-profile/?member=...` route introduced
+   in PR #196 must read `member_public_profiles` after cutover, never the
+   private member table. A passing test on #197 alone does not validate #196.
+2. **More peer authors**: audit all privileged RPCs, SQL views, storage
+   policies, and notification payloads for undisclosed private member fields.
+   A narrow public-safe table does not eliminate leaks from other RPCs.
+3. **Privacy semantics**: hiding from the directory does not make a published
+   post anonymous; determine whether an opted-out member's authored posts,
+   existing direct messages, and call identity should retain attribution.
+   Current preparation SQL resolves feed/chat author metadata through the
+   opted-in projection and may replace hidden authors' names with a fallback.
+   Product acceptance criteria must explicitly approve this behavior.
+4. **No broken trust boundaries**: `user_metadata` controls user-facing
+   preferences only. It must never grant directory visibility, Founder access,
+   account approval, or member-to-member rights.
+5. **Compatibility**: authorize two approved accounts, one pending account,
+   one suspended account, and a Founder test account in isolated staging,
+   exercising direct REST requests, page navigation, photo fallback,
+   status transition and private account fields.
+6. **Release sequencing**: do not drop the broad directory SELECT policy
+   until the safe source is prepared and every peer reader—including PR #196's
+   cross-member Profile page—is switched. Do not automatically restore the
+   broad policy on rollback; fail closed with a clear message instead.
+7. **Security smoke tests**: inspect both `member_profiles` and the new
+   table via direct REST requests. A front-end flag alone is **never** a
+   privacy boundary.
+8. **Permissions**: validate the trigger's definer ownership, RLS policy,
+   `search_path`, EXECUTE grants, and cross-table SELECT policy performance
+   against current Supabase guidance and advisor results.
+
+### Current implementation state
+
+- Public-safe SQL preparation and enforcement: **drafted, unexecuted**.
+- Browser readers: **coded behind a disabled flag**; no live routing change.
+- Directory privacy toggle: **prepared for server-authenticated persistence**;
+  old metadata-only behavior remains until the coordinated release.
+- PR #196 cross-member Profile integration: **outstanding blocker**.
+- Production member privacy weakness: **not remediated yet**.
+- Production SQL/deployment: **unchanged**.
