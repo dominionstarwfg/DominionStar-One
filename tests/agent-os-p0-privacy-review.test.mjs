@@ -58,7 +58,10 @@ test('privacy remediation explicitly blocks view-only masking and production rel
 });
 
 test('currently displayed directory/member views request a public-safe subset, not account notes',()=>{
-  assert.match(directory,/\.select\('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number'\)/);
+  assert.match(directory,/const directoryTable=publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
+  assert.match(directory,/const directoryFields=publicDirectoryV2/);
+  assert.match(directory,/\? 'id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number'/);
+  assert.match(directory,/publicDirectoryV2\?null:m\.agent_code/);
   assert.doesNotMatch(directory,/\.select\('[^']*(?:email|phone|account_notes|address_line1)[^']*'\)/);
   assert.match(profile,/function renderProfile\(\)/);
   // This is UI-side hygiene, not a substitute for database authorization.
