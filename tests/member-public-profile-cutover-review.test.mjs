@@ -43,6 +43,9 @@ test('only approved and opted-in profiles are projected and synchronized',()=>{
   assert.match(prepare,/ON CONFLICT\(id\) DO UPDATE/);
   assert.match(prepare,/DELETE FROM public\.member_public_profiles WHERE id=NEW\.id/);
   assert.match(prepare,/WHERE p\.verification_status='approved' AND p\.profile_visibility='members'/);
+  // Never re-expose someone who opted out under the legacy metadata-only UI.
+  assert.match(prepare,/raw_user_meta_data #>> '\{dominionstar_settings,privacy,directoryVisible\}' = 'false'/);
+  assert.match(prepare,/SET profile_visibility='private'/);
 });
 
 test('visibility setting writes server-enforced RPC, never metadata alone',()=>{
