@@ -98,7 +98,8 @@
 
   const resolveCaller = async callerId => {
     const result = await state.client
-      .from('member_profiles')
+      .from(window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true
+        ? 'member_public_profiles' : 'member_profiles')
       .select('id,full_name,preferred_name,avatar_path')
       .eq('id', callerId)
       .maybeSingle();

@@ -153,8 +153,11 @@
     const ids=[...new Set(userIds.filter(Boolean))];
     if (!ids.length) return {};
 
+    // After staged privacy cutover, peer author details come only from
+    // the public-safe, approved and opted-in member projection.
+    const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
     const result=await supabase
-      .from('member_profiles')
+      .from(publicDirectoryV2?'member_public_profiles':'member_profiles')
       .select('id,full_name,preferred_name,rank,exclusive_member_number,avatar_path')
       .in('id',ids);
 

@@ -424,9 +424,14 @@
   gate.classList.add('member-hidden');
   app.classList.remove('member-hidden');
 
+  // Peer identity comes from the public-safe projection after an approved
+  // backend cutover. Do not silently fall back to private member_profiles.
+  const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
   const membersResult = await client
-    .from('member_profiles')
-    .select('id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path')
+    .from(publicDirectoryV2?'member_public_profiles':'member_profiles')
+    .select(publicDirectoryV2
+      ? 'id,full_name,preferred_name,rank,verification_status,avatar_path'
+      : 'id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path')
     .eq('verification_status','approved')
     .neq('id',session.user.id)
     .order('full_name');
