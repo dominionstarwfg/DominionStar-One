@@ -1,6 +1,11 @@
 (async()=>{
   const gate=document.getElementById('directoryGate'),app=document.getElementById('directoryApp'),grid=document.getElementById('directoryGrid');
   let client,session,members=[],presence={};
+  const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+  const directoryTable=publicDirectoryV2?'member_public_profiles':'member_profiles';
+  const directoryFields=publicDirectoryV2
+    ? 'id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number'
+    : 'id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication configuration is missing.</h1>';return;}
   client=await window.DSAuth.init();session=(await client.auth.getSession()).data.session;
@@ -10,7 +15,7 @@
   gate.classList.add('member-hidden');app.classList.remove('member-hidden');
   async function load(){
     const [m,p]=await Promise.all([
-      client.from('member_profiles').select('id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number').eq('verification_status','approved').order('full_name'),
+      client.from(directoryTable).select(directoryFields).eq('verification_status','approved').order('full_name'),
       client.from('community_presence').select('user_id,is_online,last_seen_at')
     ]);
     if(m.error){grid.innerHTML=`<p>${esc(m.error.message)}</p>`;return;}
@@ -26,7 +31,7 @@
   async function render(){
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
-    const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
+    const filtered=members.filter(m=>{const hay=[m.full_name,m.preferred_name,m.rank,publicDirectoryV2?null:m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();return(!q||hay.includes(q))&&(!rank||m.rank===rank);});
     const cards=await Promise.all(filtered.map(async m=>{
       const pic=await avatar(m.avatar_path);const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
       const memberName=m.preferred_name||m.full_name||'Member';
