@@ -28,6 +28,8 @@ on:
       - 'netlify/functions/process-email-outbox.mjs'
       - 'netlify/functions/_shared/priority-email-policy.mjs'
       - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
+      - 'scripts/verify-isolated-agent-staging.mjs'
+      - 'tests/isolated-agent-staging-guard.test.mjs'
       - 'tests/priority-email-routing-review.test.mjs'
       - 'package.json'
       - 'package-lock.json'
@@ -80,6 +82,8 @@ on:
       - 'netlify/functions/process-email-outbox.mjs'
       - 'netlify/functions/_shared/priority-email-policy.mjs'
       - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
+      - 'scripts/verify-isolated-agent-staging.mjs'
+      - 'tests/isolated-agent-staging-guard.test.mjs'
       - 'tests/priority-email-routing-review.test.mjs'
       - 'package.json'
       - 'package-lock.json'
@@ -126,6 +130,7 @@ jobs:
           node --check netlify/functions/scheduled-push-outbox.mjs
           node --check netlify/functions/process-email-outbox.mjs
           node --check netlify/functions/_shared/priority-email-policy.mjs
+          node --check scripts/verify-isolated-agent-staging.mjs
       - name: Targeted notification regression
         run: |
           node --test tests/notification-push-readability-review.test.mjs
@@ -134,6 +139,7 @@ jobs:
           node --test tests/security-email-outbox-privilege-gate.test.mjs
           node --test tests/notification-rpc-hardening-review.test.mjs
           node --test tests/priority-email-routing-review.test.mjs
+          node --test tests/isolated-agent-staging-guard.test.mjs
       - name: Full Node regression suite
         shell: bash
         run: |
