@@ -14,9 +14,9 @@ import assert from 'node:assert/strict';
 const root=path.resolve(process.cwd(),'public-dist');
 const social=readFileSync('assets/js/dashboard-social.js','utf8');
 const out=path.resolve(process.cwd(),'artifacts','feed-geometry');
-const postBody='Long-form training: every detail matters.\\n'+
+const postBody='Long-form training: every detail matters.\n'+
   ('Recruit → study → exam → licensing → compliance → product training. '.repeat(38))+
-  '\\nEND-OF-POST: this paragraph must remain visible.';
+  '\nEND-OF-POST: this paragraph must remain visible.';
 const longUrl='https://example.org/resources/'+('verylongprofessionalarticle'.repeat(20));
 const records=[
   {id:'short',title:'Quick recognition',body:'Congratulations on your progress.',
@@ -26,7 +26,7 @@ const records=[
    author_full_name:'Agent Two',author_rank:'Marketing Director',post_type:'announcement',
    created_at:'2026-11-04T18:05:00Z'},
   {id:'link',title:'Useful licensing resource',
-   body:'Please review this link before the next session:\\n'+longUrl,
+   body:'Please review this link before the next session:\n'+longUrl,
    author_full_name:'Agent Three',author_rank:'Senior Associate',
    post_type:'discussion',created_at:'2026-11-04T18:10:00Z'}
 ];
