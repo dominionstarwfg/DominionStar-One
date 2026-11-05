@@ -7,6 +7,16 @@ on:
       - 'docs/AGENT_OS_P0_PRIVACY_RELEASE_GATE.md'
       - 'scripts/security/agent-os-privacy-baseline.READ-ONLY.review.sql'
       - 'scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql'
+      - 'scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql'
+      - 'assets/js/member-auth.js'
+      - 'assets/js/account-settings.js'
+      - 'assets/js/member-directory.js'
+      - 'assets/js/direct-messages.js'
+      - 'assets/js/community-hub.js'
+      - 'assets/js/community-chat.js'
+      - 'assets/js/global-call-manager.js'
+      - 'tests/member-public-profile-cutover-review.test.mjs'
       - 'tests/agent-os-p0-privacy-review.test.mjs'
       - '.github/workflows/agent-os-p0-privacy-review.yml'
   workflow_dispatch:
@@ -24,12 +34,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Review JavaScript syntax
+        run: |
+          node --check assets/js/member-auth.js
+          node --check assets/js/account-settings.js
+          node --check assets/js/member-directory.js
+          node --check assets/js/direct-messages.js
+          node --check assets/js/community-hub.js
+          node --check assets/js/community-chat.js
+          node --check assets/js/global-call-manager.js
       - name: Static review unit tests
-        run: node --test tests/agent-os-p0-privacy-review.test.mjs
+        run: |
+          node --test tests/agent-os-p0-privacy-review.test.mjs
+          node --test tests/member-public-profile-cutover-review.test.mjs
       - name: Ensure remediation SQL cannot run in this review workflow
         run: |
           set -euo pipefail
           grep -Fq 'DO NOT RUN' scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql
           grep -Fq 'READ ONLY' scripts/security/agent-os-privacy-baseline.READ-ONLY.review.sql
           if grep -nE '^[[:space:]]+(psql |supabase db push|netlify deploy --prod|supabase migration up|apply_migration)' .github/workflows/agent-os-p0-privacy-review.yml; then
             echo 'Mutation command forbidden in review-only workflow' >&2
