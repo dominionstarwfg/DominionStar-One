@@ -1,0 +1,63 @@
+name: DominionStar — Feed Browser Geometry Review (Isolated)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/review-feed-browser-geometry.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/css/dominionstar-feed-flow.css'
+      - 'feed/**'
+      - 'member-dashboard/**'
+      - '.github/workflows/feed-browser-geometry-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-layout:
+    name: Feed natural-height + icon geometry (synthetic preview)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ephemeral browser test runner (never deploy)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Build backend-free visual preview locally
+        env:
+          NETLIFY: 'true'
+          CONTEXT: deploy-preview
+        run: |
+          bash scripts/build-public-netlify.sh
+          test -s public-dist/feed/index.html
+          test -s public-dist/assets/css/dominionstar-feed-flow.css
+          grep -Fq 'VISUAL REVIEW' public-dist/assets/css/dominionstar-visual-review.css
+          grep -Fq "connect-src 'none'" public-dist/_headers
+          grep -Fq 'Disallow: /' public-dist/robots.txt
+          if test -e public-dist/netlify/functions; then
+            echo 'Backend functions must never be present in review package' >&2
+            exit 1
+          fi
+      - name: Measure real Chromium post geometry at five viewport sizes
+        run: node scripts/review-feed-browser-geometry.mjs
+      - name: Store desktop/mobile geometry screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feed-natural-height-chromium-screenshots
+          path: artifacts/feed-geometry/
+          if-no-files-found: warn
+          retention-days: 7
