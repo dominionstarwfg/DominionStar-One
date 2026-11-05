@@ -90,6 +90,18 @@ CREATE TRIGGER member_profiles_sync_public_directory
 AFTER INSERT OR UPDATE ON public.member_profiles
 FOR EACH ROW EXECUTE FUNCTION dominionstar_private.sync_member_public_profile();
 
+-- Preserve existing opt-outs from the old Settings interface before
+-- building the new projection. Legacy preferences lived in user-editable
+-- Auth metadata and were NOT an authorization policy. Here 'false' is
+-- respected ONLY to restrict visibility; user metadata never grants access.
+-- Do not publish a profile when either legacy or server preference is private.
+UPDATE public.member_profiles p
+SET profile_visibility='private'
+FROM auth.users u
+WHERE u.id=p.id
+  AND p.profile_visibility='members'
+  AND u.raw_user_meta_data #>> '{dominionstar_settings,privacy,directoryVisible}' = 'false';
+
 INSERT INTO public.member_public_profiles (
   id,full_name,preferred_name,rank,founding_member,
   exclusive_member_number,avatar_path,city,state,verification_status
