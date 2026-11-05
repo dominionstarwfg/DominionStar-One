@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { priorityEmailDecision } from './_shared/priority-email-policy.mjs';
+import { priorityEmailDecision, safeDominionStarEmailUrl } from './_shared/priority-email-policy.mjs';
 
 const reply=(status,body)=>new Response(JSON.stringify(body),{
   status,headers:{'content-type':'application/json','cache-control':'no-store'}
@@ -12,17 +12,6 @@ const methodOf=request=>String(request?.httpMethod||request?.method||'').toUpper
 const headerOf=(request,name)=>
   request?.headers?.get?.(name)||request?.headers?.[name]||
   request?.headers?.[name.toLowerCase()]||'';
-
-// Never turn a member-authored action_url or an email queue value into a
-// clickable link to an unrelated or potentially malicious external domain.
-export const safeDominionStarEmailUrl=value=>{
-  if(typeof value!=='string'||!value.trim())return null;
-  try{
-    const url=new URL(value,'https://dominionstarld.com');
-    return url.protocol==='https:'&&url.origin==='https://dominionstarld.com'
-      ? url.href:null;
-  }catch{return null;}
-};
 
 const strictEmailGateEnabled=()=>process.env.DOMINIONSTAR_PRIORITY_EMAIL_ROUTING_ENABLED==='enabled';
 
