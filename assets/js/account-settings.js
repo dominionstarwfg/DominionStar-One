@@ -30,6 +30,24 @@
    return;
  }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
+ // The email delivery destination is Supabase Auth's verified address on
+ // file, never a member-entered email in profile fields or a post payload.
+ const priorityEmailDestination=$('priorityNotificationEmail');
+ if(priorityEmailDestination){
+   db.auth.getUser().then(result=>{
+     if(result.error||!result.data?.user||result.data.user.id!==session.user.id){
+       throw new Error('Verified email could not be checked');
+     }
+     const account=result.data.user;
+     priorityEmailDestination.textContent=
+       account.email&&account.email_confirmed_at
+       ? account.email+' (verified)'
+       : 'No verified email. Verify your sign-in email to receive priority alerts.';
+   }).catch(()=>{
+     priorityEmailDestination.textContent=
+       'Verification unavailable. Refresh to confirm your email destination.';
+   });
+ }
  await window.CommunicationEngine?.init?.({client:db,session}).catch(()=>{});
  const tabs=[...document.querySelectorAll('[data-settings-tab]')];
  tabs.forEach(b=>b.onclick=()=>{
@@ -131,9 +149,9 @@
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
  const webPushReady=window.DOMINIONSTAR_NOTIFICATION_FEATURES?.webPush===true;
  const notificationRows=[
-   ['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],
-   ['announcements','Founder & critical announcements','Email important official platform announcements.'],
-   ['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],
+   ['emailEnabled','Selected email alerts','Deliver only eligible priority events to my verified account email.'],
+   ['announcements','Founder & critical announcements','Email urgent official announcements; routine updates remain in-app.'],
+   ['appointments','Appointments & schedule changes','Email confirmations, reschedules, and cancellations; not every calendar update.'],
    ['browser',webPushReady?'Push notifications':'Browser alerts',webPushReady?'Show DominionStar system notifications on this device, including when the dashboard is closed.':'Show system alerts on this device while DominionStar is open.'],
    ['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']
  ];
