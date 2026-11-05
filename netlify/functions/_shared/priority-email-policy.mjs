@@ -42,3 +42,13 @@ export function priorityEmailDecision({
   }
   return {allowed:true,reason:'eligible',category};
 }
+
+/** Deliver only to official DominionStar links, never caller-supplied domains. */
+export function safeDominionStarEmailUrl(value){
+  if(typeof value!=='string'||!value.trim())return null;
+  try{
+    const url=new URL(value,'https://dominionstarld.com');
+    return url.protocol==='https:'&&url.origin==='https://dominionstarld.com'
+      ? url.href:null;
+  }catch{return null;}
+}
