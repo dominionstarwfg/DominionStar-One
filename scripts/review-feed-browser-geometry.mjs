@@ -177,9 +177,18 @@ try{
         assert.equal(c.whiteSpace,'pre-wrap',v.label+' must retain original line breaks');
       }
       // Scroll is on the document: there must be no fixed-height feed viewport.
-      await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
-      await page.waitForTimeout(100);
-      const y=await page.evaluate(()=>window.scrollY);
+      await page.evaluate(()=>window.scrollTo({
+        top:document.documentElement.scrollHeight,behavior:'instant'
+      }));
+      await page.waitForTimeout(80);
+      const scroll=await page.evaluate(()=>({
+        y:window.scrollY,htmlY:document.documentElement.scrollTop,
+        bodyY:document.body.scrollTop,
+        htmlOverflow:getComputedStyle(document.documentElement).overflowY,
+        bodyOverflow:getComputedStyle(document.body).overflowY
+      }));
+      process.stdout.write('SCROLL_DIAGNOSTIC '+v.label+' '+JSON.stringify(scroll)+'\\n');
+      const y=scroll.y;
       assert.ok(y>100,v.label+' document did not scroll');
       assert.equal(missing.length,0,v.label+' missing preview assets: '+missing.join(', '));
       if(v.label==='desktop'||v.label==='mobile'){
