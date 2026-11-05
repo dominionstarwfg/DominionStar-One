@@ -16,7 +16,6 @@ export function validateStagingConfig(env){
   let url;
   try{url=new URL(raw);}catch{throw new Error('Invalid staging Supabase URL.');}
   if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co')||
-    !url.hostname.startsWith('https:')&&url.hostname===productionProjectRef+'.supabase.co'||
     url.hostname.includes(productionProjectRef)){
     throw new Error('Refusing production or non-isolated Supabase URL.');
   }
@@ -42,11 +41,6 @@ async function signIn(client,email,password){
   const result=await client.auth.signInWithPassword({email,password});
   if(result.error||!result.data?.user?.id)throw new Error('Staging test account login failed.');
   return result.data.user;
-}
-async function read(client,table,columns,filter){
-  let query=client.from(table).select(columns);
-  if(filter)query=query.eq(filter.key,filter.value);
-  return query;
 }
 export async function runStagingVerification(env=process.env){
   const cfg=validateStagingConfig(env); // Fail before any network request.
