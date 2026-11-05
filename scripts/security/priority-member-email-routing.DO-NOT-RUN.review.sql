@@ -46,7 +46,7 @@ BEGIN
       'appointment.confirmed','appointment.rescheduled','appointment.cancelled'
     ) THEN email_category:='appointments';
     WHEN new.event_type IN (
-      'meeting.host_absent','meeting.cancelled','meeting.rescheduled'
+      'meeting.cancelled','meeting.rescheduled'
     ) THEN email_category:='meetings';
     WHEN new.event_type IN ('message.received','call.missed')
       THEN email_category:='messages';
@@ -61,6 +61,8 @@ BEGIN
     ELSE RETURN new; -- Likes, reactions, normal posts and unknown events never email.
   END CASE;
 
+  -- Trusted standalone meeting.host_absent emails are queued by the existing
+  -- rate-bucketed meeting-host-absent RPC, NOT here, to avoid double email.
   -- Prove legitimate provenance before creating a queue entry. Client-created
   -- executive_events are constrained by RLS to actor_id=member_id=auth.uid();
   -- but security/account or official announcements must be server-authored
