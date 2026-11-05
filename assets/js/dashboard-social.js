@@ -96,7 +96,11 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        const text=description.length>900 ? description.slice(0,900)+'…' : description;
+        // The full Feed is a reading surface. Only compact Dashboard previews
+        // may be excerpted; the post itself always grows to fit all its text.
+        const fullFeed=target.id==='feedPageStream';
+        const text=fullFeed ? description :
+          (description.length>900 ? description.slice(0,900)+'…' : description);
         const stats=counts.get(String(post.id))||{};
         const reactionCount=readableCount(stats.totalReactions||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
@@ -134,7 +138,7 @@
           </header>
           ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
           <p class="ds30-post-copy">${linkify(text)}</p>
-          ${description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${!fullFeed&&description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span class="ds30-reaction-summary">${reactionChips}<span>${reactionCount} ${stats.totalReactions===1?'reaction':'reactions'}</span></span>
             <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
