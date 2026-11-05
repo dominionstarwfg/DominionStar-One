@@ -19,7 +19,8 @@ permissions:
 jobs:
   chromium-layout:
     name: Feed natural-height + icon geometry (synthetic preview)
-    runs-on: ubuntu-latest
+    # Pinned OS: Playwright 1.57 does not support GitHub's ubuntu-26.04 latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       CI: 'true'
