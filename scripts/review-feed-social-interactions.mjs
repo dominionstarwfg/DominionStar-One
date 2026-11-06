@@ -37,6 +37,12 @@ try{
   page.on('dialog',dialog=>dialog.accept());
   try{
     await page.goto('http://127.0.0.1:'+port+'/feed/',{waitUntil:'networkidle'});
+    // The public preview deliberately sets pointer-events:none on all inputs.
+    // Restore actions ONLY in this isolated Chromium harness; the distributed
+    // preview stays backend-free and permanently noninteractive.
+    await page.addStyleTag({content:
+      '#feedPageStream button,#feedPageStream textarea,#feedPageStream form'+
+      '{pointer-events:auto!important}'});
     await page.addScriptTag({content:social});
     await page.evaluate(async()=>{
       const post={id:'post-1234',user_id:'author-123',
