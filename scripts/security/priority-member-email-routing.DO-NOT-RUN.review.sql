@@ -10,7 +10,8 @@ BEGIN
   IF to_regclass('public.executive_events') IS NULL OR
      to_regclass('public.notification_preferences') IS NULL OR
      to_regclass('public.email_notification_outbox') IS NULL OR
-     to_regprocedure('public.queue_member_event_email()') IS NULL THEN
+     to_regprocedure('public.queue_member_event_email()') IS NULL OR
+     to_regprocedure('dominionstar_private.has_exact_member_mention(text,text)') IS NULL THEN
     RAISE EXCEPTION 'Missing notification/email dependencies; do not apply';
   END IF;
   IF NOT EXISTS (
@@ -98,10 +99,60 @@ BEGIN
         AND c.status='missed'
     ) INTO validated_source;
   ELSIF email_category='community' THEN
-    -- Until a server-side comment/mention provenance verifier exists, the
-    -- optional email channel accepts server-emitted events only.
-    -- Normal cross-member community events remain in-app, not email.
-    validated_source:=new.actor_id IS NULL;
+    -- Verified community source evidence comes from the INSERT-only trigger,
+    -- not from a browser-supplied notification payload. Both the original
+    -- content and actor/recipient relationship are checked again here.
+    IF new.actor_id IS NULL OR new.member_id=new.actor_id THEN
+      validated_source:=false;
+    ELSIF new.event_type='community.reply'
+      AND new.payload->>'source_type'='comment' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.community_comments c
+        JOIN public.community_messages m ON m.id=c.message_id
+        JOIN public.member_profiles recipient ON recipient.id=m.user_id
+        WHERE c.id::text=new.payload->>'source_id'
+          AND c.user_id=new.actor_id
+          AND m.user_id=new.member_id
+          AND m.id::text=new.payload->>'post_id'
+          AND c.is_deleted=false AND m.is_deleted=false
+          AND recipient.verification_status='approved'
+      ) INTO validated_source;
+    ELSIF new.event_type='community.mention'
+      AND new.payload->>'source_type'='post' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.community_messages m
+        JOIN public.member_profiles recipient ON recipient.id=new.member_id
+        WHERE m.id::text=new.payload->>'source_id'
+          AND m.id::text=new.payload->>'post_id'
+          AND m.user_id=new.actor_id
+          AND m.is_deleted=false
+          AND recipient.verification_status='approved'
+          AND recipient.profile_visibility='members'
+          AND (
+            dominionstar_private.has_exact_member_mention(m.body,recipient.full_name)
+            OR dominionstar_private.has_exact_member_mention(m.body,recipient.preferred_name)
+          )
+      ) INTO validated_source;
+    ELSIF new.event_type='community.mention'
+      AND new.payload->>'source_type'='comment' THEN
+      SELECT EXISTS(
+        SELECT 1 FROM public.community_comments c
+        JOIN public.community_messages m ON m.id=c.message_id
+        JOIN public.member_profiles recipient ON recipient.id=new.member_id
+        WHERE c.id::text=new.payload->>'source_id'
+          AND m.id::text=new.payload->>'post_id'
+          AND c.user_id=new.actor_id
+          AND c.is_deleted=false AND m.is_deleted=false
+          AND recipient.verification_status='approved'
+          AND recipient.profile_visibility='members'
+          AND recipient.id<>m.user_id
+          AND (
+            dominionstar_private.has_exact_member_mention(c.body,recipient.full_name)
+            OR dominionstar_private.has_exact_member_mention(c.body,recipient.preferred_name)
+          )
+      ) INTO validated_source;
+    ELSE validated_source:=false;
+    END IF;
   END IF;
   IF NOT coalesce(validated_source,false) THEN RETURN new; END IF;
 
@@ -173,7 +224,8 @@ COMMIT;
 --    fake account/security events are not.
 -- 6. Genuine direct message/missed call requires source-row validation AND
 --    explicit message email opt-in; opted-out means in-app only.
--- 7. Community reply/mention email requires explicit opt-in and server-authored
+-- 7. Community reply/mention email requires explicit opt-in and original
+--    content/actor/recipient verification in server-generated source rows.
 --    source until a full comment provenance validator is deployed.
 -- 8. Email opt-out must be rechecked by the delivery worker before sending.
 -- 9. Preserve the special direct meeting-host-absent queue path with its own
