@@ -7,6 +7,10 @@ on:
       - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
       - 'tests/sql/community-notifications-fixture.sql'
       - 'tests/sql/community-notifications-assertions.sql'
+      - 'scripts/security/community-reaction-archive.DO-NOT-RUN.review.sql'
+      - 'scripts/security/community-single-reaction.DO-NOT-RUN.review.sql'
+      - 'tests/sql/community-reactions-fixture.sql'
+      - 'tests/sql/community-reactions-assertions.sql'
       - '.github/workflows/community-postgres-isolation-review.yml'
   workflow_dispatch:
 
@@ -64,6 +68,26 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
       - name: Execute permission and genuine-source notification assertions
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-assertions.sql
+      - name: Seed synthetic legacy multi-reactions (9 rows, 6 pairs)
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-reactions-fixture.sql
+      - name: Require preflight to refuse schema cutover before reconciliation
+        run: |
+          if psql -v ON_ERROR_STOP=1 -f scripts/security/community-single-reaction.DO-NOT-RUN.review.sql > /tmp/reaction-preflight.log 2>&1; then
+            echo 'SAFETY FAILURE: duplicate reaction records did not block cutover' >&2
+            exit 1
+          fi
+          if ! grep -Fq 'Multiple stored reactions detected' /tmp/reaction-preflight.log; then
+            echo 'The SQL cutover failed for an unexpected reason' >&2
+            cat /tmp/reaction-preflight.log >&2
+            exit 1
+          fi
+          echo 'EXPECTED_DUPLICATE_PREFLIGHT_REJECTION_PASS'
+      - name: Archive synthetic duplicate reactions in private disposable schema
+        run: psql -v ON_ERROR_STOP=1 -f scripts/security/community-reaction-archive.DO-NOT-RUN.review.sql
+      - name: Apply candidate Love/one-choice migration in disposable database only
+        run: psql -v ON_ERROR_STOP=1 -f scripts/security/community-single-reaction.DO-NOT-RUN.review.sql
+      - name: Exercise real toggle/switch/removal, access and history invariants
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-reactions-assertions.sql
       - name: Confirm no external migration or email execution
         run: |
           test -z "${SUPABASE_URL:-}"
