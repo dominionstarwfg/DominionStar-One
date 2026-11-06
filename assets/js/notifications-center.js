@@ -5,10 +5,11 @@
  const client=await DSAuth.init(),session=(await client.auth.getSession()).data.session;if(!session){location.href='/member-login/';return}
  await CommunicationEngine.init({client,session}); gate.classList.add('member-hidden');app.classList.remove('member-hidden');
  let events=[],filter='all';
- const category=e=>e.event_type?.startsWith('call.')?'calls':e.event_type?.startsWith('message.')?'communications':(e.event_type?.startsWith('meeting.')||e.event_type?.startsWith('appointment.'))?'meetings':e.event_type?.startsWith('journey.')?'journey':e.event_type?.startsWith('recognition.')?'recognition':'communications';
+ const category=e=>e.event_type?.startsWith('call.')?'calls':e.event_type?.startsWith('message.')?'communications':e.event_type?.startsWith('community.')?'community':(e.event_type?.startsWith('meeting.')||e.event_type?.startsWith('appointment.'))?'meetings':e.event_type?.startsWith('journey.')?'journey':e.event_type?.startsWith('recognition.')?'recognition':'communications';
  const notificationPaths={
   calls:'<path d="M6.6 2.5 9 7.2 6.9 9.3c1.1 2.3 2.9 4.1 5.2 5.2l2.1-2.1 4.7 2.4c.4.2.6.6.5 1-.4 2.4-2.5 4.2-5 4.2C8.6 20 4 15.4 4 9.6c0-2.5 1.8-4.6 4.2-5 .4-.1.8.1 1 .5Z"/>',
   communications:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
+  community:'<circle cx="12" cy="12" r="9"/><path d="M16 8v5a4 4 0 1 1-4-4h4v4c0 2 3 2 3-.5V12"/>',
   meetings:'<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
   journey:'<path d="M5 19 19 5M8 5h11v11"/><circle cx="6" cy="18" r="2"/>',
   recognition:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 0 4-4M12 14v7M8 21h8"/>'
