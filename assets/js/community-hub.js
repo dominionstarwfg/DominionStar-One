@@ -405,13 +405,9 @@
           body
         });
 
-        if(!insert.error){
-          await supabase.rpc('community_notify_mentions',{
-            target_message_id:card.dataset.id,
-            message_body:body
-          });
-        }
-
+        // After the reviewed database cutover, an INSERT trigger derives
+        // mentions and replies from this saved comment. Never trust a
+        // separate browser-supplied message_body notification RPC.
         if(insert.error){show(postResult,insert.error.message,'error');button.disabled=false;button.textContent=original;return;}
         form.reset();
         await loadPosts(false);
@@ -572,11 +568,8 @@
       button.disabled=false;button.textContent='Publish Post';return;
     }
 
-    await supabase.rpc('community_notify_mentions',{
-      target_message_id:insert.data.id,
-      message_body:payload.body
-    });
-
+    // Notifications are server-derived from the inserted post in the
+    // authorized database release; no client-side notification RPC.
     button.textContent='Verifying…';
     await loadPosts(false);
     if(!allPosts.some(post=>post.id===insert.data.id)){
