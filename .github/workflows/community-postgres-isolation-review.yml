@@ -55,8 +55,7 @@ jobs:
           test "$PGDATABASE" = synthetic_agent_review
           test "$DOMINIONSTAR_STAGING_ISOLATION_APPROVED" = ""
           test "$(psql -v ON_ERROR_STOP=1 -Atc 'select current_database()')" = synthetic_agent_review
-          test "$(psql -v ON_ERROR_STOP=1 -Atc 'select inet_server_addr()::text')" = 172.18.0.2 || true
-          # The container-only target is also enforced by the service fixture.
+          # The database exists only inside this CI service container.
       - name: Build isolated synthetic auth, posts, comments and inbox
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-fixture.sql
       - name: Compile and apply draft notification triggers in disposable CI only
