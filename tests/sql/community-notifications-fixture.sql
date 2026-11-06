@@ -3,6 +3,8 @@
 \set ON_ERROR_STOP on
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
+-- Supabase creates this database ROLE; here it is synthetic and has no key.
+CREATE ROLE service_role NOLOGIN;
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth,public TO anon,authenticated;
 CREATE FUNCTION auth.uid() RETURNS uuid
