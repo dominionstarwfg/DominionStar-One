@@ -113,12 +113,28 @@ BEGIN
 END;
 $deny_cancel_accepted$;
 
--- A can send and cancel a separate pending invitation to approved B.
+-- B has opted out of public directory; the approved-but-private target
+-- must not be invited through the public Members UI.
+DO $deny_private_directory_invite$
+BEGIN
+  BEGIN
+    INSERT INTO public.member_connections(id,requester_id,recipient_id,status)
+    VALUES(
+      '40000000-0000-4000-8000-000000000007',
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000002','pending'
+    );
+    RAISE EXCEPTION 'P0: hidden member can receive new directory invitation';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END;
+$deny_private_directory_invite$;
+
+-- A can invite and cancel a separate pending invitation to visible founder F.
 INSERT INTO public.member_connections(id,requester_id,recipient_id,status)
 VALUES(
   '40000000-0000-4000-8000-000000000004',
   '00000000-0000-4000-8000-000000000001',
-  '00000000-0000-4000-8000-000000000002','pending'
+  '00000000-0000-4000-8000-000000000010','pending'
 );
 DO $cancel_pending$
 BEGIN
