@@ -1,0 +1,89 @@
+name: DominionStar — Disposable Member Privacy + Connections SQL
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql'
+      - 'scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql'
+      - 'scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql'
+      - 'tests/sql/member-privacy-fixture.sql'
+      - 'tests/sql/member-privacy-prepare-assertions.sql'
+      - 'tests/sql/member-privacy-enforce-assertions.sql'
+      - 'tests/sql/member-connections-assertions.sql'
+      - 'tests/sql/community-notifications-fixture.sql'
+      - '.github/workflows/member-privacy-postgres-isolation-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-postgres-privacy:
+    name: Real member RLS + safe projection + pending connections (synthetic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: SYNTHETIC_PRIVACY_CI_NOT_REAL
+      PGDATABASE: synthetic_agent_privacy
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC_PRIVACY_CI_NOT_REAL
+          POSTGRES_DB: synthetic_agent_privacy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synthetic_agent_privacy"
+          --health-interval 4s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout review branch only
+        uses: actions/checkout@v4
+      - name: Ensure local client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql --version
+      - name: Refuse any non-local or real project database
+        run: |
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = synthetic_agent_privacy
+          test "$DOMINIONSTAR_STAGING_ISOLATION_APPROVED" = ""
+          test "$(psql -v ON_ERROR_STOP=1 -Atc 'select current_database()')" = synthetic_agent_privacy
+          test -z "${SUPABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          test -z "${RESEND_API_KEY:-}"
+      - name: Create disposable auth roles and synthetic base tables
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/member-privacy-fixture.sql
+      - name: Compile and apply safe projection in disposable service only
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql
+      - name: Verify opt-outs, safe author metadata and initial source leak baseline
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-privacy-prepare-assertions.sql
+      - name: Apply final privacy RLS denial to disposable service only
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql
+      - name: Verify raw peer PII denied, directory works, owner and Founder preserved
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-privacy-enforce-assertions.sql
+      - name: Compile and apply connection permission proposal in disposable service
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql
+      - name: Test approved invite, accepted, declined, cancellation and forbidden spoofing
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-connections-assertions.sql
+      - name: Confirm no real Supabase, email send or persistent database used
+        run: echo "DISPOSABLE_MEMBER_PRIVACY_NO_PRODUCTION_NO_EMAIL_PASS"
