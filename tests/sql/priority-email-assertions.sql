@@ -189,14 +189,14 @@ DECLARE
     '70000000-0000-4000-8000-000000000014',
     '70000000-0000-4000-8000-000000000016'
   ]::uuid[];
-  id uuid;
+  expected_event_id uuid;
   actual integer;
   missing integer;
 BEGIN
-  FOREACH id IN ARRAY expected LOOP
+  FOREACH expected_event_id IN ARRAY expected LOOP
     SELECT count(*) INTO actual FROM public.email_notification_outbox
-    WHERE dedupe_key='event:'||id::text;
-    IF actual<>1 THEN RAISE EXCEPTION 'Eligible event % queued % instead of 1',id,actual; END IF;
+    WHERE dedupe_key='event:'||expected_event_id::text;
+    IF actual<>1 THEN RAISE EXCEPTION 'Eligible event % queued % instead of 1',expected_event_id,actual; END IF;
   END LOOP;
 
   SELECT count(*) INTO actual FROM public.email_notification_outbox
