@@ -8,13 +8,14 @@ BEGIN;
 DO $preflight$
 BEGIN
   IF to_regclass('public.member_connections') IS NULL
-     OR to_regclass('public.member_profiles') IS NULL THEN
+     OR to_regclass('public.member_profiles') IS NULL
+     OR to_regclass('public.member_public_profiles') IS NULL THEN
     RAISE EXCEPTION 'Expected Agent OS member tables are missing; refusing cutover';
   END IF;
 END;
 $preflight$;
 
--- Only approved members can create a pending request to another approved member.
+-- Only approved members can invite another approved, directory-visible member.
 -- The existing policy permits requester_id=auth.uid() but does not restrict
 -- the initial status; a browser could otherwise insert an already accepted row.
 DROP POLICY IF EXISTS "members request connections" ON public.member_connections;
@@ -29,7 +30,10 @@ WITH CHECK (
     WHERE p.id=(select auth.uid()) AND p.verification_status='approved'
   )
   AND EXISTS (
-    SELECT 1 FROM public.member_profiles p
+    -- Peer approval/visibility must be checked through the public-safe
+    -- projection. Raw member_profiles is owner/Founder-only after the
+    -- privacy enforcement gate and must not be reopened for connections.
+    SELECT 1 FROM public.member_public_profiles p
     WHERE p.id=recipient_id AND p.verification_status='approved'
   )
 );
@@ -119,7 +123,8 @@ $verify$;
 COMMIT;
 
 -- REQUIRED TESTS IN ISOLATED STAGING BEFORE ANY APPROVED RELEASE:
--- Approved A creates pending invitation to approved B: allowed.
+-- Approved A creates pending invitation to visible approved B: allowed.
+-- Private/unlisted recipients cannot be invited from the member directory.
 -- A tries to insert accepted/blocked status: rejected.
 -- Pending/unapproved A tries to invite approved B: rejected.
 -- A tries to accept own sent invitation: rejected.
