@@ -32,7 +32,34 @@
 </div>
 </header>
 
-<section class="profile-stable-layout">
+<section id="memberPublicProfile" class="dsx-member-public-view member-hidden" aria-label="Approved member profile">
+  <article class="dsx-member-public-card">
+    <div class="dsx-member-public-identity">
+      <div class="dsx-member-public-avatar">
+        <span id="memberPublicInitials" aria-hidden="true">DS</span>
+        <img id="memberPublicPhoto" class="member-hidden" alt="Member profile photo">
+      </div>
+      <div>
+        <p class="eyebrow">Approved member · Read-only professional profile</p>
+        <h2 id="memberPublicName">Member</h2>
+        <p id="memberPublicRank">Contract level: —</p>
+        <span id="memberPublicFounding" class="founding-member-badge member-hidden">Founding Member</span>
+      </div>
+    </div>
+    <div class="dsx-member-public-facts">
+      <div><span>Contract level</span><strong id="memberPublicContract">—</strong></div>
+      <div><span>Location</span><strong id="memberPublicLocation">Not listed</strong></div>
+      <div><span>Status</span><strong id="memberPublicStatus">Approved</strong></div>
+    </div>
+    <p class="dsx-member-public-privacy">Only approved professional information appears here. Private email, phone, and address details are not shared. Account codes, internal assignment, contact information and private notes are not displayed.</p>
+    <div class="dsx-member-public-actions">
+      <a id="memberPublicMessage" class="btn dsx-action-primary" href="/direct-messages/">Message Member</a>
+      <a class="btn btn-outline" href="/member-directory/">Team Members</a>
+    </div>
+  </article>
+</section>
+
+<section id="ownProfileLayout" class="profile-stable-layout">
 <aside class="executive-profile-card">
 <div class="executive-avatar-wrap">
 <span id="profileAvatarInitials" class="profile-avatar-fallback" aria-hidden="true">DS</span>
@@ -80,7 +107,7 @@
 </div>
 
 <div class="sticky-save-bar">
-<button class="btn btn-gold" type="submit">Save Profile Changes</button>
+<button class="btn dsx-action-primary" type="submit">Save Profile Changes</button>
 <div id="profileSaveResult" class="member-message"></div>
 </div>
 </form>

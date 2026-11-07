@@ -1,0 +1,341 @@
+/* DominionStar One — full Feed natural-flow repair.
+   Intentionally scoped to Feed and Dashboard preview, after cinematic OS.
+   A Feed post expands to its content; there are no internal post scrollbars.
+   The existing executive palette and semantic reaction states are retained. */
+
+#feedApp,
+#feedApp .dsx-feed-workspace,
+#feedApp .dsx-feed-main,
+#feedPageStream {min-width:0!important;max-height:none!important;overflow:visible!important;}
+
+#feedApp .dsx-feed-workspace{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(250px,300px)!important;
+  align-items:start!important;
+  gap:clamp(16px,2vw,28px)!important;
+  margin-top:18px!important;
+}
+#feedApp .dsx-feed-main{width:100%!important;max-width:none!important;}
+#feedPageStream{
+  width:100%!important;max-width:none!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  grid-auto-rows:max-content!important;align-items:start!important;
+  gap:18px!important;padding:0 0 32px!important;
+  height:auto!important;
+}
+#feedPageStream .ds30-social-post{
+  box-sizing:border-box!important;position:relative!important;
+  display:block!important;width:100%!important;max-width:none!important;
+  min-width:0!important;height:auto!important;min-height:0!important;
+  max-height:none!important;overflow:visible!important;
+  margin:0!important;padding:0!important;border-radius:15px!important;
+  background:linear-gradient(150deg,#122f52,#081c36)!important;
+  border:1px solid rgba(135,174,220,.28)!important;
+  color:#eaf1f9!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.18)!important;
+}
+#feedPageStream .ds30-post-authorbar{
+  display:flex!important;align-items:center!important;
+  gap:12px!important;min-width:0!important;
+  padding:16px 18px 12px!important;margin:0!important;
+  background:transparent!important;
+}
+#feedPageStream .ds30-author-avatar{
+  flex:0 0 44px!important;position:relative!important;
+  display:grid!important;place-items:center!important;
+  box-sizing:border-box!important;width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;
+  max-width:44px!important;max-height:44px!important;
+  overflow:hidden!important;border-radius:50%!important;
+  border:2px solid #e6bb62!important;background:#173b64!important;
+}
+#feedPageStream .ds30-author-initials{
+  display:grid!important;place-items:center!important;
+  width:100%!important;height:100%!important;
+  font-size:13px!important;line-height:1!important;
+  color:#f4d795!important;
+}
+#feedPageStream .ds30-author-photo{
+  position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;max-width:100%!important;
+  max-height:100%!important;object-fit:cover!important;
+  border-radius:50%!important;
+}
+#feedPageStream .ds30-post-author{
+  display:grid!important;gap:4px!important;
+  flex:1 1 auto!important;min-width:0!important;overflow-wrap:anywhere!important;
+}
+#feedPageStream .ds30-post-author strong{
+  color:#f8fbff!important;font-size:14px!important;
+  line-height:1.35!important;font-weight:800!important;
+}
+#feedPageStream .ds30-author-credentials{
+  display:flex!important;flex-wrap:wrap!important;
+  gap:5px 8px!important;align-items:center!important;
+}
+#feedPageStream .ds30-post-rank,
+#feedPageStream .ds30-post-author small{
+  color:#b9ccdf!important;font-size:11.5px!important;
+  line-height:1.45!important;white-space:normal!important;
+}
+#feedPageStream .ds30-post-founding{
+  display:inline-flex!important;align-items:center!important;
+  width:max-content!important;max-width:100%!important;
+  padding:3px 8px!important;font-size:10px!important;
+  line-height:1.4!important;border-radius:999px!important;
+  color:#231604!important;background:#edbe5e!important;
+}
+#feedPageStream .ds30-post-options{
+  position:relative!important;flex:0 0 auto!important;align-self:flex-start!important;
+}
+#feedPageStream .ds30-more-button{
+  display:grid!important;place-items:center!important;
+  width:34px!important;height:34px!important;min-width:34px!important;
+  min-height:34px!important;padding:6px!important;
+  border:1px solid rgba(142,178,219,.28)!important;
+  border-radius:9px!important;background:rgba(255,255,255,.06)!important;
+  color:#dceafa!important;cursor:pointer!important;
+}
+#feedPageStream .ds30-more-button .ds30-action-icon{
+  width:18px!important;height:18px!important;
+}
+#feedPageStream .ds30-post-menu{
+  position:absolute!important;right:0!important;top:calc(100% + 6px)!important;
+  z-index:90!important;width:max-content!important;min-width:180px!important;
+  max-width:min(280px,80vw)!important;
+  padding:6px!important;border-radius:10px!important;
+  border:1px solid rgba(142,178,219,.38)!important;
+  background:#092342!important;box-shadow:0 14px 30px rgba(0,0,0,.34)!important;
+}
+#feedPageStream .ds30-post-menu[hidden]{display:none!important;}
+#feedPageStream .ds30-post-menu button{
+  display:block!important;width:100%!important;min-height:34px!important;
+  padding:8px 10px!important;text-align:left!important;
+  color:#ecf4fc!important;background:transparent!important;
+  border:0!important;font-size:12px!important;border-radius:7px!important;
+}
+#feedPageStream .ds30-post-menu button:hover{background:rgba(66,144,230,.18)!important;}
+#feedPageStream .ds30-social-post>h3{
+  margin:4px 18px 10px!important;padding:0!important;
+  height:auto!important;max-height:none!important;overflow:visible!important;
+  color:#f9fbff!important;font-size:16px!important;
+  line-height:1.45!important;font-weight:800!important;
+  white-space:normal!important;overflow-wrap:anywhere!important;
+}
+#feedPageStream .ds30-post-copy{
+  display:block!important;
+  margin:0 18px 15px!important;padding:0!important;
+  width:auto!important;max-width:none!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  background:transparent!important;color:#e6eef8!important;
+  opacity:1!important;font-size:14px!important;line-height:1.68!important;
+  white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+  word-break:normal!important;text-overflow:clip!important;
+  overflow:visible!important;-webkit-line-clamp:unset!important;
+}
+#feedPageStream .ds30-post-copy a{
+  color:#91c6ff!important;text-decoration:underline!important;
+  text-underline-offset:2px!important;overflow-wrap:anywhere!important;
+}
+#feedPageStream .ds30-view-full{
+  display:inline-block!important;margin:0 18px 15px!important;
+  color:#9acbff!important;font-size:12px!important;font-weight:800!important;
+}
+#feedPageStream .ds30-post-engagement{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  flex-wrap:wrap!important;gap:6px 14px!important;
+  margin:0 18px!important;padding:10px 0!important;
+  min-height:0!important;border-top:1px solid rgba(142,178,219,.16)!important;
+  border-bottom:1px solid rgba(142,178,219,.16)!important;
+  background:transparent!important;color:#b6c9dd!important;
+  font-size:12px!important;line-height:1.4!important;
+}
+#feedPageStream .ds30-reaction-summary{
+  display:inline-flex!important;align-items:center!important;
+  flex-wrap:wrap!important;gap:5px!important;
+}
+#feedPageStream .ds30-reaction-chip{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:20px!important;height:20px!important;flex:0 0 20px!important;
+  margin:0 -3px 0 0!important;background:transparent!important;
+}
+#feedPageStream .ds30-post-actions{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:7px!important;align-items:center!important;
+  padding:9px 14px 12px!important;margin:0!important;
+  background:rgba(4,18,39,.27)!important;
+  border:0!important;border-radius:0 0 14px 14px!important;
+}
+#feedPageStream .ds30-react-wrap{position:relative!important;min-width:0!important;}
+#feedPageStream .ds30-post-actions>button,
+#feedPageStream .ds30-react-main{
+  box-sizing:border-box!important;display:flex!important;align-items:center!important;
+  justify-content:center!important;flex-direction:row!important;gap:7px!important;
+  width:100%!important;min-width:0!important;height:auto!important;
+  min-height:38px!important;max-height:none!important;
+  padding:8px 7px!important;margin:0!important;
+  color:#d5e3f2!important;background:transparent!important;
+  border:1px solid transparent!important;border-radius:9px!important;
+  font:750 12px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  cursor:pointer!important;
+  box-shadow:none!important;transform:none!important;
+}
+#feedPageStream .ds30-post-actions>button span,
+#feedPageStream .ds30-react-main>span{
+  display:inline!important;white-space:nowrap!important;
+  color:inherit!important;font-size:inherit!important;
+}
+#feedPageStream .ds30-post-actions .ds30-action-icon,
+#feedPageStream .ds30-react-main .ds30-action-icon{
+  display:block!important;flex:0 0 17px!important;
+  width:17px!important;height:17px!important;
+  max-width:17px!important;max-height:17px!important;
+  stroke-width:1.9!important;fill:none!important;
+  box-shadow:none!important;
+}
+#feedPageStream .ds30-post-actions>button:hover,
+#feedPageStream .ds30-react-main:hover,
+#feedPageStream .ds30-post-actions>button:focus-visible,
+#feedPageStream .ds30-react-main:focus-visible{
+  color:#ffffff!important;background:rgba(101,163,238,.12)!important;
+  border-color:rgba(126,176,238,.20)!important;
+  outline-offset:2px!important;
+}
+#feedPageStream .ds30-react-main.has-reaction.reaction-like{color:#85baff!important;background:rgba(24,119,242,.12)!important;}
+#feedPageStream .ds30-react-main.has-reaction.reaction-love{color:#ff8998!important;background:rgba(255,77,90,.11)!important;}
+#feedPageStream .ds30-react-main.has-reaction.reaction-celebrate{color:#f8d474!important;background:rgba(240,193,91,.12)!important;}
+#feedPageStream .ds30-react-main.has-reaction.reaction-support{color:#84e8b1!important;background:rgba(53,208,127,.10)!important;}
+#feedPageStream .ds30-react-main.has-reaction.reaction-insightful{color:#c3b9ff!important;background:rgba(155,140,255,.10)!important;}
+#feedPageStream .ds30-reaction-picker{
+  position:absolute!important;left:0!important;bottom:calc(100% + 8px)!important;
+  z-index:80!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:4px!important;width:max-content!important;max-width:min(350px,calc(100vw - 48px))!important;
+  padding:6px!important;background:#0c294b!important;
+  border:1px solid rgba(139,181,232,.34)!important;border-radius:13px!important;
+  box-shadow:0 18px 35px rgba(0,0,0,.36)!important;
+}
+#feedPageStream .ds30-reaction-picker[hidden]{display:none!important;}
+#feedPageStream .ds30-reaction-picker button{
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  width:53px!important;min-width:53px!important;min-height:49px!important;
+  padding:4px!important;border:0!important;border-radius:8px!important;
+  background:transparent!important;color:#dce9f6!important;
+  font-size:10px!important;font-weight:700!important;
+}
+#feedPageStream .ds30-reaction-picker button:hover,
+#feedPageStream .ds30-reaction-picker button:focus-visible{
+  background:rgba(127,171,225,.14)!important;
+}
+#feedPageStream .ds30-comment-form{
+  display:block!important;margin:0 18px 17px!important;padding:12px!important;
+  border-radius:11px!important;background:#081f3e!important;
+  border:1px solid rgba(142,178,219,.22)!important;
+}
+#feedPageStream .ds30-comment-form[hidden]{display:none!important;}
+#feedPageStream .ds30-comment-form label{
+  display:block!important;margin:0 0 7px!important;
+  font-size:12px!important;font-weight:750!important;color:#dceafa!important;
+}
+#feedPageStream .ds30-comment-row{display:flex!important;gap:9px!important;align-items:end!important;}
+#feedPageStream .ds30-comment-row textarea{
+  flex:1 1 auto!important;min-width:0!important;min-height:62px!important;
+  padding:10px 12px!important;color:#f4f9ff!important;
+  background:#071a33!important;border:1px solid rgba(150,190,230,.34)!important;
+  border-radius:9px!important;font-size:13px!important;resize:vertical!important;
+}
+#feedPageStream .ds30-comment-row textarea::placeholder{color:#b4c7db!important;}
+#feedPageStream .ds30-comment-row>button{
+  flex:0 0 auto!important;min-height:40px!important;
+  padding:9px 14px!important;border:0!important;border-radius:9px!important;
+  background:#1877f2!important;color:#fff!important;font-weight:800!important;
+}
+#feedPageStream .ds30-social-status{margin:6px 2px!important;color:#d0dfef!important;}
+#feedPageStream .ds30-social-error{color:#ff9da8!important;}
+
+/* Restore the Feed's label/surface contrast even before the nav shell mounts. */
+#feedApp .dsos-screenreader{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+#feedApp .dsx-feed-page-composer,
+#feedApp .dsx-feed-page-identity,
+#feedApp .dsx-feed-page-identity strong{color:#f4f8ff!important;}
+#feedApp #feedComposerBody{
+  color:#f4f8ff!important;background:#071e39!important;
+  border-color:rgba(152,186,229,.36)!important;
+  font-size:13.5px!important;line-height:1.55!important;
+}
+#feedApp #feedComposerBody::placeholder{color:#b2c7dd!important;opacity:1!important;}
+#feedApp .dsmedia-attach-hint,
+#feedApp .dsmedia-note,
+#feedApp .dsmedia-draft-status,
+#feedApp .dsmedia-attach-button,
+#feedApp .dsx-feed-aside p,
+#feedApp .dsx-feed-aside small{
+  color:#c7d8e9!important;line-height:1.55!important;
+}
+#feedApp .dsx-feed-aside strong{color:#f5f9ff!important;}
+#feedApp .dsx-feed-aside{min-width:0!important;align-self:start!important;}
+
+/* Dashboard is an excerpt, but it must never become a pale, clipped box. */
+.dsos-executive #dashboardSocialPreview .ds30-social-post{
+  height:auto!important;max-height:none!important;overflow:visible!important;
+}
+.dsos-executive #dashboardSocialPreview .ds30-post-copy{
+  color:#e5eef8!important;background:transparent!important;
+  border:0!important;box-shadow:none!important;overflow-wrap:anywhere!important;
+  white-space:pre-wrap!important;
+}
+@media(max-width:1180px){
+  #feedApp .dsx-feed-workspace{
+    grid-template-columns:minmax(0,1fr)!important;gap:20px!important;
+  }
+  #feedApp .dsx-feed-aside{
+    position:static!important;display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;
+  }
+  #feedApp .dsx-feed-aside>.dsx-side-card:first-child{grid-column:1/-1!important;}
+}
+@media(max-width:690px){
+  #feedApp .dsx-feed-workspace{display:block!important;}
+  #feedApp .dsx-feed-aside{grid-template-columns:minmax(0,1fr)!important;margin-top:18px!important;}
+  #feedPageStream{gap:13px!important;}
+  #feedPageStream .ds30-post-authorbar{padding:13px 12px 10px!important;gap:9px!important;}
+  #feedPageStream .ds30-author-avatar{
+    width:39px!important;height:39px!important;min-width:39px!important;
+    min-height:39px!important;max-width:39px!important;max-height:39px!important;
+    flex-basis:39px!important;
+  }
+  #feedPageStream .ds30-social-post>h3{margin:5px 12px 8px!important;font-size:15px!important;}
+  #feedPageStream .ds30-post-copy{
+    margin:0 12px 12px!important;font-size:13.5px!important;
+    line-height:1.62!important;
+  }
+  #feedPageStream .ds30-post-engagement{margin:0 12px!important;}
+  #feedPageStream .ds30-post-actions{padding:7px 6px 10px!important;gap:4px!important;}
+  #feedPageStream .ds30-post-actions>button,
+  #feedPageStream .ds30-react-main{
+    flex-direction:column!important;gap:3px!important;
+    min-height:45px!important;padding:5px 1px!important;
+    font-size:10px!important;
+  }
+  #feedPageStream .ds30-post-actions .ds30-action-icon,
+  #feedPageStream .ds30-react-main .ds30-action-icon{
+    width:18px!important;height:18px!important;
+    min-width:18px!important;min-height:18px!important;
+    max-width:18px!important;max-height:18px!important;
+    flex-basis:18px!important;
+  }
+  #feedPageStream .ds30-comment-row{align-items:stretch!important;flex-direction:column!important;}
+  #feedPageStream .ds30-reaction-picker{left:-4px!important;}
+}
+@media(prefers-reduced-motion:reduce){
+  #feedPageStream .ds30-social-post *,
+  #feedPageStream .ds30-social-post *::before,
+  #feedPageStream .ds30-social-post *::after{
+    transition:none!important;animation:none!important;
+  }
+}

@@ -1,0 +1,96 @@
+name: DominionStar — Disposable PostgreSQL Community Permissions
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
+      - 'tests/sql/community-notifications-fixture.sql'
+      - 'tests/sql/community-notifications-assertions.sql'
+      - 'scripts/security/community-reaction-archive.DO-NOT-RUN.review.sql'
+      - 'scripts/security/community-single-reaction.DO-NOT-RUN.review.sql'
+      - 'tests/sql/community-reactions-fixture.sql'
+      - 'tests/sql/community-reactions-assertions.sql'
+      - '.github/workflows/community-postgres-isolation-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-community-source:
+    name: Real SQL + RLS with disposable synthetic-only PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: SYNTHETIC_CI_ONLY_NO_REAL_DATA
+      PGDATABASE: synthetic_agent_review
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC_CI_ONLY_NO_REAL_DATA
+          POSTGRES_DB: synthetic_agent_review
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synthetic_agent_review"
+          --health-interval 4s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout candidate SQL only — never deploy
+        uses: actions/checkout@v4
+      - name: Install local postgres client if absent
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql --version
+      - name: Hard refuse any nonlocal database target
+        run: |
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = synthetic_agent_review
+          test "$DOMINIONSTAR_STAGING_ISOLATION_APPROVED" = ""
+          test "$(psql -v ON_ERROR_STOP=1 -Atc 'select current_database()')" = synthetic_agent_review
+          # The database exists only inside this CI service container.
+      - name: Build isolated synthetic auth, posts, comments and inbox
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-fixture.sql
+      - name: Compile and apply draft notification triggers in disposable CI only
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
+      - name: Execute permission and genuine-source notification assertions
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-assertions.sql
+      - name: Seed synthetic legacy multi-reactions (9 rows, 6 pairs)
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-reactions-fixture.sql
+      - name: Require preflight to refuse schema cutover before reconciliation
+        run: |
+          if psql -v ON_ERROR_STOP=1 -f scripts/security/community-single-reaction.DO-NOT-RUN.review.sql > /tmp/reaction-preflight.log 2>&1; then
+            echo 'SAFETY FAILURE: duplicate reaction records did not block cutover' >&2
+            exit 1
+          fi
+          if ! grep -Fq 'Multiple stored reactions detected' /tmp/reaction-preflight.log; then
+            echo 'The SQL cutover failed for an unexpected reason' >&2
+            cat /tmp/reaction-preflight.log >&2
+            exit 1
+          fi
+          echo 'EXPECTED_DUPLICATE_PREFLIGHT_REJECTION_PASS'
+      - name: Archive synthetic duplicate reactions in private disposable schema
+        run: psql -v ON_ERROR_STOP=1 -f scripts/security/community-reaction-archive.DO-NOT-RUN.review.sql
+      - name: Apply candidate Love/one-choice migration in disposable database only
+        run: psql -v ON_ERROR_STOP=1 -f scripts/security/community-single-reaction.DO-NOT-RUN.review.sql
+      - name: Exercise real toggle/switch/removal, access and history invariants
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-reactions-assertions.sql
+      - name: Confirm no external migration or email execution
+        run: |
+          test -z "${SUPABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          test -z "${RESEND_API_KEY:-}"
+          echo "DISPOSABLE_POSTGRES_NO_SUPABASE_NO_EMAIL_PASS"

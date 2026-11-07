@@ -126,9 +126,11 @@ test('Executive login retains mandatory Agent Code and guards optional Google si
 test('Executive community post action row uses existing Supabase interaction endpoints',()=>{
   const social=read('assets/js/dashboard-social.js');
   assert.match(feedPage,/dashboard-social\.js/);
-  for(const action of ['like','comment','repost','share']) {
+  for(const action of ['react','reaction','comment','repost','share']) {
     assert.match(social,new RegExp('data-social="'+action+'"'));
   }
+  assert.match(social,/reactionOrder=\['like','love','celebrate','support','insightful'\]/);
+  assert.match(social,/data-reaction="'\+name\+'"/);
   assert.match(social,/community_toggle_reaction/);
   assert.match(social,/community_comments/);
   assert.match(social,/community_messages/);
@@ -171,11 +173,14 @@ test('Dashboard engagement counts are actual queried rows and not mock values',a
   const context={window:{},document:fakeDocument,navigator:{},location:{origin:'https://dominionstarld.com'},URL};
   vm.runInNewContext(social,context);
   await context.window.DSDashboardSocial.mount({client,memberId:'viewer-a',target:rendered});
-  assert.match(rendered.innerHTML,/2 likes/);
+  assert.match(rendered.innerHTML,/2 reactions/);
   assert.match(rendered.innerHTML,/1 comment/);
+  assert.match(rendered.innerHTML,/data-social="reaction"/);
+  assert.match(rendered.innerHTML,/data-reaction="love"/);
   assert.match(rendered.innerHTML,/data-social="repost"/);
   assert.match(rendered.innerHTML,/data-social="share"/);
   assert.match(rendered.innerHTML,/aria-pressed="true"/);
+  assert.match(rendered.innerHTML,/reaction-like/);
   assert.equal(typeof registered.click,'function');
   assert.equal(typeof registered.submit,'function');
 });
