@@ -13,7 +13,7 @@ const headerOf=(request,name)=>
   request?.headers?.get?.(name)||request?.headers?.[name]||
   request?.headers?.[name.toLowerCase()]||'';
 
-const strictEmailGateEnabled=()=>process.env.DOMINIONSTAR_PRIORITY_EMAIL_ROUTING_ENABLED==='enabled';
+const strictEmailGateEnabled=(env=process.env)=>env.DOMINIONSTAR_PRIORITY_EMAIL_ROUTING_ENABLED==='enabled';
 
 const uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const eventDedupe=new RegExp('^event:('+uuid+')$','i');
@@ -23,7 +23,7 @@ const eventDedupe=new RegExp('^event:('+uuid+')$','i');
  * corresponding SQL trigger and all event emitters. Keep it disabled until
  * approved. It NEVER trusts addresses or event priorities from the outbox.
  */
-async function recheckSelectedEmail(supabase,email){
+export async function recheckSelectedEmail(supabase,email){
   if(!email?.recipient_id)return {allowed:false,reason:'missing_recipient'};
   const account=await supabase.auth.admin.getUserById(email.recipient_id);
   if(account.error)throw account.error; // transient provider failure: retry
@@ -66,20 +66,29 @@ async function recheckSelectedEmail(supabase,email){
   });
 }
 
-export default async request=>{
+export const createEmailOutboxHandler=({
+  clientFactory=createClient,
+  resendFactory=key=>new Resend(key),
+  env=process.env
+}={})=>async request=>{
   if(methodOf(request)!=='POST')return reply(405,{error:'Method not allowed'});
+  // Fail closed: an unapproved feature flag must never bypass recipient/source
+  // revalidation and continue delivering legacy category-based emails.
+  if(!strictEmailGateEnabled(env)){
+    return reply(409,{error:'Priority email delivery is disabled pending staging approval.'});
+  }
   const {
     SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_API_KEY,
     DOMINIONSTAR_EMAIL_FROM,DOMINIONSTAR_EMAIL_FROM_NAME='DominionStar',
     DOMINIONSTAR_EMAIL_REPLY_TO,EMAIL_PROCESSOR_SECRET
-  }=process.env;
+  }=env;
   if(!SUPABASE_URL||!SUPABASE_SERVICE_ROLE_KEY||
      !RESEND_API_KEY||!DOMINIONSTAR_EMAIL_FROM){
     return reply(500,{error:'Email delivery environment is incomplete.'});
   }
   const supplied=headerOf(request,'x-dominionstar-secret');
   const secretAuthorized=Boolean(EMAIL_PROCESSOR_SECRET&&supplied&&supplied===EMAIL_PROCESSOR_SECRET);
-  const supabase=createClient(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{
+  const supabase=clientFactory(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{
     auth:{persistSession:false,autoRefreshToken:false}
   });
   if(!secretAuthorized){
@@ -102,23 +111,21 @@ export default async request=>{
   if(q.error)return reply(500,{error:q.error.message});
   if(!q.data?.length)return reply(200,{sent:0,failed:0,skipped:0});
 
-  const resend=new Resend(RESEND_API_KEY);
+  const resend=resendFactory(RESEND_API_KEY);
   let sent=0,failed=0,skipped=0;
   const errors=[];
   for(const email of q.data){
     try{
-      if(strictEmailGateEnabled()){
-        const decision=await recheckSelectedEmail(supabase,email);
-        if(!decision.allowed){
-          const cancelled=await supabase.from('email_notification_outbox')
-            .update({status:'cancelled',
-              last_error:'Suppressed by priority email policy: '+decision.reason,
-              updated_at:new Date().toISOString()})
-            .eq('id',email.id);
-          if(cancelled.error)throw cancelled.error;
-          skipped++;
-          continue;
-        }
+      const decision=await recheckSelectedEmail(supabase,email);
+      if(!decision.allowed){
+        const cancelled=await supabase.from('email_notification_outbox')
+          .update({status:'cancelled',
+            last_error:'Suppressed by priority email policy: '+decision.reason,
+            updated_at:new Date().toISOString()})
+          .eq('id',email.id);
+        if(cancelled.error)throw cancelled.error;
+        skipped++;
+        continue;
       }
       const actionUrl=safeDominionStarEmailUrl(email.action_url);
       const r=await resend.emails.send({
@@ -153,3 +160,6 @@ export default async request=>{
   }
   return reply(failed?207:200,{sent,failed,skipped,processed:q.data.length,errors});
 };
+
+// Default Netlify handler uses real services only after the explicit release flag.
+export default createEmailOutboxHandler();
