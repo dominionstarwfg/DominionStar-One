@@ -110,6 +110,56 @@ Supabase RPC batching, retries after real external outages, bounces,
 complaints and race conditions after an email provider accepts a send.
 Do not turn on the flag or deploy these changes until staging approval.
 
+## 2026-11-07: Stable provider identity and ambiguous-send guard
+
+**Context:** Resend supports an idempotencyKey request option on Node SDK
+emails.send(payload,options) and retains the key for **24 hours**. Repeating
+a request with the same key and payload returns the original response;
+different payloads with a reused key produce a 409 conflict.
+Official source: https://resend.com/changelog/idempotency-keys
+
+**Code gate (review branch, not deployed):**
+
+- Every outbox send uses dominionstar/outbox/<outbox UUID> as a stable
+  provider idempotency key. No new key is generated inside the retry loop.
+- The worker refuses malformed outbox IDs before contacting Resend.
+- A retry (attempts > 1) with no reliable created_at or queue age of
+  **23 hours or more** is **not sent automatically**. It is marked failed
+  for explicit manual reconciliation. Queue age is a conservative upper
+  bound, not a precise first-attempt timestamp. This might suppress
+  legitimate delayed retries; avoiding duplicates takes priority.
+- If the provider accepted a send but the database cannot mark it as sent,
+  or the provider responds without a message ID, the row is **never
+  returned to pending**. It remains processing and the handler reports
+  manual reconciliation needed. Operational tooling for stalled processing
+  rows must be approved separately.
+- Provider invalid_idempotent_request and invalid_idempotency_key errors
+  are terminal cases. Other errors use bounded backoff and reuse the same
+  provider key, subject to the conservative 23-hour cutoff.
+- Existing controls remain mandatory: the explicit release flag, processor
+  authentication, verified account email, source-event verification,
+  recipient preferences, and official CTA domain.
+
+**No-send verification:** tests/priority-email-delivery-worker.test.mjs
+injects fake Supabase and Resend services to test same-key retries, expired
+or missing timestamps, malformed IDs, provider conflict, provider accepted
++ database acknowledgement failure, and successful provider responses
+without a message ID. CI runs this against the real handler; no external
+email or database is used.
+
+**Release blockers:**
+
+1. Real nonproduction Supabase Auth/PostgREST integration and a controlled
+   Resend canary sent solely to an approved fake/test recipient.
+2. A persistent manual-reconciliation process and alerts for processing
+   and ambiguous provider-acknowledgement rows.
+3. Validate unchanged email payloads between retries. A 409 conflict
+   must not be bypassed with a new idempotency key.
+4. Consider a durable first-provider-attempt timestamp or delivery
+   ledger instead of the conservative queue-creation cutoff.
+5. Verify provider rate limits, bounces/complaints and outages beyond 24h.
+6. Explicit approval for migration, flags, production deploy and rollback.
+
 ## Release gates
 
 - [ ] A separate **nonproduction** Supabase project and test users
