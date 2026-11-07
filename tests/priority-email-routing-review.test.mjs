@@ -97,9 +97,13 @@ test('Priority SQL draft checks provenance, member preferences, verified Auth em
 
 test('Delivery worker rechecks account, event origin and opt-out BEFORE sending',()=>{
   assert.match(worker,/DOMINIONSTAR_PRIORITY_EMAIL_ROUTING_ENABLED==='enabled'/);
-  const gate=worker.indexOf('if(strictEmailGateEnabled()){');
+  const gate=worker.indexOf('if(!strictEmailGateEnabled(env)){');
+  const claim=worker.indexOf("rpc('claim_email_notification_batch'");
   const send=worker.indexOf('await resend.emails.send');
-  assert.ok(gate>0&&send>gate);
+  assert.ok(gate>0&&claim>gate&&send>claim,
+    'Disabled routing must stop before queue claim and email sends');
+  assert.match(worker,/createEmailOutboxHandler/);
+  assert.match(worker,/const decision=await recheckSelectedEmail\(supabase,email\)/);
   assert.match(worker,/supabase\.auth\.admin\.getUserById/);
   assert.match(worker,/recipient_email_changed/);
   assert.match(worker,/\.from\('notification_preferences'\)/);
