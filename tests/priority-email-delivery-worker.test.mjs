@@ -108,7 +108,7 @@ const build=(overrides={})=>{
           {data:null,error:model.providerError||{
             message:'Synthetic mail provider rejection'
           }}:
-          {data:{id:'synthetic-provider-id'},error:null};
+          {data:model.sendMissingId?{}:{id:'synthetic-provider-id'},error:null};
       }
     }})
   });
@@ -321,4 +321,15 @@ test('An invalid outbox identity or permanent idempotency conflict does not retr
   assert.equal(blocked.body.failed,1);
   assert.equal(conflict.log.sends.length,1);
   assert.equal(conflict.log.updates[0].changes.status,'failed');
+});
+
+test('Provider success without a message ID is held for manual reconciliation',async()=>{
+  const f=build({sendMissingId:true});
+  const r=await result(await f.authorized());
+  assert.equal(r.status,207);
+  assert.equal(r.body.failed,1);
+  assert.equal(r.body.sent,0);
+  assert.equal(f.log.sends.length,1);
+  assert.equal(f.log.updates.length,0);
+  assert.match(r.body.errors[0],/requires manual reconciliation/);
 });
