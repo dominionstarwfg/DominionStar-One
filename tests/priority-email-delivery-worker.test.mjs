@@ -1,18 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createEmailOutboxHandler} from '../netlify/functions/process-email-outbox.mjs';
+import {
+  createEmailOutboxHandler, providerEmailIdempotencyKey,
+  needsIdempotencyManualReview
+} from '../netlify/functions/process-email-outbox.mjs';
 
 const recipient='00000000-0000-4000-8000-000000000001';
 const eventId='70000000-0000-4000-8000-000000000001';
 const itemId='90000000-0000-4000-8000-000000000001';
 const verified='synthetic-verified@example.invalid';
 const build=(overrides={})=>{
-  const log={queries:[],claims:[],updates:[],sends:[],authChecks:[],serviceCreated:0};
+  const log={queries:[],claims:[],updates:[],sends:[],sendOptions:[],authChecks:[],serviceCreated:0};
   const model={
     item:{id:itemId,recipient_id:recipient,recipient_email:verified,
       event_type:'appointment.confirmed',dedupe_key:'event:'+eventId,
       subject:'Synthetic appointment',body:'No real member data',
-      action_url:'/member-dashboard/',attempts:1},
+      action_url:'/member-dashboard/',attempts:1,created_at:new Date().toISOString()},
     user:{id:recipient,email:verified,email_confirmed_at:'2026-11-01T10:00:00Z'},
     event:{id:eventId,member_id:recipient,event_type:'appointment.confirmed',
       priority:'normal'},
@@ -42,7 +45,9 @@ const build=(overrides={})=>{
         eq(name,value){
           filter[name]=value;
           if(operation==='update'){
-            const result={error:model.updateError?new Error('Queue update unavailable'):null};
+            const result={error:model.updateError||
+              (model.sentUpdateError&&changes.status==='sent')
+                ?new Error('Queue update unavailable'):null};
             log.updates.push({table,filter:{...filter},changes:{...changes}});
             return Promise.resolve(result);
           }
@@ -96,10 +101,13 @@ const build=(overrides={})=>{
       return client;
     },
     resendFactory:()=>({emails:{
-      send:async payload=>{
+      send:async (payload,options)=>{
         log.sends.push(payload);
-        return model.sendError?
-          {data:null,error:{message:'Synthetic mail provider rejection'}}:
+        log.sendOptions.push(options);
+        return model.sendError||model.providerError?
+          {data:null,error:model.providerError||{
+            message:'Synthetic mail provider rejection'
+          }}:
           {data:{id:'synthetic-provider-id'},error:null};
       }
     }})
@@ -145,6 +153,8 @@ test('A verified, allowed, source-matched event sends exactly once and saves del
   assert.equal(f.log.claims.length,1);
   assert.equal(f.log.sends.length,1);
   assert.deepEqual(f.log.sends[0].to,[verified]);
+  assert.deepEqual(f.log.sendOptions[0],
+    {idempotencyKey:'dominionstar/outbox/'+itemId});
   assert.match(f.log.sends[0].html,/https:\/\/dominionstarld\.com\/member-dashboard\//);
   assert.ok(f.log.updates.some(u=>u.changes.status==='sent'&&
     u.changes.provider_message_id==='synthetic-provider-id'));
@@ -240,4 +250,75 @@ test('Delivery disabled in settings prevents claiming any email',async()=>{
   assert.equal(r.status,409);
   assert.equal(f.log.claims.length,0);
   assert.equal(f.log.sends.length,0);
+});
+
+
+test('Every provider request gets the same per-outbox key, never a new attempt key',async()=>{
+  const first=build();
+  const second=build({item:{...build().model.item,attempts:2}});
+  await first.authorized();
+  await second.authorized();
+  assert.equal(first.log.sendOptions.length,1);
+  assert.equal(second.log.sendOptions.length,1);
+  assert.deepEqual(first.log.sendOptions[0],second.log.sendOptions[0]);
+  assert.equal(providerEmailIdempotencyKey({id:itemId}),
+    'dominionstar/outbox/'+itemId);
+  assert.equal(providerEmailIdempotencyKey({id:'not-a-uuid'}),null);
+});
+
+test('A provider-accepted email with a DB acknowledgement failure is NEVER requeued',async()=>{
+  const f=build({sentUpdateError:true});
+  const r=await result(await f.authorized());
+  assert.equal(r.status,207);
+  assert.equal(r.body.sent,0);
+  assert.equal(r.body.failed,1);
+  assert.equal(f.log.sends.length,1);
+  assert.deepEqual(f.log.updates.map(u=>u.changes.status),['sent']);
+  assert.match(r.body.errors[0],/requires manual reconciliation/);
+});
+
+test('Retries outside provider idempotency retention are held for manual review',async()=>{
+  const old=new Date(Date.now()-24*60*60*1000).toISOString();
+  const f=build({item:{...build().model.item,attempts:2,created_at:old}});
+  const r=await result(await f.authorized());
+  assert.equal(r.status,200);
+  assert.equal(r.body.skipped,1);
+  assert.equal(f.log.sends.length,0);
+  assert.equal(f.log.updates[0].changes.status,'failed');
+  assert.match(f.log.updates[0].changes.last_error,/Manual reconciliation/);
+  assert.equal(needsIdempotencyManualReview({
+    attempts:2,created_at:old
+  }),true);
+  assert.equal(needsIdempotencyManualReview({
+    attempts:1,created_at:old
+  }),false);
+  assert.equal(needsIdempotencyManualReview({
+    attempts:2
+  }),true);
+});
+
+test('Retry with unknown creation time is held, but a fresh retry can proceed',async()=>{
+  const missing=build({item:{...build().model.item,attempts:2,created_at:null}});
+  const r=await result(await missing.authorized());
+  assert.equal(r.body.skipped,1);
+  assert.equal(missing.log.sends.length,0);
+  const fresh=build({item:{...build().model.item,attempts:2}});
+  const next=await result(await fresh.authorized());
+  assert.equal(next.body.sent,1);
+  assert.equal(fresh.log.sends.length,1);
+});
+
+test('An invalid outbox identity or permanent idempotency conflict does not retry',async()=>{
+  const wrong=build({item:{...build().model.item,id:'bad-id'}});
+  const noSend=await result(await wrong.authorized());
+  assert.equal(noSend.body.failed,1);
+  assert.equal(wrong.log.sends.length,0);
+  assert.equal(wrong.log.updates[0].changes.status,'failed');
+  const conflict=build({providerError:{
+    name:'invalid_idempotent_request',message:'Provider rejects payload drift'
+  }});
+  const blocked=await result(await conflict.authorized());
+  assert.equal(blocked.body.failed,1);
+  assert.equal(conflict.log.sends.length,1);
+  assert.equal(conflict.log.updates[0].changes.status,'failed');
 });
