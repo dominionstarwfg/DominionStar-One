@@ -168,6 +168,11 @@ export const createEmailOutboxHandler=({
         throw err;
       }
       providerAccepted=true;
+      if(!r.data?.id){
+        // Provider might have accepted the request despite a malformed
+        // acknowledgement. Never fabricate a sent state or retry blindly.
+        throw new Error('Provider acceptance lacks a message ID');
+      }
       const saved=await supabase.from('email_notification_outbox')
         .update({status:'sent',provider_message_id:r.data?.id||null,
           sent_at:new Date().toISOString(),last_error:null,
