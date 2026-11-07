@@ -36,6 +36,7 @@ on:
       - 'scripts/verify-isolated-agent-staging.mjs'
       - 'tests/isolated-agent-staging-guard.test.mjs'
       - 'tests/priority-email-routing-review.test.mjs'
+      - 'tests/priority-email-delivery-worker.test.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
@@ -95,6 +96,7 @@ on:
       - 'scripts/verify-isolated-agent-staging.mjs'
       - 'tests/isolated-agent-staging-guard.test.mjs'
       - 'tests/priority-email-routing-review.test.mjs'
+      - 'tests/priority-email-delivery-worker.test.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
@@ -149,6 +151,7 @@ jobs:
           node --test tests/security-email-outbox-privilege-gate.test.mjs
           node --test tests/notification-rpc-hardening-review.test.mjs
           node --test tests/priority-email-routing-review.test.mjs
+          node --test tests/priority-email-delivery-worker.test.mjs
           node --test tests/community-notification-source-review.test.mjs
           node --test tests/isolated-agent-staging-guard.test.mjs
       - name: Full Node regression suite
