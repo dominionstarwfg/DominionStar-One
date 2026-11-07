@@ -79,6 +79,37 @@ event before enabling any category.
    notification preferences, inbox separation and verified Auth email.
    It performs no INSERT, UPDATE, DELETE, RPC queue claims, or sends.
 
+## 2026-11-06: Delivery-worker fail-closed verification
+
+A review audit caught a dangerous distinction between *routing disabled* and
+*delivery disabled*: previously, the new strict worker's event-recipient
+recheck was conditional, so the legacy queue could still be claimed and sent
+when `DOMINIONSTAR_PRIORITY_EMAIL_ROUTING_ENABLED` was not set.
+
+**Corrected:** `netlify/functions/process-email-outbox.mjs` now returns
+HTTP 409 **before creating a Supabase client or claiming a queue batch** when
+that flag is not exactly `enabled`. Once explicitly enabled after authorized
+staging, *every* claimed row must pass the current verified Auth address,
+source-event match, category whitelist and member preferences before any
+provider call. Stale addresses and opted-out rows are cancelled. API/source
+failures schedule retries without falsely recording success.
+
+**Runtime tests:** `tests/priority-email-delivery-worker.test.mjs` invokes
+the real handler with dependency-injected **fake Supabase and Resend**
+services. It covers an unconfigured flag, missing/unauthorized callers,
+approved deliveries, unverified and changed email destinations, global and
+per-category opt-outs, invalid/unknown source event records, unavailable
+auth/event/preferences services, provider errors and unsafe external CTA
+links. All synthetic test recipients use `example.invalid`; no network
+delivery or production data is involved. The separate privilege-gate test
+checks that the default handler still uses the service-role Supabase client
+and that caller authorization precedes the queue claim.
+
+**Not yet verified:** a real delivery provider, actual Auth sessions,
+Supabase RPC batching, retries after real external outages, bounces,
+complaints and race conditions after an email provider accepts a send.
+Do not turn on the flag or deploy these changes until staging approval.
+
 ## Release gates
 
 - [ ] A separate **nonproduction** Supabase project and test users
