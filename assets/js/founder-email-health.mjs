@@ -1,5 +1,5 @@
 /* Scoped Founder Email read-only health panel.
- * Deliberately no database writes, queue claims, resend action or polling.
+ * Deliberately no database writes, queue claims, delivery actions or polling.
  * The server independently checks an approved, founder-owned Auth identity.
  */
 const validUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
