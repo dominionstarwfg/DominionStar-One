@@ -89,6 +89,46 @@ without leaking the service-role connection details.
 - `.github/workflows/notification-readability-review-gate.yml`
   executes the tests and JavaScript syntax check.
 
+## 2026-11-08 Founder Email interface integration (review-only)
+
+Rather than creating a duplicate Founder Dashboard, the read-only triage
+interface is embedded into the existing `/founder-email/` page, already
+linked from the Executive Command Center. It is **not** a live feature.
+
+- `founder-email/index.html` includes a compact, dedicated review panel
+  within the Founder-authenticated section. It shows stalled-processing,
+  failed and overdue-pending totals, a restricted case list, and one
+  `Check Delivery Health` action. No automatic polling.
+- `assets/js/founder-email-health.mjs` loads the verified Supabase
+  session only on request, calls the fixed GET-only health endpoint and
+  only renders seven allowlisted case attributes. All output is set via
+  `textContent` on created nodes; unrecognized sensitive fields are dropped.
+- The panel immediately clears previously displayed health details if
+  permission becomes invalid, the endpoint is disabled, or the request
+  fails. It never tries to send, retry, cancel or update a queued email.
+- `assets/css/dominionstar-founder-email-health.css` provides the
+  scoped executive dark-mode layout with high-contrast text, compact
+  metrics and responsive single-column cases for small screens.
+- `tests/founder-email-health-panel-review.test.mjs` asserts server
+  response whitelisting, fixed GET-only request, page integration,
+  no-PII rendering, failure behavior and safe mobile styles.
+- `scripts/review-founder-email-health-browser.mjs` runs Chromium
+  against the **actual review HTML/CSS** at 1360px and 390px.
+  All network and session data are fake: a mocked Founder session and
+  a synthetic endpoint response containing deliberately private fields
+  verify that no email/body/provider identifiers leak. Denied and
+  disabled responses must wipe the previous report.
+- The browser gate uploads Founder panel screenshots to the isolated
+  GitHub Actions run. All controls remain disabled in the public
+  backend-free Netlify preview; the browser harness allows only the
+  isolated synthetic button for test purposes.
+
+**Explicitly excluded:** The existing Founder Email page has separate
+sender settings and a manual queue-processing control. This review panel
+does not alter those existing controls or authorize use of the live
+email queue. Its server endpoint is still disabled by default and
+production remains unchanged.
+
 ## Remaining release gates
 
 1. Verify with **actual nonproduction Supabase Auth, RLS/Data API and
