@@ -146,6 +146,7 @@ test('Founder receives bounded, read-only reconciliation cases with no PII',asyn
     processing_stalled:1,failed:1,pending_overdue:1
   });
   assert.equal(r.data.cases.length,3);
+  assert.equal(r.data.truncated,false);
   assert.deepEqual(r.data.cases.map(c=>c.reason),[
     'processing_stalled','manual_review','pending_overdue'
   ]);
@@ -167,6 +168,7 @@ test('Count totals expose the full backlog, despite bounded item pagination',asy
   assert.equal(r.data.totals.failed,90);
   assert.equal(r.data.totals.pending_overdue,120);
   assert.equal(r.data.cases.length,3);
+  assert.equal(r.data.truncated,true);
 });
 
 test('Invalid queue IDs are never shown in Founder detail cases',async()=>{
