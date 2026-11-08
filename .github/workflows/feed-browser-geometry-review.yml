@@ -6,6 +6,10 @@ on:
     paths:
       - 'scripts/review-feed-browser-geometry.mjs'
       - 'scripts/review-feed-social-interactions.mjs'
+      - 'scripts/review-founder-email-health-browser.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
       - 'assets/js/community-hub.js'
       - 'assets/css/dominionstar-community-reactions.css'
       - 'community/**'
@@ -61,6 +65,16 @@ jobs:
         run: node scripts/review-feed-browser-geometry.mjs
       - name: Click-through Like/Love/Comment/Repost/Share on synthetic posts
         run: node scripts/review-feed-social-interactions.mjs
+      - name: Verify Founder Email read-only health panel across screen sizes
+        run: node scripts/review-founder-email-health-browser.mjs
+      - name: Store Founder Email desktop/mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: founder-email-read-only-health-screenshots
+          path: artifacts/founder-email-health/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Store desktop/mobile geometry screenshots for review
         if: always()
         uses: actions/upload-artifact@v4
