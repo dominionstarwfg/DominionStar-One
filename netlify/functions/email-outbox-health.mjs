@@ -118,7 +118,11 @@ export const createEmailOutboxHealthHandler=({
         pending_overdue:pending.count??(pending.data||[]).length
       },
       cases:rows.map(row=>sanitizeEmailOutboxCase(row,now)).filter(Boolean),
-      truncated:rows.length>=90,
+      truncated:(
+        (processing.count??(processing.data||[]).length)>(processing.data||[]).length||
+        (failed.count??(failed.data||[]).length)>(failed.data||[]).length||
+        (pending.count??(pending.data||[]).length)>(pending.data||[]).length
+      ),
       note:'No queue modifications, automatic retries or email sends are performed'
     });
   }catch{
