@@ -27,6 +27,10 @@ on:
       - 'netlify/functions/scheduled-push-outbox.mjs'
       - 'netlify/functions/process-email-outbox.mjs'
       - 'netlify/functions/email-outbox-health.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
+      - 'tests/founder-email-health-panel-review.test.mjs'
       - 'tests/email-outbox-health-review.test.mjs'
       - 'netlify/functions/_shared/priority-email-policy.mjs'
       - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
@@ -89,6 +93,10 @@ on:
       - 'netlify/functions/scheduled-push-outbox.mjs'
       - 'netlify/functions/process-email-outbox.mjs'
       - 'netlify/functions/email-outbox-health.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
+      - 'tests/founder-email-health-panel-review.test.mjs'
       - 'tests/email-outbox-health-review.test.mjs'
       - 'netlify/functions/_shared/priority-email-policy.mjs'
       - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
@@ -146,6 +154,7 @@ jobs:
           node --check netlify/functions/scheduled-push-outbox.mjs
           node --check netlify/functions/process-email-outbox.mjs
           node --check netlify/functions/email-outbox-health.mjs
+          node --check assets/js/founder-email-health.mjs
           node --check netlify/functions/_shared/priority-email-policy.mjs
           node --check scripts/verify-isolated-agent-staging.mjs
       - name: Targeted notification regression
@@ -158,6 +167,7 @@ jobs:
           node --test tests/priority-email-routing-review.test.mjs
           node --test tests/priority-email-delivery-worker.test.mjs
           node --test tests/email-outbox-health-review.test.mjs
+          node --test tests/founder-email-health-panel-review.test.mjs
           node --test tests/community-notification-source-review.test.mjs
           node --test tests/isolated-agent-staging-guard.test.mjs
       - name: Full Node regression suite
