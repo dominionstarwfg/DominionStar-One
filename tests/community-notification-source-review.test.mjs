@@ -7,6 +7,8 @@ const sql=read('scripts/security/community-notifications-from-source.DO-NOT-RUN.
 const email=read('scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql');
 const hub=read('assets/js/community-hub.js');
 const social=read('assets/js/dashboard-social.js');
+const feed=read('assets/js/feed.js');
+const preview=read('assets/js/dashboard-social-preview.js');
 const notifications=read('assets/js/notifications-center.js');
 const page=read('notifications/index.html');
 
@@ -23,6 +25,8 @@ test('Community alerts are emitted by genuine saved-source triggers, never arbit
   assert.match(sql,/WHERE m\.id=post_id AND m\.is_deleted=false/);
   assert.doesNotMatch(hub,/rpc\('community_notify_mentions'/);
   assert.doesNotMatch(social,/rpc\('community_notify_mentions'/);
+  assert.doesNotMatch(feed,/rpc\('community_notify_mentions'/);
+  assert.doesNotMatch(preview,/rpc\('community_notify_mentions'/);
 });
 
 test('Mention matching uses literal names and does not wildcard or substring match @Ann in @Annabelle',()=>{
