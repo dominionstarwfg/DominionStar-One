@@ -429,17 +429,19 @@
   }
   await window.CommunicationEngine?.init({client,session});
 
+  const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+  if(!publicDirectoryV2){
+    gate.innerHTML='<h1>Messages temporarily unavailable</h1><p>Private communications require the approved member directory and authorization release.</p><a class="btn btn-outline" href="/member-dashboard/">Return to Dashboard</a>';
+    return;
+  }
   gate.classList.add('member-hidden');
   app.classList.remove('member-hidden');
 
   // Keep approved member photo/fallback UX, but route peer identity through
   // the safe projection after staging. Never fall back to private profiles.
-  const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
   const membersResult = await client
-    .from(publicDirectoryV2?'member_public_profiles':'member_profiles')
-    .select(publicDirectoryV2
-      ? 'id,full_name,preferred_name,rank,verification_status,avatar_path'
-      : 'id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path')
+    .from('member_public_profiles')
+    .select('id,full_name,preferred_name,rank,verification_status,avatar_path')
     .eq('verification_status','approved')
     .neq('id',session.user.id)
     .order('full_name');
