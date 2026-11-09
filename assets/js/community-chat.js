@@ -46,8 +46,11 @@
   async function fetchProfiles(ids){
     const unique=[...new Set(ids.filter(Boolean))];
     if(!unique.length)return {};
-    const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
-    const r=await client.from(publicDirectoryV2?'member_public_profiles':'member_profiles')
+    if(window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2!==true){
+      // Chat content can load with generic initials until the safe directory is released.
+      return {};
+    }
+    const r=await client.from('member_public_profiles')
       .select('id,full_name,preferred_name,rank,exclusive_member_number,avatar_path')
       .in('id',unique);
     if(r.error)throw r.error;
