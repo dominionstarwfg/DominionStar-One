@@ -25,7 +25,8 @@ test('cross-member Profile is a read-only route and cannot fall through into edi
 
 test('peer Profile queries public-safe projection after staging flag with no private-data fallback',()=>{
   assert.match(profile,/const publicDirectoryV2=window\.DOMINIONSTAR_AGENT_DATA_FEATURES\?\.publicMemberProfilesV2===true/);
-  assert.match(profile,/\.from\(publicDirectoryV2\?'member_public_profiles':'member_profiles'\)/);
+  assert.match(profile,/if\(!publicDirectoryV2\)\{/);
+  assert.match(profile,/\.from\('member_public_profiles'\)/);
   const branch=profile.slice(profile.indexOf('const requestedMemberId'),profile.indexOf("await supabase.rpc('ensure_member_profile')"));
   const select=branch.match(/\.select\('([^']+)'\)\s*\.eq\('id',requestedMemberId\)/);
   assert.ok(select,'The peer Profile must use a fixed explicit field selection');
@@ -38,7 +39,7 @@ test('peer Profile queries public-safe projection after staging flag with no pri
   // Own membership verification is a permitted private-table query, but
   // the peer's selected columns must never come from an unguarded query.
   assert.match(branch,/const viewer=await supabase.from\('member_profiles'\)/);
-  assert.match(branch,/const memberResult=await supabase.from\(publicDirectoryV2\?'member_public_profiles':'member_profiles'\)/);
+  assert.match(branch,/const memberResult=await supabase.from\('member_public_profiles'\)/);
   assert.match(auth,/publicMemberProfilesV2:false/);
 });
 
@@ -59,19 +60,20 @@ test('peer Profile layout does not render account codes or internal assignment',
 });
 
 test('approved member directory retains nonblocking photos without querying private columns in safe mode',()=>{
-  assert.match(directory,/const directoryTable=publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
+  assert.match(directory,/const directoryTable='member_public_profiles'/);
+  assert.match(directory,/if\(!publicDirectoryV2\)\{/);
   assert.match(directory,/const directoryFields=publicDirectoryV2/);
-  assert.match(directory,/\? 'id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number'/);
+  assert.match(directory,/const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status'/);
   assert.match(directory,/const cards=filtered\.map\(m=>/);
   assert.match(directory,/id="directoryRetry"/);
   assert.match(directory,/if\(!url\|\|version!==renderVersion\)return/);
 });
 
 test('Messages and Community compose approved visuals with safe peer access',()=>{
-  assert.match(messages,/\.from\(publicDirectoryV2\?'member_public_profiles':'member_profiles'\)/);
+  assert.match(messages,/\.from\('member_public_profiles'\)/);
   assert.match(messages,/publicDirectoryV2 \? 'Private'/);
   assert.match(messages,/class="dm-avatar-photo"/);
-  assert.match(community,/\.from\(publicDirectoryV2\?'member_public_profiles':'member_profiles'\)/);
+  assert.match(community,/\.from\('member_public_profiles'\)/);
   assert.match(community,/dsx-inline-action-icon/);
 });
 
