@@ -25,19 +25,29 @@ const buttons=element=>[...element.innerHTML.matchAll(/<button\b([^>]*)>/g)].map
   };
   return btn;
 });
-const element=()=>({
-  innerHTML:'',textContent:'',value:'',
-  classList:{add(){},remove(){},toggle(){}},
-  handlers:{},addEventListener(name,handler){this.handlers[name]=handler;},
-  querySelectorAll(selector){
-    if(selector==='.connect-member')return buttons(this).filter(b=>
-      b.dataset.action);
-    if(selector==='[data-connection-response]')return buttons(this).filter(b=>
-      b.dataset.connectionResponse);
-    return [];
-  },
-  scrollIntoView(){}
-});
+const element=()=>{
+  let html='';
+  const cache=new Map();
+  // Real DOM nodes preserve event listeners until innerHTML replaces them.
+  // Do not synthesize fresh unbound buttons for every querySelectorAll call.
+  return {
+    get innerHTML(){return html;},
+    set innerHTML(value){html=value;cache.clear();},
+    textContent:'',value:'',
+    classList:{add(){},remove(){},toggle(){}},
+    handlers:{},addEventListener(name,handler){this.handlers[name]=handler;},
+    querySelectorAll(selector){
+      if(cache.has(selector))return cache.get(selector);
+      const matched=selector==='.connect-member'
+        ?buttons(this).filter(b=>b.dataset.action)
+        :selector==='[data-connection-response]'
+          ?buttons(this).filter(b=>b.dataset.connectionResponse):[];
+      cache.set(selector,matched);
+      return matched;
+    },
+    scrollIntoView(){}
+  };
+};
 
 async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=false}={}){
   const roster=[member(self,'Self Member'),...(hidden?[]:[member(peer)])];
