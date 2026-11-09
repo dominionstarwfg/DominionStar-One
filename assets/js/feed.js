@@ -132,13 +132,9 @@
       }).select('id').single();
       if(insert.error)throw insert.error;
 
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:insert.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error && !['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
+      // The saved community_messages INSERT is the sole notification source.
+      // A reviewed server-side trigger (not a browser-callable privileged RPC)
+      // handles mentions after the coordinated database release.
 
       body.value='';
       await mountFeed();
