@@ -4,6 +4,36 @@
 Date: 2026-11-04  
 Scope: Agent One website, signed-in Members, Founder authorization. **Not DominionStar Meet.**
 
+## 2026-11-09 Member connections integration (review branch only)
+
+A read-only catalog check verified the existing `member_connections` table
+has `requester_id`, `recipient_id`, `status`, and a signed-in participant
+SELECT policy, but its existing browser UPDATE policy is still too broad.
+The candidate migration `member-connection-integrity.DO-NOT-RUN.review.sql`
+continues to be the server-side authority; it has **not** been deployed.
+
+Review-branch `member-directory.js` now displays a compact request inbox,
+reads only rows involving the signed-in member, differentiates outgoing
+pending / incoming pending / accepted / declined relationships, and uses the
+prepared scoped `respond_my_member_connection` and
+`cancel_my_member_connection` RPCs for accept, decline and cancel.
+It does not send direct browser UPDATE/DELETE. Failed connection SELECTs
+disable sending new invitations until refreshed. The inbox resolves names
+only through `member_public_profiles`; a hidden requester stays labeled
+"Member" rather than retrieving private contact records.
+
+Automated synthetic tests:
+`tests/member-connection-inbox-review.test.mjs` for pending, accept,
+decline, cancel, denied SELECT/RPC, hidden members and disabled feature flag;
+`tests/agent-directory-interaction-repair.test.mjs` for initial pending-only
+requests and retry behavior. These are part of the P0 review CI.
+
+**Not live:** The safe-profile flag is still OFF; a staging database with
+the projection preparation and connection-integrity RPC migration must be
+available before these controls can be used. Verify real Auth + RLS with two
+approved accounts, a pending member and an opted-out member. No production
+SQL or frontend release is authorized by passing synthetic CI.
+
 ## 2026-11-08 Additional peer-profile consumer audit
 
 A review of the browser consumers found two unguarded privacy paths that
@@ -176,9 +206,10 @@ not a security boundary; final authorization lives in PostgreSQL.
   in isolated staging after explicitly authorizing SQL test deployment.
 - It forces initial connection status to `pending`, removes broad browser
   UPDATE/DELETE access, and adds narrow recipient-response/requester-cancel RPCs.
-- Before releasing, wire the Member Directory inbox and notifications to the new
-  RPCs. Surface pending, accepted, declined, and cancel states. Block/mute
-  semantics need a separate signed-off design.
+- The Member Directory inbox and connection-status actions are now wired in
+  PR #198 **for review only**; real authenticated staging acceptance is still
+  required before release. Notification fanout and block/mute semantics need
+  separate server authorization and signed-off behavior.
 - Ensure a recipient cannot approve a request they sent, a requester cannot
   self-approve, and neither side can mutate connection identities or timestamps.
 
