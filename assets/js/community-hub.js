@@ -159,9 +159,12 @@
 
     // Professional peer information comes only from the public-safe member
     // projection once staging enables the coordinated privacy cutover.
-    const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+    if(window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2!==true){
+      // Preserve post text but never fetch private author profiles pre-cutover.
+      return {};
+    }
     const result=await supabase
-      .from(publicDirectoryV2?'member_public_profiles':'member_profiles')
+      .from('member_public_profiles')
       .select('id,full_name,preferred_name,rank,exclusive_member_number,avatar_path')
       .in('id',ids);
 
