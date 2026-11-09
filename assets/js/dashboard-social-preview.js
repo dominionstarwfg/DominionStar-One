@@ -70,6 +70,10 @@
     event.preventDefault();
     const text=body.value.trim();
     if(!text){setStatus('Write something before posting.','error');body.focus();return;}
+    if(text.length>2000){
+      setStatus('Posts can contain up to 2,000 characters. Please shorten your post.','error');
+      return;
+    }
 
     publish.disabled=true;
     publish.textContent='Posting…';
@@ -90,8 +94,13 @@
       // Do not call the revoked, caller-body RPC from the browser.
 
       body.value='';
-      await target.__ds30Controller?.refresh?.();
       setStatus('Posted to your network.','success');
+      // A post committed in Supabase must not be reported as a failed
+      // publication solely because the preview could not refresh.
+      try{await target.__ds30Controller?.refresh?.();}
+      catch(_refreshError){
+        setStatus('Posted successfully. Preview refresh failed; open Feed to see your post.','error');
+      }
     }catch(error){
       setStatus(error?.message||'Your post could not be published.','error');
     }finally{
