@@ -64,7 +64,8 @@ test('Real notification and message events drive meaningful status colors',()=>{
 
 test('Approved agents get the approved compact Dashboard social preview and a separate full Feed',()=>{
   assert.doesNotMatch(dashboard,/class="dsos-profile-card"|System status|Account health/);
-  assert.match(dashboard,/Welcome back to DominionStar Executive OS/);
+  assert.match(dashboard,/Your DominionStar Executive OS/);
+  assert.doesNotMatch(dashboard,/Welcome back to DominionStar Executive OS/);
   assert.match(dashboard,/class="dsx-overview"/);
   assert.match(dashboard,/Upcoming Activity/);
   assert.match(dashboard,/Quick Actions/);
