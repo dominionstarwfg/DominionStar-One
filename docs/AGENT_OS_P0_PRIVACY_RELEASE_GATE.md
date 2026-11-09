@@ -55,6 +55,66 @@ Directory and degrades typing names to a generic label.
 still false. No Supabase SQL, billable staging branch, live site update
 or Meet change occurred.
 
+## 2026-11-08 Cross-surface peer identity fallback removal
+
+**Newly discovered rollout hazard:** Several approved Agent pages retained
+a private `member_profiles` fallback when
+`publicMemberProfilesV2` was false. That undermines privacy
+minimization even before final P0 RLS enforcement. A legacy Group Chats
+recipient picker also selected other members directly from the raw table.
+
+**Review-only corrections in PR #198:**
+
+- `member-directory.js`: all peer listings use only
+  `member_public_profiles` and its fixed public field list. Until the
+  feature flag and table are available, this page clearly reports that
+  the directory is temporarily unavailable. It never searches Agent Codes
+  or fetches private profiles.
+- `professional-profile.js`: read-only peer profile view fails closed
+  when the safe projection is disabled. Own editable profile and Founder
+  administrative profile still use their authorized records.
+- `direct-messages.js`: peer roster selects only public-safe member
+  identity fields. The messaging page fails closed before loading the
+  peer roster when the flag is disabled. **This is intentional but
+  user-visible** and requires coordinated activation, not a UI-only merge.
+- `community-hub.js` and `community-chat.js`: when the projection is
+  disabled, optional peer-author lookups return an empty map rather than
+  querying private member records. Post/chat content can use a neutral
+  identity placeholder until the real approved projection exists.
+- `global-call-manager.js`: incoming-call display uses the safe
+  projection when enabled, otherwise a neutral caller name without
+  fetching private peer identity. Call cancellation/ringtone timing
+  tests were updated to exercise the safe profile path.
+- `group-chats.js`: legacy group creation target picker uses the
+  public projection only, with an approved-member check. The page
+  fails closed rather than allowing invites based on private profile
+  lookup when the coordinated feature flag is disabled.
+- `team-directory.js` and `data-layer.js` were already fail-closed
+  and were retained.
+
+**Review automation:** `tests/member-peer-identity-no-private-fallback.test.mjs`
+enforces the public-only contract across eight peer-facing modules.
+The existing privacy, cinematic and incoming-call race tests have been
+updated to reject the old sensitive-profile fallback and retain
+call-lifecycle coverage. The P0 CI explicitly runs these tests.
+
+**Explicit staging / release requirements:** Because the server-owned
+`member_public_profiles` projection is not yet deployed and
+`publicMemberProfilesV2` remains false, affected peer-facing views
+intentionally display an unavailable state in this branch.
+**Do not deploy the frontend alone.** In isolated Supabase staging,
+first apply public projection preparation and verify RLS, Auth and
+Data API; then enable the frontend flag only in that environment and
+exercise Member Directory, Messaging, Group Chats, Professional Profiles,
+Feed/Chat author lookup and incoming calls with two approved accounts,
+an opted-out account and a pending member. Only after full consumer
+verification may final private-profile RLS enforcement and production
+deployment be considered together.
+
+**Not a complete P0 security fix:** The broad production RLS SELECT policy
+and the actual database remain unchanged. The user-facing flag is
+not a security boundary; final authorization lives in PostgreSQL.
+
 ## Verified findings (catalog inspection; no member data inspected)
 
 1. `public.member_profiles` is used both for public directory identity and private
