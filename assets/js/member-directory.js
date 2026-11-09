@@ -1,6 +1,8 @@
 (async()=>{
   const gate=document.getElementById('directoryGate'),app=document.getElementById('directoryApp'),grid=document.getElementById('directoryGrid');
   let client,session,members=[],presence={};
+  // Preserve request progress when presence or signed-photo updates rerender cards.
+  const connectStates=new Map();
   const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
   const directoryTable='member_public_profiles';
   const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status';
@@ -64,7 +66,7 @@
     const version=++renderVersion;
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
-    const filtered=members.filter(m=>{
+    const filtered=members.filter(m=>m.id!==session.user.id).filter(m=>{
       const hay=[m.full_name,m.preferred_name,m.rank,null,m.city,m.state].filter(Boolean).join(' ').toLowerCase();
       return(!q||hay.includes(q))&&(!rank||m.rank===rank);
     });
@@ -72,6 +74,11 @@
     const cards=filtered.map(m=>{
       const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
       const memberName=m.preferred_name||m.full_name||'Member';
+      const connectState=connectStates.get(m.id)||'idle';
+      const connectLabel=connectState==='sending'?'Sending…'
+        :connectState==='sent'?'Requested'
+        :connectState==='exists'?'Connection exists'
+        :connectState==='failed'?'Retry Connect':'Connect';
       return `<article class="member-directory-card" data-member-id="${esc(m.id)}">
         <div class="member-directory-avatar"><span class="member-directory-fallback" aria-hidden="true">${esc(initials(memberName))}</span><span class="${active?'online':'offline'}"></span></div>
         <h2>${esc(memberName)}</h2>
@@ -79,7 +86,7 @@
         <small>${esc([m.city,m.state].filter(Boolean).join(', ')||'Location not listed')}</small>
         <div class="member-directory-actions">
           <a class="btn btn-outline" href="/direct-messages/?member=${encodeURIComponent(m.id)}">Message</a>
-          <button class="btn btn-outline connect-member" data-id="${esc(m.id)}" type="button">Connect</button>
+          <button class="btn btn-outline connect-member" data-id="${esc(m.id)}" type="button" ${connectState==='sending'||connectState==='sent'||connectState==='exists'?'disabled':''}>${connectLabel}</button>
         </div>
       </article>`;
     });
@@ -87,9 +94,22 @@
     // Maintain the original fallback initializer for any already-present photos.
     wireAvatarFallbacks(grid);
     grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{
-      b.disabled=true;
-      const r=await client.from('member_connections').insert({requester_id:session.user.id,recipient_id:b.dataset.id});
-      b.textContent=r.error?(r.error.code==='23505'?'Requested':'Unable'):'Requested';
+      const recipient=b.dataset.id;
+      if(!recipient||recipient===session.user.id||connectStates.get(recipient)==='sending')return;
+      connectStates.set(recipient,'sending');
+      render();
+      try{
+        // Explicit pending state is mandatory in the hardened connection RLS.
+        const r=await timeout(client.from('member_connections').insert({
+          requester_id:session.user.id,recipient_id:recipient,status:'pending'
+        }),12000);
+        if(r.error&&r.error.code!=='23505')throw r.error;
+        connectStates.set(recipient,r.error?'exists':'sent');
+      }catch(_error){
+        // A denied/offline request is recoverable, never a permanently dead button.
+        connectStates.set(recipient,'failed');
+      }
+      render();
     }));
     // Ignore responses from a previous search, rank filter or presence refresh.
     filtered.filter(m=>m.avatar_path).forEach(m=>{
