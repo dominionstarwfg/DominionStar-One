@@ -14,6 +14,7 @@ on:
       - 'assets/js/member-directory.js'
       - 'assets/css/dominionstar-directory-repair.css'
       - 'tests/agent-directory-interaction-repair.test.mjs'
+      - 'tests/member-connection-inbox-review.test.mjs'
       - 'member-directory/index.html'
       - 'professional-profile/index.html'
       - 'assets/js/team-directory.js'
@@ -68,6 +69,7 @@ jobs:
           node --test tests/member-public-profile-cutover-review.test.mjs
           node --test tests/member-peer-profile-consumers-review.test.mjs
           node --test tests/agent-directory-interaction-repair.test.mjs
+          node --test tests/member-connection-inbox-review.test.mjs
           node --test tests/member-peer-identity-no-private-fallback.test.mjs
           node --test tests/approved-os-privacy-integration.test.mjs
       - name: Ensure remediation SQL cannot run in this review workflow
