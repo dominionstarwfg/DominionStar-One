@@ -62,7 +62,7 @@ test('peer Profile layout does not render account codes or internal assignment',
 test('approved member directory retains nonblocking photos without querying private columns in safe mode',()=>{
   assert.match(directory,/const directoryTable='member_public_profiles'/);
   assert.match(directory,/if\(!publicDirectoryV2\)\{/);
-  assert.match(directory,/const directoryFields=publicDirectoryV2/);
+  assert.match(directory,/const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status'/);
   assert.match(directory,/const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status'/);
   assert.match(directory,/const cards=filtered\.map\(m=>/);
   assert.match(directory,/id="directoryRetry"/);
