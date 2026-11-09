@@ -157,9 +157,15 @@
       if(result.error)throw result.error;
       if(result.data!==true)throw new Error('The pending request has already changed.');
       await loadConnections();
-      if(isCancel)connectStates.delete(row.recipient_id);
-      connectionIssue=isCancel?'Pending request cancelled.':
-        action==='accepted'?'Connection accepted.':'Request declined.';
+      if(!connectionsReady){
+        // The RPC confirmed the change, but the follow-up SELECT failed.
+        // Do not claim the inbox is synchronized until a verified refresh.
+        connectionIssue='Connection change saved. Refresh requests to confirm its latest status.';
+      }else{
+        if(isCancel)connectStates.delete(row.recipient_id);
+        connectionIssue=isCancel?'Pending request cancelled.':
+          action==='accepted'?'Connection accepted.':'Request declined.';
+      }
     }catch(_error){
       connectionIssue='Connection action could not be completed. Check its status and retry.';
     }finally{
