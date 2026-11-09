@@ -2,16 +2,18 @@
   const gate=document.getElementById('directoryGate'),app=document.getElementById('directoryApp'),grid=document.getElementById('directoryGrid');
   let client,session,members=[],presence={};
   const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
-  const directoryTable=publicDirectoryV2?'member_public_profiles':'member_profiles';
-  const directoryFields=publicDirectoryV2
-    ? 'id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number'
-    : 'id,full_name,preferred_name,rank,agent_code,city,state,avatar_path,exclusive_member_number';
+  const directoryTable='member_public_profiles';
+  const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication configuration is missing.</h1>';return;}
   client=await window.DSAuth.init();session=(await client.auth.getSession()).data.session;
   if(!session){location.href='/member-login/';return;}
   const own=await client.from('member_profiles').select('verification_status').eq('id',session.user.id).single();
   if(own.error||own.data?.verification_status!=='approved'){gate.innerHTML='<h1>Founder approval is required.</h1>';return;}
+  if(!publicDirectoryV2){
+    gate.innerHTML='<h1>Member Directory temporarily unavailable</h1><p>Privacy-protected member listings require the approved directory release.</p><a class="btn btn-outline" href="/member-dashboard/">Return to Dashboard</a>';
+    return;
+  }
   gate.classList.add('member-hidden');app.classList.remove('member-hidden');
   const timeout=(promise,ms=12000)=>Promise.race([
     Promise.resolve(promise),
@@ -63,7 +65,7 @@
     const q=document.getElementById('directorySearch').value.trim().toLowerCase();
     const rank=document.getElementById('directoryRank').value;
     const filtered=members.filter(m=>{
-      const hay=[m.full_name,m.preferred_name,m.rank,publicDirectoryV2?null:m.agent_code,m.city,m.state].filter(Boolean).join(' ').toLowerCase();
+      const hay=[m.full_name,m.preferred_name,m.rank,null,m.city,m.state].filter(Boolean).join(' ').toLowerCase();
       return(!q||hay.includes(q))&&(!rank||m.rank===rank);
     });
     // Render names, initials and actions immediately; signed profile photos are optional.
