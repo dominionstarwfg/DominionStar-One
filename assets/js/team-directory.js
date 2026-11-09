@@ -13,13 +13,22 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[c]));
 
-  if (!window.DSAuth.ready) {
+  if (!window.DSAuth?.ready) {
     gate.innerHTML = '<p class="eyebrow">Unavailable</p><h1>Authentication service is temporarily unavailable.</h1>';
     return;
   }
 
-  supabase = await window.DSAuth.init();
-  const { data: { session } } = await supabase.auth.getSession();
+  try { supabase = await window.DSAuth.init(); } catch (_) {}
+  if (!supabase) {
+    gate.textContent = 'Unable to initialize the secure directory. Refresh and sign in again.';
+    return;
+  }
+  const sessionResult = await supabase.auth.getSession();
+  if (sessionResult.error) {
+    gate.textContent = 'Unable to verify your secure session. Refresh and sign in again.';
+    return;
+  }
+  const session = sessionResult.data?.session;
 
   if (!session) {
     window.location.href = '/member-login/';
@@ -59,16 +68,26 @@
     return;
   }
 
-  members = [];
-  for (const member of (data || [])) {
-    let avatarUrl = '/assets/logo.jpeg';
-    if (member.avatar_path) {
-      const signed = await supabase.storage
-        .from('member-avatars')
-        .createSignedUrl(member.avatar_path, 3600);
-      if (signed.data?.signedUrl) avatarUrl = signed.data.signedUrl;
-    }
-    members.push({ ...member, avatarUrl });
+  // Render the directory without waiting for private signed-photo requests.
+  // Each profile-photo request runs independently and must never block names.
+  members = (data || []).map(member => ({ ...member, avatarUrl:'/assets/logo.jpeg' }));
+  async function loadSignedPhoto(member) {
+    if (!member.avatar_path) return;
+    try {
+      const signed = await Promise.race([
+        supabase.storage.from('member-avatars').createSignedUrl(member.avatar_path, 3600),
+        new Promise((_,reject) => setTimeout(() => reject(new Error('Photo timed out')), 5000))
+      ]);
+      if (signed.error || !signed.data?.signedUrl) return;
+      const current = members.find(item => item.id === member.id);
+      if (!current || current.avatar_path !== member.avatar_path) return;
+      current.avatarUrl = signed.data.signedUrl;
+      // Update the photo, not the card tree: preserve search, focus, and scroll.
+      const card = [...grid.querySelectorAll('[data-member-id]')]
+        .find(node => node.dataset.memberId === String(member.id));
+      const image = card?.querySelector('img');
+      if (image) image.src = current.avatarUrl;
+    } catch (_) { /* Brand fallback remains; directory stays interactive. */ }
   }
 
   function render() {
@@ -85,7 +104,7 @@
     });
 
     grid.innerHTML = visible.length ? visible.map(member => `
-      <article class="team-member-card">
+      <article class="team-member-card" data-member-id="${esc(member.id)}">
         <img src="${esc(member.avatarUrl)}" alt="${esc(member.preferred_name || member.full_name)}" loading="lazy" decoding="async">
         <div>
           <small>${esc(member.rank)}${member.founding_member ? ' • Founding Member' : ''}</small>
@@ -102,4 +121,5 @@
   search.addEventListener('input', render);
   rankFilter.addEventListener('change', render);
   render();
+  members.forEach(member => { void loadSignedPhoto(member); });
 })();
