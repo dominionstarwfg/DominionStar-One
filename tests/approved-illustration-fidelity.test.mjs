@@ -42,7 +42,9 @@ test('dashboard social preview stays separate from the full Feed and only reques
   assert.doesNotThrow(()=>new vm.Script(previewJs));
   assert.match(previewJs,/resultLimit:1/);
   assert.match(previewJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(previewJs,/community_notify_mentions/);
+  // Posting must rely on the reviewed source-row notification trigger,
+  // not the legacy browser RPC that ordinary agents cannot execute.
+  assert.doesNotMatch(previewJs,/rpc\('community_notify_mentions'/);
   assert.match(social,/resultLimit=20/);
   assert.match(social,/result_limit:safeLimit/);
   assert.match(html,/href="\/feed\//);
