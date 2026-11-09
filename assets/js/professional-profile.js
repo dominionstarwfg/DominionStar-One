@@ -29,6 +29,8 @@
     result.className = `member-message show ${type}`;
   }
 
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+
   const profileInitials = value => String(value || 'DS')
     .trim().split(/\s+/).filter(Boolean).slice(0,2)
     .map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
@@ -98,8 +100,8 @@
     setValue('country', profile.country);
 
     document.getElementById('profileBadgeRow').innerHTML = `
-      <span class="founding-member-badge">${profile.verification_status || 'pending'}</span>
-      <span class="founding-member-badge">${profile.rank || 'TA'}</span>
+      <span class="founding-member-badge">${escapeHtml(profile.verification_status || 'pending')}</span>
+      <span class="founding-member-badge">${escapeHtml(profile.rank || 'TA')}</span>
       ${profile.founding_member === true &&
           Number.isInteger(Number(profile.exclusive_member_number)) &&
           Number(profile.exclusive_member_number) >= 1 &&
@@ -221,7 +223,10 @@
     .single();
 
   if (response.error || !response.data) {
-    gate.innerHTML = `<p class="eyebrow">Profile Error</p><h1>${response.error?.message || 'Profile not found.'}</h1>`;
+    gate.innerHTML = '<p class="eyebrow">Profile Error</p><h1>Unable to load your profile.</h1>';
+    const detail = document.createElement('p');
+    detail.textContent = response.error?.message || 'Profile not found.';
+    gate.appendChild(detail);
     return;
   }
 
