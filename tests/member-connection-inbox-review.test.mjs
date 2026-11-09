@@ -137,6 +137,20 @@ test('Incoming invitation is visible with safe member identity and accepts by sc
   assert.doesNotMatch(h.requests(),/data-connection-response="accepted"/);
 });
 
+test('Recipient can decline only a pending invitation through its scoped RPC',async()=>{
+  const h=await mount({rows:[{
+    id:conn,requester_id:peer,recipient_id:self,status:'pending'
+  }]});
+  h.requestButton('declined').click();
+  await flush();
+  assert.equal(h.state.rpcCalls.length,1);
+  assert.equal(h.state.rpcCalls[0].name,'respond_my_member_connection');
+  assert.equal(h.state.rpcCalls[0].payload.target_status,'declined');
+  assert.equal(h.state.rows[0].status,'declined');
+  assert.match(h.grid(),/Unavailable/);
+  assert.doesNotMatch(h.requests(),/data-connection-response="declined"/);
+});
+
 test('Outgoing pending invitation cancels only through scoped RPC and permits new request',async()=>{
   const h=await mount({rows:[{
     id:conn,requester_id:self,recipient_id:peer,status:'pending'
