@@ -51,7 +51,8 @@ test('dedicated Feed uses real profile avatars and existing authenticated social
   assert.match(feed,/id="feedPageComposer"/);
   assert.match(feedJs,/createSignedUrl\(profile\.avatar_path,3600\)/);
   assert.match(feedJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(feedJs,/community_notify_mentions/);
+  // Saved community_messages trigger is the only approved mention source.
+  assert.doesNotMatch(feedJs,/rpc\('community_notify_mentions'/);
   assert.match(social,/resultLimit=20/);
   assert.match(social,/result_limit:safeLimit/);
 });
