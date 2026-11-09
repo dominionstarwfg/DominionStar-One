@@ -23,7 +23,12 @@
     gate.textContent = 'Unable to initialize the secure directory. Refresh and sign in again.';
     return;
   }
-  const sessionResult = await supabase.auth.getSession();
+  let sessionResult;
+  try { sessionResult = await supabase.auth.getSession(); }
+  catch (_) {
+    gate.textContent = 'Unable to verify your session. Check your connection and refresh.';
+    return;
+  }
   if (sessionResult.error) {
     gate.textContent = 'Unable to verify your secure session. Refresh and sign in again.';
     return;
