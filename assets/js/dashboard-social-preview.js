@@ -85,13 +85,9 @@
       }).select('id').single();
       if(inserted.error)throw inserted.error;
 
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:inserted.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error&&!['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
+      // Community mention/reply delivery is triggered by the verified
+      // saved source row in Supabase after the coordinated SQL cutover.
+      // Do not call the revoked, caller-body RPC from the browser.
 
       body.value='';
       await target.__ds30Controller?.refresh?.();
