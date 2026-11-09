@@ -13,7 +13,8 @@ test('Local daypart greeting identifies the authenticated member on the executiv
   const marker=html.indexOf('id="heroMemberName"');
   assert.ok(marker>0);
   assert.match(html,/<span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName">/);
-  assert.match(html,/Welcome back to DominionStar Executive OS/);
+  assert.match(html,/Your DominionStar Executive OS/);
+  assert.doesNotMatch(html,/Welcome back to DominionStar Executive OS/);
   for(const daypart of ['Good morning','Good afternoon','Good evening']) assert.ok(dashboardJs.includes(daypart),daypart);
   assert.ok(marker<html.indexOf('class="dsx-dashboard-social"'));
   for(const hook of ['heroProfileFullName','heroContractLevel','heroProfileAvatar','heroProfileInitials',
