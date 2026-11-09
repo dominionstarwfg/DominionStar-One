@@ -9,7 +9,9 @@ test('member dashboard is an executive landing stage and Feed is a separate work
   assert.match(html,/>Dashboard<\/span>/);
   assert.match(html,/href="\/feed\/"/);
   assert.match(html,/href="\/notifications\/"/);
-  assert.match(html,/Welcome back to DominionStar Executive OS/);
+  assert.match(html,/Your DominionStar Executive OS/);
+  assert.match(html,/id="heroGreeting"/);
+  assert.doesNotMatch(html,/Welcome back to DominionStar Executive OS/);
   assert.match(html,/class="dsx-overview"/);
   assert.match(html,/id="dashboardNextAppointment"/);
   assert.match(html,/id="journeyPercent"/);
