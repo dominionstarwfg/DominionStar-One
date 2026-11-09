@@ -94,11 +94,12 @@
     const incoming=connectionsReady
       ? connections.filter(row=>row.recipient_id===session.user.id&&row.status==='pending')
       :[];
+    // Keep a small requests panel available for manual refresh when empty.
     connectionPanel.classList.toggle('member-hidden',
-      connectionsReady&&!incoming.length&&!connectionIssue);
+      !connectionsReady&&!connectionIssue);
     connectionStatus.textContent=connectionIssue||(!connectionsReady?'Checking connection requests…':'');
     if(!connectionsReady){connectionList.innerHTML='';return;}
-    connectionList.innerHTML=incoming.map(row=>{
+    connectionList.innerHTML=incoming.length?incoming.map(row=>{
       // A former requester may have hidden their identity since sending.
       // Never read their private profile or infer a name from Agent Code.
       const peer=members.find(member=>member.id===row.requester_id);
@@ -111,7 +112,7 @@
           <button class="btn btn-outline" type="button" data-connection-response="declined" data-id="${esc(row.id)}" ${busy?'disabled':''}>Decline</button>
         </div>
       </div>`;
-    }).join('');
+    }).join(''):'<p class="dsx-connection-empty">No pending connection requests.</p>';
     connectionList.querySelectorAll?.('[data-connection-response]').forEach(button=>
       button.addEventListener('click',()=>void transitionConnection(
         button.dataset.id,button.dataset.connectionResponse)));
@@ -156,6 +157,7 @@
       if(result.error)throw result.error;
       if(result.data!==true)throw new Error('The pending request has already changed.');
       await loadConnections();
+      if(isCancel)connectStates.delete(row.recipient_id);
       connectionIssue=isCancel?'Pending request cancelled.':
         action==='accepted'?'Connection accepted.':'Request declined.';
     }catch(_error){
