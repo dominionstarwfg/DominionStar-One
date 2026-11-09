@@ -12,6 +12,12 @@ on:
       - 'assets/js/member-auth.js'
       - 'assets/js/account-settings.js'
       - 'assets/js/member-directory.js'
+      - 'assets/js/team-directory.js'
+      - 'assets/js/data-layer.js'
+      - 'assets/js/member-profile.js'
+      - 'team-directory/index.html'
+      - 'member-profile/index.html'
+      - 'tests/member-peer-profile-consumers-review.test.mjs'
       - 'assets/js/direct-messages.js'
       - 'assets/js/community-hub.js'
       - 'assets/js/community-chat.js'
@@ -39,6 +45,9 @@ jobs:
           node --check assets/js/member-auth.js
           node --check assets/js/account-settings.js
           node --check assets/js/member-directory.js
+          node --check assets/js/team-directory.js
+          node --check assets/js/data-layer.js
+          node --check assets/js/member-profile.js
           node --check assets/js/direct-messages.js
           node --check assets/js/community-hub.js
           node --check assets/js/community-chat.js
@@ -47,6 +56,7 @@ jobs:
         run: |
           node --test tests/agent-os-p0-privacy-review.test.mjs
           node --test tests/member-public-profile-cutover-review.test.mjs
+          node --test tests/member-peer-profile-consumers-review.test.mjs
       - name: Ensure remediation SQL cannot run in this review workflow
         run: |
           set -euo pipefail
