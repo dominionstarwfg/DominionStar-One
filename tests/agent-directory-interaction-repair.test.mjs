@@ -89,6 +89,8 @@ test('Members Connect retries failed requests and explicitly sends pending statu
         select(){return this;},eq(){return this;},
         single:async()=>({data:{verification_status:'approved'},error:null}),
         order:async()=>({data:table==='member_public_profiles'?[peer,{...peer,id:ownId}]:[],error:null}),
+        // Only own connection rows are available through the authorized RLS SELECT.
+        or:async()=>({data:[],error:null}),
         insert:async payload=>{
           calls.push(payload);
           return calls.length===1?{error:{code:'500',message:'Temporary error'}}:{error:null};
