@@ -6,8 +6,8 @@ This is part of PR #198; no DominionStar Meet modifications.
 
 ## Audit finding
 
-The browser currently calls `community_notify_mentions(uuid,text)` after
-Community posts and comments are created. The production function is a
+At the production baseline, browser posting surfaces called
+`community_notify_mentions(uuid,text)` after posts or comments were created. The production function is a
 SECURITY DEFINER RPC that accepts a caller-supplied body, scans
 `member_profiles`, and inserts into the legacy `member_notifications`
 table. A live *read-only catalog inspection* confirms that neither
@@ -52,6 +52,30 @@ mention alert in the OS notification inbox**.
    Community source item, original author and recipient before considering
    an opted-in mention/reply for email. **Community email remains
    default-off and the migration remains unexecuted.**
+
+## 2026-11-09 Dashboard and full Feed composer audit
+
+The earlier review fixed Community Hub and comment integrations but missed
+the separate Dashboard quick-post composer (`dashboard-social-preview.js`)
+and full Feed composer (`feed.js`). Both called the same revoked legacy
+`community_notify_mentions` RPC after saving a post, so a successfully
+saved post could report a misleading post error when preview refresh failed.
+
+**Draft PR #198 now fixes both additional entry points**:
+- Browser clients only insert the saved `community_messages` source row.
+  No peer-selected recipient or independently supplied mention body is sent
+  to the privileged RPC.
+- Both composers report saved-post success even if the subsequent preview
+  reload fails. An actual insert failure leaves the original draft intact.
+- The 2,000-character composer limit is validated without silent truncation.
+- Automated mocked runtime coverage is in
+  `tests/agent-social-post-source-integrity-review.test.mjs`, and static
+  source assertions now cover all four relevant modules.
+
+**Still NOT live:** server trigger SQL remains unexecuted. Removing the
+ineffective client call is not proof that any mention alert is delivered.
+No reviewer should deploy these browser changes without the coordinated
+server-source notification migration and authenticated staging tests.
 
 ## Staging negative and positive tests required
 
