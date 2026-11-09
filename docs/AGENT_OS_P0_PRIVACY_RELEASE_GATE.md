@@ -4,6 +4,57 @@
 Date: 2026-11-04  
 Scope: Agent One website, signed-in Members, Founder authorization. **Not DominionStar Meet.**
 
+## 2026-11-08 Additional peer-profile consumer audit
+
+A review of the browser consumers found two unguarded privacy paths that
+had not been included in the earlier coordinated feature-flag plan:
+
+- The legacy **Team Directory** (`assets/js/team-directory.js`) fetched
+  another member's complete professional-profile columns directly from
+  `member_profiles`, including biography, team and social URL fields
+  which are not approved for the safe projection. It is now **fail-closed**
+  until `publicMemberProfilesV2===true`, and then reads only
+  `member_public_profiles` fields: ID, approved display name, rank,
+  founding badge, city/state and avatar. Optional social links are not
+  loaded or displayed; profiles link to the existing read-only route.
+- The shared `DSData.fetchProfiles` helper in
+  `assets/js/data-layer.js` previously defaulted to a bulk
+  `member_profiles` query asking for email and Agent Code. It now
+  returns no member identity when the coordinated flag is disabled;
+  when enabled it reads only `member_public_profiles` with a strict
+  allowlist of projection fields and explicitly refuses private columns.
+  `DSData.fetchByIds` cannot target raw `member_profiles`.
+  Community typing names consequently fall back to generic member names
+  during the private-projection preparation gate rather than exposing
+  private records.
+- The Founder-only `/member-profile/` page now validates the
+  member UUID before loading and selects only displayed Founder fields,
+  not the entire private profile row. Founder authorization and RLS
+  remain mandatory and server-authoritative.
+- All relevant HTML pages referencing the shared data helper were
+  cache-busted in one atomic review commit to avoid mixed old/new
+  profile consumers after the coordinated release.
+
+**Regression evidence:** `tests/member-peer-profile-consumers-review.test.mjs`
+is part of the Agent OS P0 privacy and full Node regression workflows.
+It tests disabled flag/zero peer queries, enabled safe projection,
+requested sensitive-field rejection, official SQL schema parity,
+Team Directory safe fields and the narrowed Founder-only query.
+
+**Staging gate still required:** Before any production merge, enable
+the public projection flag only on a **nonproduction Supabase instance**
+where the preparation migration exists and has been negative-tested as
+anon, pending, approved member and Founder. Confirm the Team Directory
+loads visible profiles and rejects private members, the shared helper
+renders names without confidential fields, avatar URLs remain authorized,
+and Member Directory/Direct Messages/Community Chat still work. Flag
+activation before this stage intentionally blocks the legacy Team
+Directory and degrades typing names to a generic label.
+
+**Not production:** All changes are review-branch only. The flag is
+still false. No Supabase SQL, billable staging branch, live site update
+or Meet change occurred.
+
 ## Verified findings (catalog inspection; no member data inspected)
 
 1. `public.member_profiles` is used both for public directory identity and private
