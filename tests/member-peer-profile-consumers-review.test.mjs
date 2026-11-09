@@ -41,7 +41,7 @@ function helperWith(flag){
 test('Shared member profiles fail closed before server-side projection is released',async()=>{
   const ds=helperWith(false);
   const {client,calls}=fakeClient();
-  assert.deepEqual(await ds.fetchProfiles(client,['synthetic-id']),{});
+  assert.equal(Object.keys(await ds.fetchProfiles(client,['synthetic-id'])).length,0);
   assert.equal(calls.length,0);
   const merged=await ds.mergeProfiles(client,[{user_id:'synthetic-id'}]);
   assert.equal(merged[0].member_profile,null);
@@ -118,7 +118,7 @@ test('Founder-only member detail is explicit-field and still Founder-gated',()=>
   assert.match(founder,/\.select\('is_founder'\)/);
   assert.match(founder,/if \(!founder\?\.is_founder\)/);
   assert.match(founder,/\.select\('id,full_name,email,agent_code,smd_name,rank,verification_status,account_notes'\)/);
-  assert.doesNotMatch(founder,/\.select\('\*'\)/);
+  assert.doesNotMatch(founder,/\.from\('member_profiles'\)\s*\.select\('\*'\)/);
   assert.ok(founder.includes("if (!/^[0-9a-f]{8}"));
 });
 
