@@ -70,7 +70,9 @@
 
   // Render the directory without waiting for private signed-photo requests.
   // Each profile-photo request runs independently and must never block names.
-  members = (data || []).map(member => ({ ...member, avatarUrl:'/assets/logo.jpeg' }));
+  members = (data || []).map(member => ({ ...member, avatarUrl:'' }));
+  const initials = name => String(name || 'DS').trim().split(/\s+/).filter(Boolean)
+    .slice(0,2).map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
   async function loadSignedPhoto(member) {
     if (!member.avatar_path) return;
     try {
@@ -85,9 +87,19 @@
       // Update the photo, not the card tree: preserve search, focus, and scroll.
       const card = [...grid.querySelectorAll('[data-member-id]')]
         .find(node => node.dataset.memberId === String(member.id));
-      const image = card?.querySelector('img');
-      if (image) image.src = current.avatarUrl;
-    } catch (_) { /* Brand fallback remains; directory stays interactive. */ }
+      const avatar = card?.querySelector('.team-member-avatar');
+      if (!avatar) return;
+      let image = avatar.querySelector('img');
+      if (!image) {
+        image = document.createElement('img');
+        image.alt = current.preferred_name || current.full_name || 'Member photo';
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        image.addEventListener('error', () => image.remove(), {once:true});
+        avatar.appendChild(image);
+      }
+      image.src = current.avatarUrl;
+    } catch (_) { /* Name initials remain available and interactive. */ }
   }
 
   function render() {
@@ -105,7 +117,10 @@
 
     grid.innerHTML = visible.length ? visible.map(member => `
       <article class="team-member-card" data-member-id="${esc(member.id)}">
-        <img src="${esc(member.avatarUrl)}" alt="${esc(member.preferred_name || member.full_name)}" loading="lazy" decoding="async">
+        <div class="team-member-avatar">
+          <span class="team-member-initials" aria-hidden="true">${esc(initials(member.preferred_name || member.full_name))}</span>
+          ${member.avatarUrl ? `<img src="${esc(member.avatarUrl)}" alt="${esc(member.preferred_name || member.full_name)}" loading="lazy" decoding="async">` : ''}
+        </div>
         <div>
           <small>${esc(member.rank)}${member.founding_member ? ' • Founding Member' : ''}</small>
           <h2>${esc(member.preferred_name || member.full_name)}</h2>
