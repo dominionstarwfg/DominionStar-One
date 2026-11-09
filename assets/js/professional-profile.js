@@ -149,7 +149,11 @@
     // private member_profiles table. The staged cutover uses only the
     // approved/opted-in public-safe source without a private-data fallback.
     const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
-    const memberResult=await supabase.from(publicDirectoryV2?'member_public_profiles':'member_profiles')
+    if(!publicDirectoryV2){
+      gate.innerHTML='<p class="eyebrow">Privacy Update</p><h1>Professional profile temporarily unavailable</h1><p>The privacy-protected member directory must be enabled before this profile can be viewed.</p>';
+      return;
+    }
+    const memberResult=await supabase.from('member_public_profiles')
       .select('id,full_name,preferred_name,rank,city,state,avatar_path,founding_member,exclusive_member_number,verification_status')
       .eq('id',requestedMemberId).eq('verification_status','approved').maybeSingle();
     if(memberResult.error||!memberResult.data){
