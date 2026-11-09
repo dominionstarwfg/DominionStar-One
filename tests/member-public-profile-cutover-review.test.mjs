@@ -73,11 +73,16 @@ test('community Feed and Chat privileged RPCs no longer join raw member_profiles
 test('browser cutover is disabled until coordinated DB and client release',()=>{
   assert.match(auth,/publicMemberProfilesV2:false/);
   assert.doesNotMatch(auth,/publicMemberProfilesV2:true/);
-  assert.match(directory,/publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
-  assert.match(messages,/publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
-  assert.match(community,/publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
-  assert.match(chat,/publicDirectoryV2\?'member_public_profiles':'member_profiles'/);
-  assert.match(calls,/\? 'member_public_profiles' : 'member_profiles'/);
+  assert.match(directory,/const directoryTable='member_public_profiles'/);
+  assert.match(messages,/\.from\('member_public_profiles'\)/);
+  assert.match(community,/\.from\('member_public_profiles'\)/);
+  assert.match(chat,/\.from\('member_public_profiles'\)/);
+  assert.match(calls,/\.from\('member_public_profiles'\)/);
+  assert.doesNotMatch(directory,/'member_public_profiles':'member_profiles'/);
+  assert.doesNotMatch(messages,/'member_public_profiles':'member_profiles'/);
+  assert.doesNotMatch(community,/'member_public_profiles':'member_profiles'/);
+  assert.doesNotMatch(chat,/'member_public_profiles':'member_profiles'/);
+  assert.doesNotMatch(calls,/'member_public_profiles'\s*:\s*'member_profiles'/);
   assert.doesNotMatch(messages,/if\(membersResult\.error\).*?from\('member_profiles'\)/);
 });
 
