@@ -37,14 +37,20 @@
     return;
   }
 
+  // This is a peer-facing directory, never a Founder administrative read.
+  // It must not query the private member_profiles table—even when a
+  // broader legacy SELECT policy still exists during a staged migration.
+  if(window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2!==true){
+    gate.innerHTML='<p class="eyebrow">Directory Update</p><h1>Team Directory temporarily unavailable</h1><p>Member privacy verification is required before this directory can be opened.</p><a class="btn btn-outline" href="/member-dashboard/">Return to Dashboard</a>';
+    return;
+  }
   gate.classList.add('member-hidden');
   app.classList.remove('member-hidden');
 
   const { data, error } = await supabase
-    .from('member_profiles')
-    .select('id,full_name,preferred_name,bio,city,state,rank,team_name,avatar_path,founding_member,linkedin_url,instagram_url,website_url')
+    .from('member_public_profiles')
+    .select('id,full_name,preferred_name,city,state,rank,avatar_path,founding_member,exclusive_member_number')
     .eq('verification_status', 'approved')
-    .eq('profile_visibility', 'members')
     .order('rank')
     .order('full_name');
 
@@ -71,8 +77,8 @@
 
     const visible = members.filter(member => {
       const text = [
-        member.full_name, member.preferred_name, member.bio,
-        member.city, member.state, member.rank, member.team_name
+        member.full_name, member.preferred_name,
+        member.city, member.state, member.rank
       ].filter(Boolean).join(' ').toLowerCase();
 
       return (!q || text.includes(q)) && (!rank || member.rank === rank);
@@ -80,17 +86,13 @@
 
     grid.innerHTML = visible.length ? visible.map(member => `
       <article class="team-member-card">
-        <img src="${member.avatarUrl}" alt="${esc(member.preferred_name || member.full_name)}">
+        <img src="${esc(member.avatarUrl)}" alt="${esc(member.preferred_name || member.full_name)}" loading="lazy" decoding="async">
         <div>
           <small>${esc(member.rank)}${member.founding_member ? ' • Founding Member' : ''}</small>
           <h2>${esc(member.preferred_name || member.full_name)}</h2>
-          <p>${esc(member.team_name || '')}</p>
-          <p>${esc([member.city, member.state].filter(Boolean).join(', '))}</p>
-          <p>${esc(member.bio || '')}</p>
+          <p>${esc([member.city, member.state].filter(Boolean).join(', ') || 'Location not listed')}</p>
           <div class="profile-social-row">
-            ${member.linkedin_url ? `<a href="${esc(member.linkedin_url)}" target="_blank" rel="noopener">LinkedIn</a>` : ''}
-            ${member.instagram_url ? `<a href="${esc(member.instagram_url)}" target="_blank" rel="noopener">Instagram</a>` : ''}
-            ${member.website_url ? `<a href="${esc(member.website_url)}" target="_blank" rel="noopener">Website</a>` : ''}
+            <a href="/professional-profile/?member=${encodeURIComponent(member.id)}">View professional profile</a>
           </div>
         </div>
       </article>
