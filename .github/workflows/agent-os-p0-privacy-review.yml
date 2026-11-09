@@ -22,6 +22,10 @@ on:
       - 'assets/js/community-hub.js'
       - 'assets/js/community-chat.js'
       - 'assets/js/global-call-manager.js'
+      - 'assets/js/professional-profile.js'
+      - 'assets/js/group-chats.js'
+      - 'tests/member-peer-identity-no-private-fallback.test.mjs'
+      - 'tests/approved-os-privacy-integration.test.mjs'
       - 'tests/member-public-profile-cutover-review.test.mjs'
       - 'tests/agent-os-p0-privacy-review.test.mjs'
       - '.github/workflows/agent-os-p0-privacy-review.yml'
@@ -52,11 +56,15 @@ jobs:
           node --check assets/js/community-hub.js
           node --check assets/js/community-chat.js
           node --check assets/js/global-call-manager.js
+          node --check assets/js/professional-profile.js
+          node --check assets/js/group-chats.js
       - name: Static review unit tests
         run: |
           node --test tests/agent-os-p0-privacy-review.test.mjs
           node --test tests/member-public-profile-cutover-review.test.mjs
           node --test tests/member-peer-profile-consumers-review.test.mjs
+          node --test tests/member-peer-identity-no-private-fallback.test.mjs
+          node --test tests/approved-os-privacy-integration.test.mjs
       - name: Ensure remediation SQL cannot run in this review workflow
         run: |
           set -euo pipefail
