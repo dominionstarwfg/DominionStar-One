@@ -1,8 +1,12 @@
 (async()=>{
   const gate=document.getElementById('directoryGate'),app=document.getElementById('directoryApp'),grid=document.getElementById('directoryGrid');
-  let client,session,members=[],presence={};
-  // Preserve request progress when presence or signed-photo updates rerender cards.
-  const connectStates=new Map();
+  let client,session,members=[],presence={},connections=[],connectionsReady=false,connectionIssue='';
+  // Connection actions and pending requests are only shown for server-authorized
+  // rows. These local maps guard duplicate clicks, not database authorization.
+  const connectStates=new Map(),connectionBusy=new Set();
+  const connectionPanel=document.getElementById('directoryConnectionPanel');
+  const connectionList=document.getElementById('directoryInvitations');
+  const connectionStatus=document.getElementById('directoryConnectionStatus');
   const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
   const directoryTable='member_public_profiles';
   const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status';
@@ -40,7 +44,10 @@
       const m=await timeout(client.from(directoryTable).select(directoryFields).eq('verification_status','approved').order('full_name'));
       if(m.error)throw new Error(m.error.message||'Could not load member profiles.');
       members=m.data||[];
+      connectionsReady=false;
       render();
+      // Connections load separately so network problems do not conceal members.
+      void loadConnections();
       // Presence is optional: its availability must not block the approved directory.
       Promise.resolve(client.from('community_presence').select('user_id,is_online,last_seen_at'))
         .then(p=>{if(!p.error){presence=Object.fromEntries((p.data||[]).map(x=>[x.user_id,x]));render();}})
@@ -70,6 +77,99 @@
       image.addEventListener('error',()=>image.remove(),{once:true});
     });
   };
+  // The SELECT policy returns only connections where the signed-in member
+  // is a participant. Additional client checks prevent accidental misuse.
+  function relationshipFor(memberId){
+    const relevant=connections.filter(row=>
+      (row.requester_id===session.user.id&&row.recipient_id===memberId)||
+      (row.recipient_id===session.user.id&&row.requester_id===memberId));
+    const weight=row=>row.status==='accepted'?5:row.status==='blocked'?4
+      :row.status==='pending'&&row.recipient_id===session.user.id?3
+      :row.status==='pending'?2:1;
+    return relevant.sort((a,b)=>weight(b)-weight(a))[0]||null;
+  }
+
+  function renderRequests(){
+    if(!connectionPanel||!connectionList||!connectionStatus)return;
+    const incoming=connectionsReady
+      ? connections.filter(row=>row.recipient_id===session.user.id&&row.status==='pending')
+      :[];
+    connectionPanel.classList.toggle('member-hidden',
+      connectionsReady&&!incoming.length&&!connectionIssue);
+    connectionStatus.textContent=connectionIssue||(!connectionsReady?'Checking connection requests…':'');
+    if(!connectionsReady){connectionList.innerHTML='';return;}
+    connectionList.innerHTML=incoming.map(row=>{
+      // A former requester may have hidden their identity since sending.
+      // Never read their private profile or infer a name from Agent Code.
+      const peer=members.find(member=>member.id===row.requester_id);
+      const name=peer?.preferred_name||peer?.full_name||'Member';
+      const busy=connectionBusy.has(row.id);
+      return `<div class="dsx-connection-request" data-connection-id="${esc(row.id)}">
+        <strong>${esc(name)}</strong><span>sent you a connection request</span>
+        <div class="dsx-connection-actions">
+          <button class="btn btn-outline" type="button" data-connection-response="accepted" data-id="${esc(row.id)}" ${busy?'disabled':''}>Accept</button>
+          <button class="btn btn-outline" type="button" data-connection-response="declined" data-id="${esc(row.id)}" ${busy?'disabled':''}>Decline</button>
+        </div>
+      </div>`;
+    }).join('');
+    connectionList.querySelectorAll?.('[data-connection-response]').forEach(button=>
+      button.addEventListener('click',()=>void transitionConnection(
+        button.dataset.id,button.dataset.connectionResponse)));
+  }
+
+  async function loadConnections(){
+    try{
+      const id=session.user.id;
+      const result=await timeout(client.from('member_connections')
+        .select('id,requester_id,recipient_id,status,created_at')
+        .or('requester_id.eq.'+id+',recipient_id.eq.'+id),12000);
+      if(result.error)throw result.error;
+      connections=(result.data||[]).filter(row=>
+        row.requester_id===id||row.recipient_id===id);
+      connectionsReady=true;
+      connectionIssue='';
+    }catch(_error){
+      // Unknown connection state must not enable a duplicate invitation.
+      connectionsReady=false;
+      connectionIssue='Connections could not be verified. Refresh requests to try again.';
+    }
+    renderRequests();
+    render();
+  }
+
+  async function transitionConnection(id,action){
+    const row=connections.find(item=>item.id===id);
+    if(!row||connectionBusy.has(id)||!connectionsReady)return;
+    const isCancel=action==='cancel';
+    if(isCancel && (row.requester_id!==session.user.id||row.status!=='pending'))return;
+    if(!isCancel && (row.recipient_id!==session.user.id||
+      row.status!=='pending'||!['accepted','declined'].includes(action)))return;
+    connectionBusy.add(id);
+    renderRequests();
+    render();
+    try{
+      const result=await timeout(isCancel
+        ?client.rpc('cancel_my_member_connection',{target_connection_id:id})
+        :client.rpc('respond_my_member_connection',{
+          target_connection_id:id,target_status:action
+        }),12000);
+      if(result.error)throw result.error;
+      if(result.data!==true)throw new Error('The pending request has already changed.');
+      await loadConnections();
+      connectionIssue=isCancel?'Pending request cancelled.':
+        action==='accepted'?'Connection accepted.':'Request declined.';
+    }catch(_error){
+      connectionIssue='Connection action could not be completed. Check its status and retry.';
+    }finally{
+      connectionBusy.delete(id);
+      renderRequests();
+      render();
+    }
+  }
+
+  document.getElementById('directoryConnectionsRefresh')?.addEventListener(
+    'click',()=>void loadConnections());
+
   let renderVersion=0;
   function render(){
     const version=++renderVersion;
@@ -83,11 +183,30 @@
     const cards=filtered.map(m=>{
       const active=presence[m.id]&&Date.now()-new Date(presence[m.id].last_seen_at).getTime()<120000;
       const memberName=m.preferred_name||m.full_name||'Member';
-      const connectState=connectStates.get(m.id)||'idle';
-      const connectLabel=connectState==='sending'?'Sending…'
+      const relation=relationshipFor(m.id);
+      const locally=connectStates.get(m.id)||'idle';
+      const connectState=locally==='sending'?'sending'
+        :!connectionsReady?'loading'
+        :relation?.status==='accepted'?'accepted'
+        :relation?.status==='blocked'?'unavailable'
+        :relation?.status==='pending'&&relation.recipient_id===session.user.id?'incoming'
+        :relation?.status==='pending'?'outgoing'
+        :relation?.status==='declined'?'unavailable'
+        :locally;
+      const connectLabel=connectState==='loading'?'Checking…'
+        :connectState==='sending'?'Sending…'
         :connectState==='sent'?'Requested'
         :connectState==='exists'?'Connection exists'
+        :connectState==='accepted'?'Connected'
+        :connectState==='unavailable'?'Unavailable'
+        :connectState==='incoming'?'Review request'
+        :connectState==='outgoing'?'Cancel request'
         :connectState==='failed'?'Retry Connect':'Connect';
+      const connectAction=connectState==='outgoing'?'cancel'
+        :connectState==='incoming'?'review':'request';
+      const connectDisabled=['loading','sending','sent','exists','accepted','unavailable']
+        .includes(connectState)||(
+          connectAction==='cancel'&&connectionBusy.has(relation?.id));
       return `<article class="member-directory-card" data-member-id="${esc(m.id)}">
         <div class="member-directory-avatar"><span class="member-directory-fallback" aria-hidden="true">${esc(initials(memberName))}</span><span class="${active?'online':'offline'}"></span></div>
         <h2>${esc(memberName)}</h2>
@@ -95,7 +214,7 @@
         <small>${esc([m.city,m.state].filter(Boolean).join(', ')||'Location not listed')}</small>
         <div class="member-directory-actions">
           <a class="btn btn-outline" href="/direct-messages/?member=${encodeURIComponent(m.id)}">Message</a>
-          <button class="btn btn-outline connect-member" data-id="${esc(m.id)}" type="button" ${connectState==='sending'||connectState==='sent'||connectState==='exists'?'disabled':''}>${connectLabel}</button>
+          <button class="btn btn-outline connect-member" data-id="${esc(m.id)}" data-action="${connectAction}" data-connection-id="${esc(relation?.id||'')}" type="button" ${connectDisabled?'disabled':''}>${connectLabel}</button>
         </div>
       </article>`;
     });
@@ -104,18 +223,27 @@
     wireAvatarFallbacks(grid);
     grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{
       const recipient=b.dataset.id;
-      if(!recipient||recipient===session.user.id||connectStates.get(recipient)==='sending')return;
+      if(!recipient||recipient===session.user.id||!connectionsReady)return;
+      if(b.dataset.action==='review'){
+        connectionPanel?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+        return;
+      }
+      if(b.dataset.action==='cancel'){
+        void transitionConnection(b.dataset.connectionId,'cancel');
+        return;
+      }
+      if(relationshipFor(recipient)||connectStates.get(recipient)==='sending')return;
       connectStates.set(recipient,'sending');
       render();
       try{
-        // Explicit pending state is mandatory in the hardened connection RLS.
+        // Only a pending invitation is permitted by the hardened INSERT policy.
         const r=await timeout(client.from('member_connections').insert({
           requester_id:session.user.id,recipient_id:recipient,status:'pending'
         }),12000);
         if(r.error&&r.error.code!=='23505')throw r.error;
         connectStates.set(recipient,r.error?'exists':'sent');
+        await loadConnections();
       }catch(_error){
-        // A denied/offline request is recoverable, never a permanently dead button.
         connectStates.set(recipient,'failed');
       }
       render();
