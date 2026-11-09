@@ -8,7 +8,16 @@
   const directoryFields='id,full_name,preferred_name,rank,city,state,avatar_path,exclusive_member_number,verification_status';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication configuration is missing.</h1>';return;}
-  client=await window.DSAuth.init();session=(await client.auth.getSession()).data.session;
+  try {
+    client=await window.DSAuth.init();
+    if(!client)throw new Error('Authentication service unavailable');
+    const auth=await client.auth.getSession();
+    if(auth.error)throw auth.error;
+    session=auth.data?.session||null;
+  } catch(_error) {
+    gate.innerHTML='<h1>Unable to verify your session</h1><p>Check your connection and refresh before opening the member directory.</p>';
+    return;
+  }
   if(!session){location.href='/member-login/';return;}
   const own=await client.from('member_profiles').select('verification_status').eq('id',session.user.id).single();
   if(own.error||own.data?.verification_status!=='approved'){gate.innerHTML='<h1>Founder approval is required.</h1>';return;}
