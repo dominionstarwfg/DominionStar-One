@@ -109,7 +109,7 @@ test('Team Directory never fetches private peer rows or deprecated private field
   assert.ok(peer);
   assert.doesNotMatch(peer,/\.from\('member_profiles'\)/);
   assert.doesNotMatch(peer,/linkedin_url|instagram_url|website_url|team_name|member\.bio/);
-  assert.match(team,/src="\\$\{esc\(member\.avatarUrl\)\}"/);
+  assert.ok(team.includes('src="${esc(member.avatarUrl)}"'));
   assert.match(html,/assets\/js\/team-directory\.js/);
   assert.match(html,/assets\/js\/member-auth\.js/);
 });
@@ -119,7 +119,7 @@ test('Founder-only member detail is explicit-field and still Founder-gated',()=>
   assert.match(founder,/if \(!founder\?\.is_founder\)/);
   assert.match(founder,/\.select\('id,full_name,email,agent_code,smd_name,rank,verification_status,account_notes'\)/);
   assert.doesNotMatch(founder,/\.select\('\*'\)/);
-  assert.match(founder,/\\^\[0-9a-f\]/);
+  assert.ok(founder.includes("if (!/^[0-9a-f]{8}"));
 });
 
 test('All changed consumers parse under Node before browser usage',()=>{
