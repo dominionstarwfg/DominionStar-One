@@ -1,0 +1,64 @@
+/* DominionStar One — member-directory identity fidelity, review-only.
+   Loaded after shared styles to keep profile initials legible, with natural
+   portrait geometry, including broken or missing signed-photo URLs. */
+.member-directory-card .member-directory-avatar > .member-directory-fallback {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  font-size:26px;
+  font-weight:850;
+  line-height:1;
+  z-index:0;
+}
+.member-directory-card .member-directory-avatar > img.member-directory-photo {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  border-radius:50%;
+  object-fit:cover;
+  z-index:1;
+}
+.member-directory-card .member-directory-avatar > span.online,
+.member-directory-card .member-directory-avatar > span.offline {
+  position:absolute;
+  right:4px;
+  bottom:4px;
+  width:14px;
+  height:14px;
+  border:2px solid #1d2127;
+  border-radius:50%;
+  z-index:2;
+}
+.team-member-card > .team-member-avatar {
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  padding:0;
+  background:linear-gradient(140deg,#18385a,#0c182b);
+  color:#eed38c;
+}
+.team-member-card > .team-member-avatar > .team-member-initials {
+  display:block;
+  font-weight:850;
+  font-size:clamp(2.25rem,4vw,4.25rem);
+  line-height:1;
+  letter-spacing:-.025em;
+}
+.team-member-card > .team-member-avatar > img {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:transparent;
+}
