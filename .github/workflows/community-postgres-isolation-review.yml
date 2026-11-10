@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
+      - 'scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql'
+      - 'tests/sql/legacy-community-broadcast-fixture.sql'
+      - 'tests/sql/legacy-community-broadcast-assertions.sql'
+      - 'tests/legacy-community-broadcast-review.test.mjs'
+      - 'assets/js/community-chat.js'
+      - 'community-chat/index.html'
       - 'tests/sql/community-notifications-fixture.sql'
       - 'tests/sql/community-notifications-assertions.sql'
       - 'scripts/security/community-reaction-archive.DO-NOT-RUN.review.sql'
@@ -68,6 +74,14 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
       - name: Execute permission and genuine-source notification assertions
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-assertions.sql
+      - name: Set up inert synthetic legacy Community Chat broadcast RPC
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/legacy-community-broadcast-fixture.sql
+      - name: Disable legacy routine-chat mass email permissions in disposable CI only
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql
+      - name: Verify browser roles cannot execute legacy mass broadcast RPC
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/legacy-community-broadcast-assertions.sql
       - name: Seed synthetic legacy multi-reactions (9 rows, 6 pairs)
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/community-reactions-fixture.sql
       - name: Require preflight to refuse schema cutover before reconciliation
