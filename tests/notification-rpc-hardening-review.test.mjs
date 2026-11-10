@@ -8,6 +8,7 @@ const acl=read('scripts/security/notification-rpc-acl-lockdown.DO-NOT-RUN.review
 const hardening=read('scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql');
 const source=read('assets/js/community-chat.js');
 const schema=read('supabase/member-email-notifications.sql');
+const retired=read('scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql');
 
 test('Outbox preflight is read-only and reports each legacy vulnerable RPC by role',()=>{
   for(const routine of ['claim_email_notification_batch','queue_email_notification','queue_community_email_notifications']){
@@ -32,11 +33,11 @@ test('Privileged queue claim and generic email queue remain service-role-only in
   assert.match(hardening,/GRANT EXECUTE ON FUNCTION %s TO service_role/);
 });
 
-test('Current Community UI queues email only from the persisted chat row id',()=>{
+test('Community Chat sends saved messages without invoking the retired email broadcast RPC',()=>{
   assert.match(source,/client\.from\('community_chat_messages'\)\.insert/);
   assert.match(source,/\.select\('id'\)\.single\(\)/);
-  assert.match(source,/client\.rpc\('queue_community_message_email'/);
-  assert.match(source,/target_message_id:sent\.data\.id/);
+  assert.doesNotMatch(source,/client\.rpc\('queue_community_message_email'/);
+  assert.doesNotMatch(source,/target_message_id:sent\.data\.id/);
   assert.doesNotMatch(source,/client\.rpc\('queue_community_email_notifications'/);
   assert.doesNotMatch(source,/sender_id:session\.user\.id[\s\S]*chat_body:body/);
 });
@@ -55,13 +56,15 @@ test('Proposed Community email function prevents impersonation and arbitrary-bod
   assert.doesNotMatch(hardening,/GRANT EXECUTE ON FUNCTION public\.queue_community_email_notifications.*authenticated/s);
 });
 
-test('New Community email RPC is authenticated-only and old arbitrary-body RPC is server-only',()=>{
+test('Both older Community email RPCs are server-only in the staged permissions',()=>{
   assert.match(hardening,/queue_community_message_email/);
   assert.match(hardening,/GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role/);
   assert.match(hardening,/queue_community_email_notifications/);
   assert.match(hardening,/GRANT EXECUTE ON FUNCTION %s TO service_role/);
   assert.match(hardening,/has_function_privilege\('authenticated',old_community_oid,'EXECUTE'\)/);
-  assert.match(hardening,/NOT has_function_privilege\('authenticated',new_community_oid,'EXECUTE'\)/);
+  assert.match(hardening,/OR has_function_privilege\('authenticated',new_community_oid,'EXECUTE'\)/);
+  assert.match(retired,/REVOKE EXECUTE ON FUNCTION public\.queue_community_message_email\(uuid\)/);
+  assert.match(retired,/FROM PUBLIC, anon, authenticated/);
 });
 
 test('Existing schema script explicitly revokes queue-claim grants rather than relying on PUBLIC defaults',()=>{
