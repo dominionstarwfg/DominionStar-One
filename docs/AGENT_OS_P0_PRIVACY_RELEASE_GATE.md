@@ -4,6 +4,39 @@
 Date: 2026-11-04  
 Scope: Agent One website, signed-in Members, Founder authorization. **Not DominionStar Meet.**
 
+## 2026-11-10 Real PostgREST HTTP + JWT security integration (disposable only)
+
+The P0 privacy review formerly checked SQL role impersonation and client-side
+mocks but **not the HTTP API request path** actually used by the Agent OS.
+The new GitHub CI job now starts a real **PostgREST v16.5** container attached
+to the existing isolated **PostgreSQL 16** service. Both are disposable and
+use only fake agents, generated credentials, and synthetic signed JWTs.
+
+Source: `tests/sql/member-postgrest-authenticator-fixture.sql` provides a
+narrow authenticator role and a fixture-local `auth.uid()` that understands
+both the legacy SQL-test sub GUC and PostgREST's JSON JWT claims. No real Auth
+function or production project is modified. The API harness
+`tests/http/member-privacy-postgrest-review.mjs` targets only
+`http://127.0.0.1:3000` and verifies 23 requests covering:
+
+- anonymous and pending denial; approved directory-visible peers;
+  server-opted-out and unapproved identity exclusion;
+- private profile columns not exposed through the public projection, while
+  Founder-approved access to raw profiles is preserved;
+- pending-only connection insertion, refusal for hidden/unapproved targets,
+  reverse-direction duplicate prevention, requester/recipient visibility;
+- browser direct-UPDATE denial, unrelated response-RPC refusal and legitimate
+  recipient acceptance;
+- trusted source-generated in-app request and acceptance events with
+  recipient-only read RLS, browser event forgery denial and invalid JWT denial.
+
+This test exercises actual PostgREST request authentication, role switching,
+table grants, RLS policies and RPC execution. Its synthetic claims are
+**not** a Supabase Auth sign-in, do **not** validate live user sessions and
+do not replace isolated Supabase Auth + PostgREST staging before release.
+The test creates no paid branch, never accesses the production Supabase
+project, uses no real member data and sends no notifications or email.
+
 ## 2026-11-09 Member connections integration (review branch only)
 
 A read-only catalog check verified the existing `member_connections` table
