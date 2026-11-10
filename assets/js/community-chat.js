@@ -6,7 +6,6 @@
   const result=document.getElementById('chatResult');
   const statusEl=document.getElementById('chatConnectionStatus');
   const unread=document.getElementById('chatUnreadBadge');
-  const emailPref=document.getElementById('chatEmailPreference');
 
   let client,session,profile,channel,pollTimer,reconnectTimer,typingTimer;
 
@@ -162,12 +161,6 @@ form.addEventListener('submit',async e=>{
       body
     }).select('id').single();
 
-    if(!sent.error&&emailPref.checked&&sent.data?.id){
-      await client.rpc('queue_community_message_email',{
-        target_message_id:sent.data.id
-      });
-    }
-
     button.disabled=false;
     button.textContent='Send Message';
 
@@ -178,24 +171,9 @@ form.addEventListener('submit',async e=>{
     }
 
     form.reset();
-    result.textContent=emailPref.checked
-      ? 'Message sent. Email alerts were queued for opted-in members.'
-      : 'Message sent.';
+    result.textContent='Message sent.';
     result.className='member-message show success';
     await loadMessages(true);
-  });
-
-  const pref=await client.from('notification_preferences')
-    .select('community_email_enabled')
-    .eq('user_id',session.user.id).maybeSingle();
-
-  emailPref.checked=Boolean(pref.data?.community_email_enabled);
-  emailPref.addEventListener('change',async()=>{
-    await client.from('notification_preferences').upsert({
-      user_id:session.user.id,
-      community_email_enabled:emailPref.checked,
-      updated_at:new Date().toISOString()
-    });
   });
 
   document.getElementById('chatRefresh').addEventListener('click',()=>loadMessages(true));
