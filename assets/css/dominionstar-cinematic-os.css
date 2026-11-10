@@ -4850,3 +4850,22 @@ body.ds-auth-os-page .dsx-member-public-actions{
   body.ds-auth-os-page.dm-os-body .dsx-messages-title{display:none!important}
   body.ds-auth-os-page.dm-os-body .dm-composer textarea{min-width:0!important}
 }
+
+/* Agent OS Notifications: unobtrusive history pagination under the existing Feed-style list. */
+body.notification-center-page .dsx-notification-pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;padding:14px 0 0;margin-top:14px;
+  border-top:1px solid rgba(156,185,223,.18);
+}
+body.notification-center-page #notificationPageInfo{
+  margin:0;color:#b9cae0;font-size:13px;line-height:1.55;
+}
+body.notification-center-page #notificationLoadMore{
+  min-height:44px;padding:9px 16px;font-size:13px;
+}
+body.notification-center-page #notificationLoadMore[hidden]{
+  display:none!important;
+}
+@media(max-width:540px){
+  body.notification-center-page #notificationLoadMore{width:100%}
+}
