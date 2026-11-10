@@ -217,6 +217,7 @@ DECLARE
     'mark_announcement_read',
     'production_self_test',
     'queue_appointment_email',
+    'queue_community_message_email',
     'set_maintenance_mode',
     'set_maintenance_mode_v651a',
     'update_own_contact_profile',
@@ -245,7 +246,6 @@ DECLARE
     'claim_email_notification_batch',
     'queue_email_notification',
     'queue_community_email_notifications',
-    'queue_community_message_email',
     'dominionstar_test_notification'
   ];
 BEGIN
@@ -323,7 +323,7 @@ BEGIN
   END IF;
 
   IF has_function_privilege('authenticated',old_community_oid,'EXECUTE')
-     OR has_function_privilege('authenticated',new_community_oid,'EXECUTE')
+     OR NOT has_function_privilege('authenticated',new_community_oid,'EXECUTE')
      OR NOT has_function_privilege('authenticated',appointment_oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Unexpected email RPC privileges';
   END IF;
@@ -334,7 +334,7 @@ COMMIT;
 
 -- Post-approval verification:
 -- 1. Anonymous calls to Agent/Founder SECURITY DEFINER RPCs are denied.
--- 2. Routine Community Chat has no client-executable broad email RPC.
+-- 2. Approved Community member can queue email only for their persisted chat row.
 -- 3. Replaying the same Community message does not duplicate recipient outbox rows.
 -- 4. Anonymous appointment email queue is denied.
 -- 5. Founder appointment save still queues one email for the updated version.
