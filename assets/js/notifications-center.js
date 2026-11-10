@@ -98,7 +98,9 @@
        ?'Notifications marked read.'
        :'Read update submitted, but the inbox could not refresh. Retry to confirm its status.');
    }catch(_error){
-     setStatus('Unable to mark notifications read. Please retry.');
+     // A timed-out RPC can still have committed on the server. Do not claim
+     // it definitively failed or tell the agent to write the same change again.
+     setStatus('Could not confirm the read update. Refresh the inbox to check its status.');
    }finally{markAll.disabled=false;}
  };
  list.addEventListener('click',async event=>{
