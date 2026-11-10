@@ -253,6 +253,23 @@ test('Clicking a notification opens its safe destination even if read-state RPC 
   assert.equal(h.recorded.rpcCalls[0].payload.target_event_id,'notification-1');
 });
 
+test('Today means the viewer-local calendar day, not the previous 24 hours',async()=>{
+  const yesterday=new Date();
+  yesterday.setHours(0,0,0,0);
+  yesterday.setMilliseconds(-1);
+  const events=[
+    {id:'today',event_type:'connection.request',title:'Today',
+      description:'',read_at:null,created_at:new Date().toISOString(),
+      payload:{action_url:'/member-directory/'}},
+    {id:'yesterday',event_type:'connection.request',title:'Yesterday',
+      description:'',read_at:null,created_at:yesterday.toISOString(),
+      payload:{action_url:'/member-directory/'}}
+  ];
+  const h=await run({events});
+  assert.equal(h.nodes.notificationUnread.textContent,2);
+  assert.equal(h.nodes.notificationToday.textContent,1);
+});
+
 test('Exactly 100 inbox events do not falsely advertise an older page',async()=>{
   const events=Array.from({length:100},(_,i)=>({
     id:'exact-'+i,event_type:'connection.request',title:'Exact '+i,
