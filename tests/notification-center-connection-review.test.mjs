@@ -160,7 +160,7 @@ test('Stalled mark-all RPC re-enables its button and reports failure',async()=>{
   assert.equal(h.nodes.markAllNotifications.disabled,false);
   assert.equal(h.nodes.notificationUnread.textContent,1);
   assert.match(h.nodes.notificationActionStatus.textContent,
-    /Unable to mark notifications read/);
+    /Could not confirm the read update/);
 });
 
 test('Opening a notification cannot hang behind a stalled mark-read RPC',async()=>{
@@ -189,7 +189,7 @@ test('Mark-all failure is shown and does not fabricate a read count',async()=>{
   assert.equal(h.recorded.rpcCalls.length,1);
   assert.equal(h.recorded.rpcCalls[0].name,'mark_my_executive_notifications_read');
   assert.equal(h.recorded.rpcCalls[0].payload.target_event_id,null);
-  assert.match(h.nodes.notificationActionStatus.textContent,/Unable to mark notifications read/);
+  assert.match(h.nodes.notificationActionStatus.textContent,/Could not confirm the read update/);
   assert.equal(h.nodes.notificationUnread.textContent,1);
   assert.equal(h.nodes.markAllNotifications.disabled,false);
 });
