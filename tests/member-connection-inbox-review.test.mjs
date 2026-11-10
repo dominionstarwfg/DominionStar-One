@@ -49,7 +49,8 @@ const element=()=>{
   };
 };
 
-async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=false}={}){
+async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=false,
+  approvalError=false,insertBehavior='normal'}={}){
   const roster=[member(self,'Self Member'),...(hidden?[]:[member(peer)])];
   const state={rows:rows.map(x=>({...x})),rpcCalls:[],inserts:[],tables:[],failRead};
   const nodes=Object.fromEntries([
@@ -77,16 +78,34 @@ async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=fals
       state.tables.push(table);
       return {
         select(){return this;},eq(){return this;},
-        single:async()=>({data:{verification_status:'approved'},error:null}),
+        single:async()=>approvalError
+          ?{data:null,error:{message:'Approval lookup unavailable'}}
+          :{data:{verification_status:'approved'},error:null},
         order:async()=>({data:table==='member_public_profiles'?roster:[],error:null}),
         or:async()=>state.failRead?{data:null,error:{message:'SELECT denied'}}:
           {data:state.rows,error:null},
         insert:async payload=>{
           state.inserts.push(payload);
+          if(['reciprocal','collision-unreadable'].includes(insertBehavior)){
+            // Concurrent B→A request reached the database first. The new
+            // unordered-pair constraint must reject A→B with 23505.
+            state.rows.push({
+              id:'30000000-0000-4000-8000-000000000088',
+              requester_id:peer,recipient_id:self,status:'pending'
+            });
+            if(insertBehavior==='collision-unreadable')state.failRead=true;
+            return {error:{code:'23505',message:'Existing unordered pair'}};
+          }
+          if(insertBehavior==='network-unknown'){
+            state.failRead=true;
+            throw new Error('Connection reset before insert confirmation');
+          }
           state.rows.push({
             id:'30000000-0000-4000-8000-000000000099',
             ...payload,status:'pending'
           });
+          if(insertBehavior==='network-committed')
+            throw new Error('Connection reset after server commit');
           return {error:null};
         }
       };
@@ -196,6 +215,76 @@ test('Denied accept preserves pending request, status and retry controls',async(
   assert.match(h.nodes.directoryConnectionStatus.textContent,/could not be completed/);
   assert.match(h.requests(),/Accept/);
   assert.equal(h.state.inserts.length,0);
+});
+
+test('Reciprocal 23505 collision reveals incoming request instead of a permanent Exists button',async()=>{
+  const h=await mount({insertBehavior:'reciprocal'});
+  assert.match(h.grid(),/>Connect<\\/button>/);
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.equal(h.state.rows.length,1);
+  assert.equal(h.state.rows[0].requester_id,peer);
+  assert.equal(h.state.rows[0].recipient_id,self);
+  assert.match(h.grid(),/Review request/);
+  assert.match(h.requests(),/Accept/);
+  assert.doesNotMatch(h.grid(),/Connection exists/);
+  // The next action is to accept the real incoming invitation, NOT send a
+  // duplicate reciprocal request.
+  h.requestButton('accepted').click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Connected/);
+});
+
+test('Unknown reciprocal collision must ask for verified state and block blind re-invite',async()=>{
+  const h=await mount({insertBehavior:'collision-unreadable'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.equal(h.cardButton().dataset.action,'refresh');
+  assert.match(h.grid(),/Verify status/);
+  assert.match(h.nodes.directoryConnectionStatus.textContent,/could not be verified/);
+  await h.cardButton().click(); // Still cannot read; should NOT insert.
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  h.state.failRead=false;
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Review request/);
+});
+
+test('Timed-out insert that committed is reconciled without duplicating request',async()=>{
+  const h=await mount({insertBehavior:'network-committed'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Cancel request/);
+  assert.equal(h.cardButton().dataset.action,'cancel');
+});
+
+test('Unconfirmed insert and unavailable SELECT do not enable a second write',async()=>{
+  const h=await mount({insertBehavior:'network-unknown'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Verify status/);
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  h.state.failRead=false;
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.cardButton().dataset.action,'request');
+});
+
+test('Failed membership verification is not mislabeled as Founder denial',async()=>{
+  const h=await mount({approvalError:true});
+  assert.match(h.nodes.directoryGate.innerHTML,/Unable to verify your membership/);
+  assert.doesNotMatch(h.nodes.directoryGate.innerHTML,/Founder approval is required/);
+  assert.ok(!h.state.tables.includes('member_public_profiles'));
+  assert.ok(!h.state.tables.includes('member_connections'));
 });
 
 test('Opted-out requester is not resolved through private profiles',async()=>{
