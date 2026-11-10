@@ -17,7 +17,7 @@ const element=()=>({
 });
 
 async function run({approved='approved',authFails=false,readFails=false,markFails=false,
-  mediaFails=false,engineMissing=false,events=null}={}){
+  mediaFails=false,engineMissing=false,readAfterMarkFails=false,events=null}={}){
   const ids=['notificationGate','notificationApp','notificationList',
     'notificationUnread','notificationMissed','notificationToday',
     'markAllNotifications','enableNotifications','notificationActionStatus'];
@@ -39,7 +39,7 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
         maybeSingle:async()=>({data:{verification_status:approved},error:null}),
         limit:async()=>{
           recorded.readCount++;
-          return readFails
+          return readFails||(readAfterMarkFails&&recorded.rpcCalls.length>0)
             ?{data:null,error:{message:'Cannot load inbox'}}
             :{data:recorded.events,error:null};
         }
@@ -129,6 +129,19 @@ test('Mark-all success re-reads the server state and updates badge',async()=>{
   assert.equal(h.nodes.notificationUnread.textContent,0);
   assert.equal(h.recorded.badge.at(-1),0);
   assert.match(h.nodes.notificationActionStatus.textContent,/Notifications marked read/);
+});
+
+test('Mark-all cannot claim verified success if server readback fails',async()=>{
+  const h=await run({readAfterMarkFails:true});
+  assert.equal(h.nodes.notificationUnread.textContent,1);
+  await h.nodes.markAllNotifications.onclick();
+  assert.equal(h.recorded.rpcCalls.length,1);
+  assert.match(h.nodes.notificationActionStatus.textContent,
+    /Read update submitted, but the inbox could not refresh/);
+  assert.doesNotMatch(h.nodes.notificationActionStatus.textContent,
+    /^Notifications marked read\.$/);
+  assert.match(h.nodes.notificationList.innerHTML,/Inbox unavailable/);
+  assert.equal(h.nodes.markAllNotifications.disabled,false);
 });
 
 test('Clicking a notification opens its safe destination even if read-state RPC fails',async()=>{
