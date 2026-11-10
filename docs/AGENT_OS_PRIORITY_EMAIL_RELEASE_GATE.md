@@ -215,6 +215,12 @@ a recipient receives a mail should not be decided by that sender toggle.
   EXECUTE after an explicit schema preflight. This draft is **not executed** on
   connected Supabase. The old RPC can still be called on live production
   until a separately authorized coordinated migration occurs.
+- **Migration order:** the older 2026-10-30 Agent/Founder SQL artifact is
+  fingerprint-frozen and intentionally unchanged. Because that older draft
+  grants client EXECUTE to the legacy RPC, the separate legacy-broadcast
+  revocation must execute **after** any older Agent/Founder ACL migration;
+  every staged and production cutover preflight must verify the final
+  browser grant is denied. Never regenerate the frozen artifact silently.
 - Added Node static regression for frontend and draft ACLs, plus disposable
   PostgreSQL test with an **inert synthetic RPC** proving the browser grant
   is revoked; neither workflow sends mail.
