@@ -112,11 +112,14 @@
  const load=async()=>{
    const version=++loadVersion;
    try{
-     const r=await bounded(client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(100),12000);
+     const r=await bounded(client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(PAGE_SIZE+1),12000);
      if(r.error)throw r.error;
      if(version!==loadVersion)return false;
-     events=r.data||[];
-     hasMore=events.length===PAGE_SIZE;
+     // Fetch one extra row: exactly 100 notifications is NOT proof there
+     // are older records. Avoid a dead-end Load earlier button.
+     const firstPage=r.data||[];
+     events=firstPage.slice(0,PAGE_SIZE);
+     hasMore=firstPage.length>PAGE_SIZE;
      stats={unread:null,missed:null,today:null};
      render();
      void loadStats(version);
@@ -138,15 +141,15 @@
      const r=await bounded(client.from('executive_events')
        .select('*').eq('member_id',session.user.id)
        .order('created_at',{ascending:false})
-       .range(offset,offset+PAGE_SIZE-1),12000);
+       .range(offset,offset+PAGE_SIZE),12000);
      if(r.error)throw r.error;
      if(version!==loadVersion)return; // Realtime fresh-page load superseded this.
      const page=r.data||[];
      const seen=new Set(events.map(e=>e.id));
-     for(const event of page){
+     for(const event of page.slice(0,PAGE_SIZE)){
        if(!seen.has(event.id)){events.push(event);seen.add(event.id);}
      }
-     hasMore=page.length===PAGE_SIZE;
+     hasMore=page.length>PAGE_SIZE;
      setStatus('');
    }catch(_error){
      if(version===loadVersion)
