@@ -7,6 +7,8 @@ on:
       - 'scripts/security/member-public-projection-prepare.DO-NOT-RUN.review.sql'
       - 'scripts/security/member-public-projection-enforce.DO-NOT-RUN.review.sql'
       - 'scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql'
+      - 'scripts/security/member-connection-notifications.DO-NOT-RUN.review.sql'
+      - 'tests/sql/member-connection-notifications-assertions.sql'
       - 'tests/sql/member-privacy-fixture.sql'
       - 'tests/sql/member-privacy-prepare-assertions.sql'
       - 'tests/sql/member-privacy-enforce-assertions.sql'
@@ -85,5 +87,11 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/security/member-connection-integrity.DO-NOT-RUN.review.sql
       - name: Test approved invite, accepted, declined, cancellation and forbidden spoofing
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-connections-assertions.sql
+      - name: Compile connection source events in disposable Postgres only
+        run: |
+          grep -Fq 'DO NOT RUN' scripts/security/member-connection-notifications.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/member-connection-notifications.DO-NOT-RUN.review.sql
+      - name: Verify real request and acceptance alerts with synthetic auth and RLS
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-connection-notifications-assertions.sql
       - name: Confirm no real Supabase, email send or persistent database used
         run: echo "DISPOSABLE_MEMBER_PRIVACY_NO_PRODUCTION_NO_EMAIL_PASS"
