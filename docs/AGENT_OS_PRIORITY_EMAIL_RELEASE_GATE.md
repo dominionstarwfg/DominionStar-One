@@ -190,3 +190,39 @@ support verified email and preferences. The stricter selected-event
 policy and delivery recheck are only code in draft PR #198, not live.
 Production retains the existing broader event-category rules until
 an authorized coordinated cutover.
+
+## 2026-11-10: Legacy Community Chat mass-email path — review-only containment
+
+A read-only production catalog check found `public.queue_community_message_email(uuid)`
+is a SECURITY DEFINER RPC executable by authenticated members. It takes
+an author's saved Community Chat message and enqueues mail for **every
+approved recipient** with the old community-email opt-in. This is distinct
+from the selected event/mention/reply email policy above. The older
+Community Chat JavaScript invoked this RPC after routine messages based on
+the **sender's** hidden `chatEmailPreference` checkbox, even though whether
+a recipient receives a mail should not be decided by that sender toggle.
+
+**Review branch remediation (NOT live):**
+- Removed the Community Chat client's broad `queue_community_message_email`
+  call and the hidden sender toggle. Posting to Chat still inserts the message,
+  but success text no longer falsely promises queued email.
+- Kept the existing Settings link for actual selected email preferences.
+  Routine Chat messages should stay in-app; Community mention/reply email
+  requires server-source verification, recipient opt-in and confirmed Auth
+  email under the separate priority event migration.
+- Added `scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql`.
+  It preserves the existing function but revokes anonymous and authenticated
+  EXECUTE after an explicit schema preflight. This draft is **not executed** on
+  connected Supabase. The old RPC can still be called on live production
+  until a separately authorized coordinated migration occurs.
+- Added Node static regression for frontend and draft ACLs, plus disposable
+  PostgreSQL test with an **inert synthetic RPC** proving the browser grant
+  is revoked; neither workflow sends mail.
+- Do not authorize production cutover until existing legacy queued emails,
+  any server callers of the old function, and unreviewed Chat notification
+  triggers have been inventoried; verify no unintended fanout during real
+  synthetic Auth/PostgREST staging.
+
+**Isolation:** No DominionStar Meet change, no production Netlify deploy,
+no real Supabase SQL write, no actual email.
+
