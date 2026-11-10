@@ -13,6 +13,8 @@ on:
       - 'tests/sql/member-privacy-prepare-assertions.sql'
       - 'tests/sql/member-privacy-enforce-assertions.sql'
       - 'tests/sql/member-connections-assertions.sql'
+      - 'tests/sql/member-postgrest-authenticator-fixture.sql'
+      - 'tests/http/member-privacy-postgrest-review.mjs'
       - 'tests/sql/community-notifications-fixture.sql'
       - '.github/workflows/member-privacy-postgres-isolation-review.yml'
   workflow_dispatch:
@@ -93,5 +95,37 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/security/member-connection-notifications.DO-NOT-RUN.review.sql
       - name: Verify real request and acceptance alerts with synthetic auth and RLS
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/member-connection-notifications-assertions.sql
+      - name: Configure PostgREST HTTP role in disposable PostgreSQL only
+        run: |
+          test "$PGDATABASE" = synthetic_agent_privacy
+          psql -v ON_ERROR_STOP=1 -f tests/sql/member-postgrest-authenticator-fixture.sql
+      - name: Exercise real PostgREST HTTP member RLS with disposable synthetic JWTs
+        env:
+          CI: 'true'
+        run: |
+          set -eu
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = synthetic_agent_privacy
+          test -z "${SUPABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          docker run -d --name ds-member-postgrest-review --network host \
+            --security-opt no-new-privileges \
+            -e PGRST_DB_URI=postgresql://ds_http_authenticator:SYNTHETIC_HTTP_REVIEW_PASSWORD_ONLY@127.0.0.1:5432/synthetic_agent_privacy \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET=SYNTHETIC_ONLY_POSTGREST_JWT_SECRET_REVIEW_2026 \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:v16.5
+          trap 'docker logs --tail 60 ds-member-postgrest-review || true; docker rm -f ds-member-postgrest-review >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for i in $(seq 1 30); do
+            if curl --silent --max-time 2 -o /dev/null http://127.0.0.1:3000/; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1
+          node tests/http/member-privacy-postgrest-review.mjs
       - name: Confirm no real Supabase, email send or persistent database used
         run: echo "DISPOSABLE_MEMBER_PRIVACY_NO_PRODUCTION_NO_EMAIL_PASS"
