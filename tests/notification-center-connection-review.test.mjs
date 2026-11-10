@@ -18,10 +18,12 @@ const element=()=>({
 
 async function run({approved='approved',authFails=false,readFails=false,markFails=false,
   mediaFails=false,mediaHangs=false,engineMissing=false,readAfterMarkFails=false,
-  markHangs=false,readHangs=false,realtimeFails=false,events=null}={}){
+  markHangs=false,readHangs=false,realtimeFails=false,countFails=false,
+  olderPageFails=false,events=null}={}){
   const ids=['notificationGate','notificationApp','notificationList',
     'notificationUnread','notificationMissed','notificationToday',
-    'markAllNotifications','enableNotifications','notificationActionStatus'];
+    'markAllNotifications','enableNotifications','notificationActionStatus',
+    'notificationLoadMore','notificationPageInfo'];
   const nodes=Object.fromEntries(ids.map(id=>[id,element()]));
   const scheduled=[];
   const timer=(fn,ms)=>{
@@ -49,15 +51,40 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
       {data:{session:{user:{id:'viewer-1'}}},error:null}},
     from(table){
       recorded.tables.push(table);
+      let countMode=false;
+      const countResult=(predicate)=>countFails
+        ?{count:null,error:{message:'Count unavailable'}}
+        :{count:recorded.events.filter(predicate).length,error:null};
       const q={
-        select(){return q;},eq(){return q;},order(){return q;},
+        select(_cols,options){countMode=options?.head===true;return q;},
+        eq(column,value){
+          if(countMode&&column==='event_type')
+            return Promise.resolve(countResult(e=>e.event_type===value));
+          return q;
+        },
+        is(column,value){
+          if(countMode&&column==='read_at'&&value===null)
+            return Promise.resolve(countResult(e=>!e.read_at));
+          return q;
+        },
+        gte(column,value){
+          if(countMode&&column==='created_at')
+            return Promise.resolve(countResult(e=>e.created_at>=value));
+          return q;
+        },
+        order(){return q;},
         maybeSingle:async()=>({data:{verification_status:approved},error:null}),
-        limit:async()=>{
+        limit:async limit=>{
           recorded.readCount++;
           if(readHangs)return new Promise(()=>{});
           return readFails||(readAfterMarkFails&&recorded.rpcCalls.length>0)
             ?{data:null,error:{message:'Cannot load inbox'}}
-            :{data:recorded.events,error:null};
+            :{data:recorded.events.slice(0,limit),error:null};
+        },
+        range:async(start,end)=>{
+          recorded.readCount++;
+          if(olderPageFails)return {data:null,error:{message:'Earlier page unavailable'}};
+          return {data:recorded.events.slice(start,end+1),error:null};
         }
       };
       return q;
@@ -224,6 +251,65 @@ test('Clicking a notification opens its safe destination even if read-state RPC 
   assert.equal(h.recorded.location.href,'/member-directory/');
   assert.equal(h.recorded.rpcCalls.length,1);
   assert.equal(h.recorded.rpcCalls[0].payload.target_event_id,'notification-1');
+});
+
+test('Unread badge and health counts include alerts beyond the first 100',async()=>{
+  const events=Array.from({length:205},(_,i)=>({
+    id:'event-'+i,event_type:i<160?'connection.request':'call.missed',
+    title:'Synthetic event '+i,description:'',read_at:null,
+    priority:'normal',created_at:new Date(Date.now()-i*1000).toISOString(),
+    payload:{action_url:'/member-directory/'}
+  }));
+  const h=await run({events});
+  assert.equal(h.nodes.notificationUnread.textContent,205);
+  assert.equal(h.recorded.badge.at(-1),205);
+  assert.equal(h.nodes.notificationMissed.textContent,45);
+  assert.equal(h.nodes.notificationLoadMore.hidden,false);
+  assert.match(h.nodes.notificationPageInfo.textContent,/Showing 100 most recent/);
+  assert.doesNotMatch(h.nodes.notificationList.innerHTML,/Synthetic event 175/);
+  await h.nodes.notificationLoadMore.onclick();
+  await flush();
+  assert.match(h.nodes.notificationList.innerHTML,/Synthetic event 175/);
+  assert.equal(h.nodes.notificationLoadMore.hidden,false);
+  assert.match(h.nodes.notificationPageInfo.textContent,/Showing 200 most recent/);
+  await h.nodes.notificationLoadMore.onclick();
+  await flush();
+  assert.match(h.nodes.notificationList.innerHTML,/Synthetic event 204/);
+  assert.equal(h.nodes.notificationLoadMore.hidden,true);
+  assert.match(h.nodes.notificationPageInfo.textContent,/Showing 205 most recent/);
+});
+
+test('Missing server counts are disclosed as minimums until earlier pages load',async()=>{
+  const events=Array.from({length:125},(_,i)=>({
+    id:'unknown-'+i,event_type:'connection.request',title:'Synthetic '+i,
+    description:'',read_at:null,
+    created_at:new Date(Date.now()-i*1000).toISOString(),
+    payload:{action_url:'/member-directory/'}
+  }));
+  const h=await run({events,countFails:true});
+  assert.equal(h.nodes.notificationUnread.textContent,'≥100');
+  assert.match(h.nodes.notificationPageInfo.textContent,/more available/);
+  await h.nodes.notificationLoadMore.onclick();
+  await flush();
+  assert.equal(h.nodes.notificationUnread.textContent,125);
+  assert.equal(h.nodes.notificationLoadMore.hidden,true);
+});
+
+test('Older notification page failure retains the first page and allows retry',async()=>{
+  const events=Array.from({length:120},(_,i)=>({
+    id:'earlier-'+i,event_type:'connection.request',title:'Saved '+i,
+    description:'',read_at:null,
+    created_at:new Date(Date.now()-i*1000).toISOString(),
+    payload:{action_url:'/member-directory/'}
+  }));
+  const h=await run({events,olderPageFails:true});
+  const first=h.nodes.notificationList.innerHTML;
+  await h.nodes.notificationLoadMore.onclick();
+  await flush();
+  assert.equal(h.nodes.notificationList.innerHTML,first);
+  assert.equal(h.nodes.notificationLoadMore.hidden,false);
+  assert.equal(h.nodes.notificationLoadMore.disabled,false);
+  assert.match(h.nodes.notificationActionStatus.textContent,/Earlier notifications could not load/);
 });
 
 test('Connection events have their own icon/filter without a new OS layout',()=>{
