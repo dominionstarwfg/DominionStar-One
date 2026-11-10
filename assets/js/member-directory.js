@@ -212,6 +212,7 @@
       const relation=relationshipFor(m.id);
       const locally=connectStates.get(m.id)||'idle';
       const connectState=locally==='sending'?'sending'
+        :locally==='unknown'?'unknown'
         :!connectionsReady?'loading'
         :relation?.status==='accepted'?'accepted'
         :relation?.status==='blocked'?'unavailable'
