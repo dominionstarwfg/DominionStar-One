@@ -144,6 +144,12 @@
       connections=(result.data||[]).filter(row=>
         row.requester_id===id||row.recipient_id===id);
       connectionsReady=true;
+      // Refresh requests and Verify status must have the same recovery
+      // behavior. Once an authoritative SELECT succeeds, remove obsolete
+      // unknown markers so peers without a relationship can be contacted.
+      for(const [peerId,state] of connectStates){
+        if(state==='unknown'&&!relationshipFor(peerId))connectStates.delete(peerId);
+      }
       connectionIssue='';
     }catch(_error){
       if(version!==connectionLoadVersion)return false;
