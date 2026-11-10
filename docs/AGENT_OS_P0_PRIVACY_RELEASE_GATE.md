@@ -4,6 +4,41 @@
 Date: 2026-11-04  
 Scope: Agent One website, signed-in Members, Founder authorization. **Not DominionStar Meet.**
 
+## 2026-11-10 HTTP privacy toggle and connection-lifecycle regression expansion
+
+A follow-up to the isolated PostgREST integration raises the test surface
+from **23 to 48 HTTP/JWT assertions** without changing production schema,
+browser permissions or the approved Agent OS layout.
+
+The expanded `tests/http/member-privacy-postgrest-review.mjs` verifies
+real Data API and PostgREST RPC behavior when an approved agent changes
+directory visibility:
+
+- An opted-in member becomes **private** using only the scoped
+  `set_my_member_directory_visibility` RPC. An unrelated approved agent
+  can no longer locate that profile in the public-safe projection.
+- A previously authored Feed post and Community Chat message immediately
+  lose the author name when the author opts out. No raw
+  `member_profiles` identity fallback is allowed through these
+  privileged Feed/Chat endpoints.
+- The opted-out member explicitly opts back into directory sharing;
+  safe identity and Feed attribution return only after that server
+  decision. Anonymous/pending members cannot change visibility.
+- Invalid directory settings fail closed. Unapproved agents cannot read
+  the privileged Feed and Community Chat lists.
+- A newly opted-out recipient cannot receive a fresh member-directory
+  connection invitation, and the server re-allows the flow after the
+  recipient opts back in.
+- An accepted relationship cannot be retroactively declined or
+  cancelled; unrelated users and the recipient cannot withdraw the
+  requester's pending invite; the legitimate requester can cancel it,
+  removing the pending row.
+
+**Verification:** 48/48 HTTP checks against a disposable PostgreSQL 16
++ PostgREST v16.5 service, using only synthetic JWTs and fake member
+records. This test does not prove actual Supabase Auth session behavior,
+nor does it authorize changing the production privacy feature flag.
+
 ## 2026-11-10 Real PostgREST HTTP + JWT security integration (disposable only)
 
 The P0 privacy review formerly checked SQL role impersonation and client-side
