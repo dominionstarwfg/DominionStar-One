@@ -219,7 +219,7 @@ test('Denied accept preserves pending request, status and retry controls',async(
 
 test('Reciprocal 23505 collision reveals incoming request instead of a permanent Exists button',async()=>{
   const h=await mount({insertBehavior:'reciprocal'});
-  assert.match(h.grid(),/>Connect<\\/button>/);
+  assert.match(h.grid(),/>Connect<\/button>/);
   await h.cardButton().click();
   await flush();
   assert.equal(h.state.inserts.length,1);
