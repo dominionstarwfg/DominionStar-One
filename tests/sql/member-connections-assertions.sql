@@ -14,6 +14,27 @@ VALUES(
   '00000000-0000-4000-8000-000000000003','pending'
 );
 
+-- The original directional UNIQUE constraint misses the reciprocal C→A.
+-- With both approved and public-safe, only unordered pair uniqueness can
+-- prevent two parallel connection requests and duplicate notifications.
+SELECT set_config('request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000003',false);
+DO $deny_reciprocal_invite$
+BEGIN
+  BEGIN
+    INSERT INTO public.member_connections(id,requester_id,recipient_id,status)
+    VALUES(
+      '40000000-0000-4000-8000-000000000008',
+      '00000000-0000-4000-8000-000000000003',
+      '00000000-0000-4000-8000-000000000001','pending'
+    );
+    RAISE EXCEPTION 'P0: reciprocal connection bypassed pair uniqueness';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+END;
+$deny_reciprocal_invite$;
+SELECT set_config('request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000001',false);
+
 DO $deny_preaccepted$
 BEGIN
   BEGIN
@@ -221,6 +242,12 @@ BEGIN
   IF EXISTS(SELECT 1 FROM public.member_connections
     WHERE id='40000000-0000-4000-8000-000000000004')
   THEN RAISE EXCEPTION 'Cancelled pending connection remains'; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname='public'
+      AND tablename='member_connections'
+      AND indexname='member_connections_unordered_pair_once_idx'
+  ) THEN RAISE EXCEPTION 'Unordered connection pair uniqueness index missing'; END IF;
   IF has_table_privilege('authenticated','public.member_connections','UPDATE')
     OR has_table_privilege('authenticated','public.member_connections','DELETE')
   THEN RAISE EXCEPTION 'Broad member connection write privileges remain'; END IF;
