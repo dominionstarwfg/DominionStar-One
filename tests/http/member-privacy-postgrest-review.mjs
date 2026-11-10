@@ -53,9 +53,75 @@ check('Approved member cannot retrieve peer private profile',
  r.status===200&&r.data?.length===0,r);
 r=await get('/member_public_profiles?select=id,email',A);
 check('Safe directory projection contains no email field',r.status===400,r);
+
+const feedPath='/rpc/list_community_feed',chatPath='/rpc/list_community_chat';
+const feedBefore=await post(feedPath,A,{result_limit:100});
+check('HTTP Feed uses public-safe author profile for opted-out agent',
+ feedBefore.status===200 && feedBefore.data?.some(row=>
+ row.id==='11000000-0000-4000-8000-000000000001' &&
+ row.author_full_name===null),feedBefore);
+check('HTTP Feed initially attributes opted-in approved author',
+ feedBefore.status===200 && feedBefore.data?.some(row=>
+ row.id==='11000000-0000-4000-8000-000000000002' &&
+ row.author_full_name==='Annabelle'),feedBefore);
+const chatBefore=await post(chatPath,A,{result_limit:200});
+check('HTTP Community Chat does not identify opted-out author',
+ chatBefore.status===200 && chatBefore.data?.some(row=>
+ row.id==='12000000-0000-4000-8000-000000000001' &&
+ row.author_full_name===null),chatBefore);
+r=await post('/rpc/set_my_member_directory_visibility',VISIBLE,{target_visibility:'private'});
+check('Agent can opt their own public directory identity out through scoped RPC',
+ r.status===200&&r.data==='private',r);
+r=await get('/member_public_profiles?select=id&id=eq.'+VISIBLE,A);
+check('Privacy opt-out immediately removes peer from directory over HTTP',
+ r.status===200&&r.data?.length===0,r);
+r=await post(feedPath,A,{result_limit:100});
+check('Privacy opt-out removes attribution from existing Feed posts',
+ r.status===200&&r.data?.some(row=>
+ row.id==='11000000-0000-4000-8000-000000000002' &&
+ row.author_full_name===null),r);
+r=await post(chatPath,A,{result_limit:200});
+check('Privacy opt-out removes attribution from existing Community chat',
+ r.status===200&&r.data?.some(row=>
+ row.id==='12000000-0000-4000-8000-000000000002' &&
+ row.author_full_name===null),r);
+r=await post('/rpc/set_my_member_directory_visibility',PENDING,{target_visibility:'members'});
+check('Unapproved agent cannot change server-authoritative directory visibility',
+ denied(r),r);
+r=await post('/rpc/set_my_member_directory_visibility',VISIBLE,{target_visibility:'outside'});
+check('Directory visibility RPC rejects unsupported values',denied(r),r);
+r=await post('/rpc/set_my_member_directory_visibility',null,{target_visibility:'members'});
+check('Anonymous user cannot alter server directory visibility',denied(r),r);
+r=await post('/rpc/set_my_member_directory_visibility',VISIBLE,{target_visibility:'members'});
+check('Agent can explicitly opt back into the public directory',
+ r.status===200&&r.data==='members',r);
+r=await get('/member_public_profiles?select=id&id=eq.'+VISIBLE,A);
+check('Directory projection restores an opted-in approved member',
+ r.status===200&&r.data?.length===1&&r.data[0].id===VISIBLE,r);
+r=await post(feedPath,A,{result_limit:100});
+check('Feed attribution restored only after the agent opts back in',
+ r.status===200&&r.data?.some(row=>
+ row.id==='11000000-0000-4000-8000-000000000002' &&
+ row.author_full_name==='Annabelle'),r);
+r=await post('/rpc/list_community_feed',PENDING,{result_limit:100});
+check('Unapproved agent cannot read Feed through privileged RPC',
+ r.status===200&&r.data?.length===0,r);
+r=await post('/rpc/list_community_chat',PENDING,{result_limit:200});
+check('Unapproved agent cannot read Community Chat through privileged RPC',
+ r.status===200&&r.data?.length===0,r);
 r=await get('/member_profiles?select=id,email&id=eq.'+A,FOUNDER);
 check('Founder remains authorized to read private profile',
  r.status===200&&r.data?.length===1&&r.data[0].id===A,r);
+
+r=await post('/rpc/set_my_member_directory_visibility',RECIPIENT,{target_visibility:'private'});
+check('Recipient can immediately hide themselves from directory',
+ r.status===200&&r.data==='private',r);
+r=await post('/member_connections',A,{requester_id:A,recipient_id:RECIPIENT,status:'pending'});
+check('New invitations to an opted-out agent are blocked by server policy',
+ denied(r),r);
+r=await post('/rpc/set_my_member_directory_visibility',RECIPIENT,{target_visibility:'members'});
+check('Recipient can resume receiving listed-member invitations',
+ r.status===200&&r.data==='members',r);
 r=await post('/member_connections',A,{requester_id:A,recipient_id:PRIVATE,status:'pending'});
 check('Invitation to directory-hidden peer denied',denied(r),r);
 r=await post('/member_connections',A,{requester_id:A,recipient_id:PENDING,status:'pending'});
@@ -79,6 +145,15 @@ check('Unrelated member cannot accept request',
 r=await post('/rpc/respond_my_member_connection',RECIPIENT,{target_connection_id:connectionId,target_status:'accepted'});
 check('Recipient may accept via narrowly authorized RPC',
  r.status===200&&r.data===true,r);
+
+r=await post('/rpc/respond_my_member_connection',RECIPIENT,{
+ target_connection_id:connectionId,target_status:'declined'
+});
+check('Accepted connection cannot be changed to declined by a replayed RPC',
+ r.status===200&&r.data===false,r);
+r=await post('/rpc/cancel_my_member_connection',A,{target_connection_id:connectionId});
+check('Requester cannot cancel an already accepted connection',
+ r.status===200&&r.data===false,r);
 r=await get(cpath,A);
 check('Sender sees authenticated accepted state',r.status===200&&r.data?.[0]?.status==='accepted',r);
 r=await get(epath('connection.request'),RECIPIENT);
@@ -94,6 +169,25 @@ r=await post('/executive_events',VISIBLE,{member_id:RECIPIENT,actor_id:VISIBLE,e
 check('Browser cannot forge other member notification',denied(r),r);
 r=await post('/rpc/respond_my_member_connection',null,{target_connection_id:connectionId,target_status:'accepted'});
 check('Anonymous cannot invoke privileged member response',denied(r),r);
+
+const cancelId='59000000-0000-4000-8000-000000000002';
+r=await post('/member_connections',A,{
+ id:cancelId,requester_id:A,recipient_id:FOUNDER,status:'pending'
+});
+check('Approved requester creates independent pending invitation',
+ r.status===201&&r.data?.[0]?.id===cancelId,r);
+r=await post('/rpc/cancel_my_member_connection',VISIBLE,{target_connection_id:cancelId});
+check('Unrelated member cannot cancel a pending connection invitation',
+ r.status===200&&r.data===false,r);
+r=await post('/rpc/cancel_my_member_connection',FOUNDER,{target_connection_id:cancelId});
+check('Recipient cannot cancel request that was sent by the requester',
+ r.status===200&&r.data===false,r);
+r=await post('/rpc/cancel_my_member_connection',A,{target_connection_id:cancelId});
+check('Requester may cancel only their own pending invitation',
+ r.status===200&&r.data===true,r);
+r=await get('/member_connections?select=id&id=eq.'+cancelId,A);
+check('Cancelled pending connection does not remain accessible in inbox',
+ r.status===200&&r.data?.length===0,r);
 const invalid=await fetch(BASE+'/member_public_profiles?select=id',{
  headers:{authorization:'Bearer '+jwt(A)+'invalid'},signal:AbortSignal.timeout(8000)
 });
