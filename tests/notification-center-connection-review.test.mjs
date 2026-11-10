@@ -253,6 +253,20 @@ test('Clicking a notification opens its safe destination even if read-state RPC 
   assert.equal(h.recorded.rpcCalls[0].payload.target_event_id,'notification-1');
 });
 
+test('Exactly 100 inbox events do not falsely advertise an older page',async()=>{
+  const events=Array.from({length:100},(_,i)=>({
+    id:'exact-'+i,event_type:'connection.request',title:'Exact '+i,
+    description:'',read_at:null,
+    created_at:new Date(Date.now()-i*1000).toISOString(),
+    payload:{action_url:'/member-directory/'}
+  }));
+  const h=await run({events});
+  assert.equal(h.nodes.notificationLoadMore.hidden,true);
+  assert.equal(h.nodes.notificationUnread.textContent,100);
+  assert.doesNotMatch(h.nodes.notificationPageInfo.textContent,/more available/);
+  assert.equal(h.recorded.readCount,1);
+});
+
 test('Unread badge and health counts include alerts beyond the first 100',async()=>{
   const events=Array.from({length:205},(_,i)=>({
     id:'event-'+i,event_type:i<160?'connection.request':'call.missed',
