@@ -70,7 +70,8 @@
  };
  const render=()=>{const shown=events.filter(e=>filter==='all'||category(e)===filter); list.innerHTML=shown.length?shown.map(e=>`<a class="notification-item notification-${category(e)} ${e.event_type==='call.missed'?'notification-missed ':''}${e.read_at?'':'unread'}" data-event-id="${esc(e.id)}" href="${esc(safeActionUrl(e.payload?.action_url||'/member-dashboard/'))}"><span class="notification-item-icon">${icon(e)}</span><div><strong>${esc(e.title)}</strong><p>${esc(e.description||'')}</p><small>${new Date(e.created_at).toLocaleString()}</small></div>${e.read_at?'':'<b>New</b>'}</a>`).join(''):'<div class="member-empty-state"><h2>All clear.</h2><p>No matching alerts in the loaded results. Load earlier notifications if available.</p></div>'; const unread=events.filter(e=>!e.read_at).length;
    const missed=events.filter(e=>e.event_type==='call.missed').length;
-   const today=events.filter(e=>Date.now()-new Date(e.created_at)<86400000).length;
+   const today=events.filter(e=>
+     new Date(e.created_at).getTime()>=new Date().setHours(0,0,0,0)).length;
    const display=(total,minimum)=>total===null?(hasMore?'≥'+minimum:minimum):total;
    document.getElementById('notificationUnread').textContent=display(stats.unread,unread);
    document.getElementById('notificationMissed').textContent=display(stats.missed,missed);
@@ -99,7 +100,8 @@
    const results=await Promise.allSettled([
      countQuery(q=>q.is('read_at',null)),
      countQuery(q=>q.eq('event_type','call.missed')),
-     countQuery(q=>q.gte('created_at',new Date(Date.now()-86400000).toISOString()))
+     countQuery(q=>q.gte('created_at',
+       new Date(new Date().setHours(0,0,0,0)).toISOString()))
    ]);
    if(version!==loadVersion)return;
    const countAt=i=>results[i].status==='fulfilled'
