@@ -17,7 +17,7 @@ const element=()=>({
 });
 
 async function run({approved='approved',authFails=false,readFails=false,markFails=false,
-  mediaFails=false,events=null}={}){
+  mediaFails=false,engineMissing=false,events=null}={}){
   const ids=['notificationGate','notificationApp','notificationList',
     'notificationUnread','notificationMissed','notificationToday',
     'markAllNotifications','enableNotifications','notificationActionStatus'];
@@ -61,14 +61,15 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
     setBadge:value=>recorded.badge.push(value),
     safeActionUrl:value=>String(value||'/notifications/')
   };
-  const window={DSAuth:{ready:true,init:async()=>authFails&&false?null:client},
-    CommunicationEngine:communication};
+  const window={DSAuth:{ready:true,init:async()=>client},
+    location:{origin:'https://dominionstar.example'}};
+  if(!engineMissing)window.CommunicationEngine=communication;
   const document={
     getElementById:id=>nodes[id]||null,
     querySelectorAll:()=>[]
   };
   const ctx={window,document,location:recorded.location,
-    console:{warn(){}},Promise,Date,Error};
+    console:{warn(){}},Promise,Date,Error,URL};
   vm.runInNewContext(source,ctx,{filename:'notifications-center.js'});
   await flush();
   return {nodes,recorded};
@@ -92,6 +93,23 @@ test('Audio/Push initialization failure never conceals the in-app inbox',async()
   assert.ok(h.recorded.tables.includes('executive_events'));
   assert.match(h.nodes.notificationList.innerHTML,/New connection request/);
   assert.equal(h.recorded.badge.at(-1),1);
+});
+
+test('A missing sound engine does not break safe internal notification links',async()=>{
+  const h=await run({engineMissing:true});
+  assert.match(h.nodes.notificationList.innerHTML,/href="\/member-directory\/"/);
+  assert.match(h.nodes.notificationList.innerHTML,/New connection request/);
+});
+
+test('External notification URLs cannot become cross-origin links without audio engine',async()=>{
+  const h=await run({engineMissing:true,events:[{
+    id:'unsafe-1',event_type:'connection.request',title:'Connection event',
+    description:'Unsafe synthetic URL must be rejected',read_at:null,
+    created_at:'2026-11-09T19:00:00Z',
+    payload:{action_url:'https://untrusted.example/redirect'}
+  }]});
+  assert.match(h.nodes.notificationList.innerHTML,/href="\/notifications\/"/);
+  assert.doesNotMatch(h.nodes.notificationList.innerHTML,/href="https:\/\/untrusted/);
 });
 
 test('Mark-all failure is shown and does not fabricate a read count',async()=>{
