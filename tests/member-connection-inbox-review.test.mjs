@@ -52,7 +52,8 @@ const element=()=>{
 async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=false,
   approvalError=false,insertBehavior='normal'}={}){
   const roster=[member(self,'Self Member'),...(hidden?[]:[member(peer)])];
-  const state={rows:rows.map(x=>({...x})),rpcCalls:[],inserts:[],tables:[],failRead};
+  const state={rows:rows.map(x=>({...x})),rpcCalls:[],inserts:[],tables:[],failRead,
+    deferRead:false,pendingReads:[]};
   const nodes=Object.fromEntries([
     'directoryGate','directoryApp','directoryGrid',
     'directorySearch','directoryRank','directoryConnectionPanel',
@@ -82,8 +83,11 @@ async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=fals
           ?{data:null,error:{message:'Approval lookup unavailable'}}
           :{data:{verification_status:'approved'},error:null},
         order:async()=>({data:table==='member_public_profiles'?roster:[],error:null}),
-        or:async()=>state.failRead?{data:null,error:{message:'SELECT denied'}}:
-          {data:state.rows,error:null},
+        or:async()=>{
+          if(state.deferRead)return new Promise(resolve=>state.pendingReads.push(resolve));
+          return state.failRead?{data:null,error:{message:'SELECT denied'}}:
+            {data:state.rows,error:null};
+        },
         insert:async payload=>{
           state.inserts.push(payload);
           if(['reciprocal','collision-unreadable'].includes(insertBehavior)){
@@ -277,6 +281,40 @@ test('Unconfirmed insert and unavailable SELECT do not enable a second write',as
   await h.cardButton().click();
   await flush();
   assert.equal(h.cardButton().dataset.action,'request');
+});
+
+test('Manual Refresh requests clears unknown state after an authoritative empty SELECT',async()=>{
+  const h=await mount({insertBehavior:'network-unknown'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.cardButton().dataset.action,'refresh');
+  h.state.failRead=false;
+  await h.refresh(); // Toolbar refresh must recover, not just the card button.
+  assert.match(h.grid(),/>Connect<\/button>/);
+  assert.equal(h.cardButton().dataset.action,'request');
+  assert.equal(h.state.inserts.length,1,'Refreshing must not send another invitation');
+});
+
+test('An older delayed connection refresh cannot overwrite a newer accepted relationship',async()=>{
+  const h=await mount();
+  assert.equal(h.cardButton().dataset.action,'request');
+  h.state.deferRead=true;
+  h.nodes.directoryConnectionsRefresh.handlers.click();
+  await flush();
+  h.nodes.directoryConnectionsRefresh.handlers.click();
+  await flush();
+  assert.equal(h.state.pendingReads.length,2);
+  const older=h.state.pendingReads[0];
+  const newer=h.state.pendingReads[1];
+  const accepted={id:conn,requester_id:self,recipient_id:peer,status:'accepted'};
+  const stale={...accepted,status:'pending'};
+  newer({data:[accepted],error:null});
+  await flush();
+  assert.match(h.grid(),/Connected/);
+  older({data:[stale],error:null});
+  await flush();
+  assert.match(h.grid(),/Connected/);
+  assert.doesNotMatch(h.grid(),/Cancel request/);
 });
 
 test('Failed membership verification is not mislabeled as Founder denial',async()=>{
