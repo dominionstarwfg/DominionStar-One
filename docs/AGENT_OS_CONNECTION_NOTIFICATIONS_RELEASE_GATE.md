@@ -80,6 +80,37 @@ These are browser resilience changes; they do **not** activate connection
 notifications, web push, email alerts, member directory V2, or Supabase
 migrations. The active production project remains unchanged.
 
+## 2026-11-10 Longer notification histories and accurate inbox totals
+
+The old Notifications view used a single `limit(100)` query as its complete
+history. It silently hid older notices and incorrectly used those 100 rows
+as the **total unread**, **missed-call** and **Today** counters, including
+the global badge. This would understate work for busy agents.
+
+In the review branch:
+- The page shows the latest **100** notices with a dedicated **Load earlier
+  notifications** action. A **101st-row lookahead** prevents a false
+  "more available" button for exactly 100 records; subsequent pages are
+  similarly checked. The next page is appended without duplicate IDs.
+- The owner-only Supabase query obtains independent `count:'exact'`,
+  `head:true` totals for unread, missed calls, and the **viewer-local
+  calendar day**. Each query filters `member_id=session.user.id`; RLS
+  remains required server-side. No private peer profile fields are used.
+- If the count endpoint fails, the side panel shows **≥N** for any partially
+  loaded group while older pages remain, rather than falsely asserting
+  an exact total. The global badge uses a verified count when available.
+- Failed older-page reads preserve the loaded list and keep Load earlier
+  retryable. Realtime refresh replaces the first page; version checks
+  prevent stale count/read responses from overwriting newer data.
+- Filters operate on **loaded pages**; the no-matches message explicitly
+  identifies its limited scope rather than asserting that the full history
+  contains no matching notices.
+
+`tests/notification-center-connection-review.test.mjs` now includes
+205-event paging, exact 100-event boundary, incomplete counts, older-page
+errors and local-midnight semantics. This is an unmerged frontend change,
+not a live activation or verification of real Supabase credentials.
+
 ## Release dependencies — ALL required
 
 - [ ] Isolated Supabase Auth + PostgREST staging environment available, with
