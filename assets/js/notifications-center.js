@@ -114,7 +114,7 @@
  const load=async()=>{
    const version=++loadVersion;
    try{
-     const r=await bounded(client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(PAGE_SIZE+1),12000);
+     const r=await bounded(client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(PAGE_SIZE+1),12000);
      if(r.error)throw r.error;
      if(version!==loadVersion)return false;
      // Fetch one extra row: exactly 100 notifications is NOT proof there
@@ -142,7 +142,7 @@
      const offset=events.length;
      const r=await bounded(client.from('executive_events')
        .select('*').eq('member_id',session.user.id)
-       .order('created_at',{ascending:false})
+       .order('created_at',{ascending:false}).order('id',{ascending:false})
        .range(offset,offset+PAGE_SIZE),12000);
      if(r.error)throw r.error;
      if(version!==loadVersion)return; // Realtime fresh-page load superseded this.
