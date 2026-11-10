@@ -17,8 +17,8 @@ BEGIN
   -- instead of silently choosing which existing member record to destroy.
   IF EXISTS (
     SELECT 1 FROM public.member_connections
-    GROUP BY pg_catalog.least(requester_id,recipient_id),
-             pg_catalog.greatest(requester_id,recipient_id)
+    GROUP BY LEAST(requester_id,recipient_id),
+             GREATEST(requester_id,recipient_id)
     HAVING count(*)>1
   ) THEN RAISE EXCEPTION
     'Existing reciprocal/duplicate connection pairs require explicit reconciliation';
@@ -31,8 +31,8 @@ $preflight$;
 -- Keep existing directional UNIQUE for compatibility; this index adds safety.
 CREATE UNIQUE INDEX member_connections_unordered_pair_once_idx
   ON public.member_connections (
-    (pg_catalog.least(requester_id,recipient_id)),
-    (pg_catalog.greatest(requester_id,recipient_id))
+    (LEAST(requester_id,recipient_id)),
+    (GREATEST(requester_id,recipient_id))
   );
 
 -- Only approved members can invite another approved, directory-visible member.
