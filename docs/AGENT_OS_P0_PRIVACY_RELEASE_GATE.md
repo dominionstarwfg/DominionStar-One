@@ -37,6 +37,25 @@ decline, cancel, denied SELECT/RPC, hidden members and disabled feature flag;
 `tests/agent-directory-interaction-repair.test.mjs` for initial pending-only
 requests and retry behavior. These are part of the P0 review CI.
 
+**Reciprocal race and ambiguous network writes (2026-11-09 follow-on):**
+The Members directory now interprets PostgreSQL `23505` conflicts as
+potential reverse requests rather than declaring an unchangeable
+"Connection exists" status. It re-reads only the signed-in agent's RLS-scoped
+rows to show **Review request**, **Cancel request**, or **Connected** as
+appropriate. When an insert times out or the follow-up SELECT fails, the
+card offers **Verify status** instead of allowing a blind second INSERT.
+The Verify status action remains available even with `connectionsReady=false`;
+the toolbar's **Refresh requests** also clears stale uncertainty once a
+successful database read confirms no relationship. A generation counter
+rejects older out-of-order SELECT results, so an old pending snapshot cannot
+overwrite an accepted relationship. An owner approval lookup error is shown
+as "Unable to verify" rather than an erroneous Founder denial.
+
+The above are **client reliability rules**, not RLS authorization.
+`tests/member-connection-inbox-review.test.mjs` exercises reciprocal
+collisions, a committed insert with a lost response, unknown outcome,
+manual recovery, stale response ordering and approval-read errors.
+
 **Not live:** The safe-profile flag is still OFF; a staging database with
 the projection preparation and connection-integrity RPC migration must be
 available before these controls can be used. Verify real Auth + RLS with two
