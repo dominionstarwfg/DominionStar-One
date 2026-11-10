@@ -1,12 +1,21 @@
 (async()=>{
  const gate=document.getElementById('notificationGate'),app=document.getElementById('notificationApp'),list=document.getElementById('notificationList');
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+ // A stalled Auth, database, realtime, or read-state call must not leave the
+ // executive inbox frozen. The original promise is observed even if late.
+ const bounded=(operation,ms=10000)=>new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>reject(new Error('The notification request timed out.')),ms);
+   Promise.resolve(operation).then(
+     value=>{clearTimeout(timer);resolve(value);},
+     error=>{clearTimeout(timer);reject(error);}
+   );
+ });
  if(!window.DSAuth?.ready){gate.innerHTML='<h1>Authentication unavailable.</h1>';return}
  let client,session;
  try {
-   client=await window.DSAuth.init();
+   client=await bounded(window.DSAuth.init());
    if(!client)throw new Error('Authentication service unavailable');
-   const auth=await client.auth.getSession();
+   const auth=await bounded(client.auth.getSession());
    if(auth.error)throw auth.error;
    session=auth.data?.session||null;
  }catch(_error){
@@ -15,8 +24,8 @@
  }
  if(!session){location.href='/member-login/';return}
  try{
-   const approval=await client.from('member_profiles').select('verification_status')
-     .eq('id',session.user.id).maybeSingle();
+   const approval=await bounded(client.from('member_profiles').select('verification_status')
+     .eq('id',session.user.id).maybeSingle());
    if(approval.error)throw approval.error;
    if(approval.data?.verification_status!=='approved'){
      gate.innerHTML='<h1>Founder approval required</h1><p>Executive notifications become available after your agent account is approved.</p>';
@@ -28,7 +37,7 @@
  }
  // Sound/toast service is best-effort. Inbox rendering and read state must
  // remain usable if browser media, push registration, or audio is unavailable.
- try{await window.CommunicationEngine?.init?.({client,session});}
+ try{await bounded(window.CommunicationEngine?.init?.({client,session}),3000);}
  catch(_error){console.warn('Notification sound initialization unavailable.');}
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');
  let events=[],filter='all';
@@ -62,7 +71,7 @@
  const load=async()=>{
    const version=++loadVersion;
    try{
-     const r=await client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(100);
+     const r=await bounded(client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(100),12000);
      if(r.error)throw r.error;
      if(version!==loadVersion)return false;
      events=r.data||[];
@@ -82,7 +91,7 @@
    markAll.disabled=true;
    setStatus('Marking notifications read…');
    try{
-     const result=await client.rpc('mark_my_executive_notifications_read',{target_event_id:null});
+     const result=await bounded(client.rpc('mark_my_executive_notifications_read',{target_event_id:null}),8000);
      if(result.error)throw result.error;
      const confirmed=await load();
      setStatus(confirmed
@@ -100,9 +109,9 @@
    // Opening a notification must continue to work even if the read-state
    // migration is unavailable. Never falsely update the unread counter.
    try{
-     const result=await client.rpc('mark_my_executive_notifications_read',{
+     const result=await bounded(client.rpc('mark_my_executive_notifications_read',{
        target_event_id:item.dataset.eventId
-     });
+     }),2500);
      if(result.error)throw result.error;
    }catch(_error){
      setStatus('Notification could not be marked read; opening its destination.');
@@ -110,5 +119,15 @@
    location.href=destination;
  });
  const sound=document.getElementById('notificationSoundSetting'),browser=document.getElementById('notificationBrowserSetting');if(sound&&browser){sound.closest('.member-panel').innerHTML='<p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage sound, browser, email, message, and meeting alerts in one place.</p><a class="btn btn-outline" href="/account-settings/#notifications">Open Settings</a>'}document.getElementById('enableNotifications').onclick=()=>location.href='/account-settings/#notifications';
- client.channel(`notification-center-${session.user.id}`).on('postgres_changes',{event:'*',schema:'public',table:'executive_events',filter:`member_id=eq.${session.user.id}`},load).subscribe();await load();
+ // Realtime is an enhancement, not a prerequisite for an initial inbox.
+ // Database RLS remains the authority for every displayed event.
+ try{
+   client.channel(`notification-center-${session.user.id}`)
+     .on('postgres_changes',{
+       event:'*',schema:'public',table:'executive_events',
+       filter:`member_id=eq.${session.user.id}`
+     },()=>void load())
+     .subscribe();
+ }catch(_error){console.warn('Notification live refresh unavailable.');}
+ await load();
 })();
