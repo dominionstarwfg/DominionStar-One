@@ -71,7 +71,7 @@ test('Cross-member Community links use signed-in recipient personal inbox and di
   assert.match(page,/data-filter="community"/);
   assert.match(page,/>Community<\/span>/);
   assert.match(notifications,/\.eq\('member_id',session\.user\.id\)/);
-  assert.match(notifications,/CommunicationEngine\.safeActionUrl/);
+  assert.match(notifications,/CommunicationEngine\?\.safeActionUrl/);
 });
 
 test('Optional priority email verifies real Community source and preserves opt-in',()=>{
