@@ -23,8 +23,19 @@
     return;
   }
   if(!session){location.href='/member-login/';return;}
-  const own=await client.from('member_profiles').select('verification_status').eq('id',session.user.id).single();
-  if(own.error||own.data?.verification_status!=='approved'){gate.innerHTML='<h1>Founder approval is required.</h1>';return;}
+  let own;
+  try{
+    own=await client.from('member_profiles')
+      .select('verification_status').eq('id',session.user.id).single();
+    if(own.error)throw own.error;
+  }catch(_error){
+    // A failed network/RLS read cannot be treated as a confirmed denial.
+    gate.innerHTML='<h1>Unable to verify your membership</h1><p>Check your connection and refresh before opening Members.</p>';
+    return;
+  }
+  if(own.data?.verification_status!=='approved'){
+    gate.innerHTML='<h1>Founder approval is required.</h1>';return;
+  }
   if(!publicDirectoryV2){
     gate.innerHTML='<h1>Member Directory temporarily unavailable</h1><p>Privacy-protected member listings require the approved directory release.</p><a class="btn btn-outline" href="/member-dashboard/">Return to Dashboard</a>';
     return;
@@ -118,24 +129,31 @@
         button.dataset.id,button.dataset.connectionResponse)));
   }
 
+  let connectionLoadVersion=0;
   async function loadConnections(){
+    const version=++connectionLoadVersion;
     try{
       const id=session.user.id;
       const result=await timeout(client.from('member_connections')
         .select('id,requester_id,recipient_id,status,created_at')
         .or('requester_id.eq.'+id+',recipient_id.eq.'+id),12000);
+      // Ignore responses from earlier refreshes; they must not replace a
+      // newer accepted, cancelled, or newly received connection snapshot.
+      if(version!==connectionLoadVersion)return false;
       if(result.error)throw result.error;
       connections=(result.data||[]).filter(row=>
         row.requester_id===id||row.recipient_id===id);
       connectionsReady=true;
       connectionIssue='';
     }catch(_error){
+      if(version!==connectionLoadVersion)return false;
       // Unknown connection state must not enable a duplicate invitation.
       connectionsReady=false;
       connectionIssue='Connections could not be verified. Refresh requests to try again.';
     }
     renderRequests();
     render();
+    return connectionsReady;
   }
 
   async function transitionConnection(id,action){
@@ -203,6 +221,7 @@
         :locally;
       const connectLabel=connectState==='loading'?'Checking…'
         :connectState==='sending'?'Sending…'
+        :connectState==='unknown'?'Verify status'
         :connectState==='sent'?'Requested'
         :connectState==='exists'?'Connection exists'
         :connectState==='accepted'?'Connected'
@@ -211,7 +230,8 @@
         :connectState==='outgoing'?'Cancel request'
         :connectState==='failed'?'Retry Connect':'Connect';
       const connectAction=connectState==='outgoing'?'cancel'
-        :connectState==='incoming'?'review':'request';
+        :connectState==='incoming'?'review'
+        :connectState==='unknown'?'refresh':'request';
       const connectDisabled=['loading','sending','sent','exists','accepted','unavailable']
         .includes(connectState)||(
           connectAction==='cancel'&&connectionBusy.has(relation?.id));
@@ -236,6 +256,14 @@
         connectionPanel?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
         return;
       }
+      if(b.dataset.action==='refresh'){
+        const refreshed=await loadConnections();
+        if(refreshed){
+          connectStates.delete(recipient);
+          render();
+        }
+        return;
+      }
       if(b.dataset.action==='cancel'){
         void transitionConnection(b.dataset.connectionId,'cancel');
         return;
@@ -245,15 +273,39 @@
       render();
       try{
         // Only a pending invitation is permitted by the hardened INSERT policy.
+        // A 23505 may mean the *other* agent sent a reciprocal request.
+        // Never label that collision "Connection exists" indefinitely.
         const r=await timeout(client.from('member_connections').insert({
           requester_id:session.user.id,recipient_id:recipient,status:'pending'
         }),12000);
         if(r.error&&r.error.code!=='23505')throw r.error;
-        connectStates.set(recipient,r.error?'exists':'sent');
-        await loadConnections();
+        const verified=await loadConnections();
+        if(!verified){
+          // A successful insert or duplicate-key response is not proof the
+          // client can currently read the relationship. Block blind retries.
+          connectStates.set(recipient,'unknown');
+          connectionIssue='Connection status could not be verified. Select Verify status or Refresh requests.';
+        }else if(relationshipFor(recipient)){
+          connectStates.delete(recipient); // Incoming/outgoing/accepted comes from RLS SELECT.
+        }else if(r.error){
+          connectStates.set(recipient,'unknown');
+          connectionIssue='An invitation may already exist. Refresh requests to confirm before retrying.';
+        }else{
+          // Acknowledged insert; the server snapshot may lag briefly.
+          connectStates.set(recipient,'sent');
+        }
       }catch(_error){
-        connectStates.set(recipient,'failed');
+        // A timed-out insert may have committed. Refresh before permitting
+        // another request; otherwise a retry can spam or collide.
+        const verified=await loadConnections();
+        if(!verified){
+          connectStates.set(recipient,'unknown');
+          connectionIssue='Request outcome is uncertain. Verify status before sending again.';
+        }else{
+          connectStates.set(recipient,relationshipFor(recipient)?'idle':'failed');
+        }
       }
+      renderRequests();
       render();
     }));
     // Ignore responses from a previous search, rank filter or presence refresh.
