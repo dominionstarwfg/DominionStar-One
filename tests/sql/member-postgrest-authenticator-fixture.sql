@@ -20,9 +20,9 @@ GRANT USAGE ON SCHEMA public TO ds_http_authenticator;
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
 LANGUAGE sql STABLE
 AS $func$
- SELECT pg_catalog.coalesce(
-   pg_catalog.nullif(pg_catalog.current_setting('request.jwt.claim.sub',true),''),
-   pg_catalog.nullif(pg_catalog.current_setting('request.jwt.claims',true),'')::jsonb->>'sub'
+ SELECT coalesce(
+   nullif(pg_catalog.current_setting('request.jwt.claim.sub',true),''),
+   nullif(pg_catalog.current_setting('request.jwt.claims',true),'')::jsonb->>'sub'
  )::uuid;
 $func$;
 
