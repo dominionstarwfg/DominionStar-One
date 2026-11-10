@@ -12,6 +12,15 @@ SELECT policy, but its existing browser UPDATE policy is still too broad.
 The candidate migration `member-connection-integrity.DO-NOT-RUN.review.sql`
 continues to be the server-side authority; it has **not** been deployed.
 
+**Reciprocal invitation integrity:** The existing database uniqueness constraint
+only compares `requester_id,recipient_id` in that order, allowing A→B and B→A
+rows to coexist. The review-only migration now adds an unordered pair index
+based on `LEAST/GREATEST`, with a preflight that **stops** rather than
+silently destroying or merging any older reciprocal duplicates. Disposable
+PostgreSQL tests assert that an approved member cannot create a reverse
+request while an existing connection is present. An authorized staging review
+must decide how any pre-existing duplicate pairs are reconciled before cutover.
+
 Review-branch `member-directory.js` now displays a compact request inbox,
 reads only rows involving the signed-in member, differentiates outgoing
 pending / incoming pending / accepted / declined relationships, and uses the
