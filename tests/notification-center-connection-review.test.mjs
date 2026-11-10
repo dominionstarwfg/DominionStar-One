@@ -17,11 +17,26 @@ const element=()=>({
 });
 
 async function run({approved='approved',authFails=false,readFails=false,markFails=false,
-  mediaFails=false,engineMissing=false,readAfterMarkFails=false,events=null}={}){
+  mediaFails=false,mediaHangs=false,engineMissing=false,readAfterMarkFails=false,
+  markHangs=false,readHangs=false,realtimeFails=false,events=null}={}){
   const ids=['notificationGate','notificationApp','notificationList',
     'notificationUnread','notificationMissed','notificationToday',
     'markAllNotifications','enableNotifications','notificationActionStatus'];
   const nodes=Object.fromEntries(ids.map(id=>[id,element()]));
+  const scheduled=[];
+  const timer=(fn,ms)=>{
+    const job={fn,ms,active:true};
+    scheduled.push(job);
+    return job;
+  };
+  const clearTimer=job=>{job.active=false;};
+  const expire=async()=>{
+    for(const job of scheduled.filter(x=>x.active)){
+      job.active=false;
+      job.fn();
+    }
+    await flush();
+  };
   const recorded={tables:[],rpcCalls:[],badge:[],location:{href:''},readCount:0,
     events:events??[{
       id:'notification-1',event_type:'connection.request',title:'New connection request',
@@ -39,6 +54,7 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
         maybeSingle:async()=>({data:{verification_status:approved},error:null}),
         limit:async()=>{
           recorded.readCount++;
+          if(readHangs)return new Promise(()=>{});
           return readFails||(readAfterMarkFails&&recorded.rpcCalls.length>0)
             ?{data:null,error:{message:'Cannot load inbox'}}
             :{data:recorded.events,error:null};
@@ -49,15 +65,22 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
     rpc:async(name,payload)=>{
       recorded.rpcCalls.push({name,payload});
       if(markFails)return {data:null,error:{message:'Mark read denied'}};
+      if(markHangs)return new Promise(()=>{});
       recorded.events=recorded.events.map(event=>({
         ...event,read_at:new Date('2026-11-09T20:00:00Z').toISOString()
       }));
       return {data:1,error:null};
     },
-    channel:()=>({on(){return this},subscribe(){return this}})
+    channel:()=>{
+      if(realtimeFails)throw new Error('Realtime unavailable');
+      return {on(){return this},subscribe(){return this}};
+    }
   };
   const communication={
-    init:async()=>{if(mediaFails)throw new Error('Audio unavailable')},
+    init:async()=>{
+      if(mediaFails)throw new Error('Audio unavailable');
+      if(mediaHangs)return new Promise(()=>{});
+    },
     setBadge:value=>recorded.badge.push(value),
     safeActionUrl:value=>String(value||'/notifications/')
   };
@@ -69,10 +92,11 @@ async function run({approved='approved',authFails=false,readFails=false,markFail
     querySelectorAll:()=>[]
   };
   const ctx={window,document,location:recorded.location,
-    console:{warn(){}},Promise,Date,Error,URL};
+    console:{warn(){}},Promise,Date,Error,URL,
+    setTimeout:timer,clearTimeout:clearTimer};
   vm.runInNewContext(source,ctx,{filename:'notifications-center.js'});
   await flush();
-  return {nodes,recorded};
+  return {nodes,recorded,expire};
 }
 
 test('Notifications is gated by Founder-approved agent membership',async()=>{
@@ -110,6 +134,53 @@ test('External notification URLs cannot become cross-origin links without audio 
   }]});
   assert.match(h.nodes.notificationList.innerHTML,/href="\/notifications\/"/);
   assert.doesNotMatch(h.nodes.notificationList.innerHTML,/href="https:\/\/untrusted/);
+});
+
+test('A stalled in-app inbox query yields a retryable error after a bounded wait',async()=>{
+  const h=await run({readHangs:true});
+  assert.match(h.nodes.notificationList.innerHTML,/Loading|^$/);
+  await h.expire();
+  assert.match(h.nodes.notificationList.innerHTML,/Inbox unavailable/);
+  assert.match(h.nodes.notificationList.innerHTML,/notificationRetry/);
+});
+
+test('Realtime subscription failure cannot block the initial notification list',async()=>{
+  const h=await run({realtimeFails:true});
+  assert.match(h.nodes.notificationList.innerHTML,/New connection request/);
+  assert.equal(h.nodes.notificationUnread.textContent,1);
+});
+
+test('Stalled mark-all RPC re-enables its button and reports failure',async()=>{
+  const h=await run({markHangs:true});
+  const pending=h.nodes.markAllNotifications.onclick();
+  await flush();
+  assert.equal(h.nodes.markAllNotifications.disabled,true);
+  await h.expire();
+  await pending;
+  assert.equal(h.nodes.markAllNotifications.disabled,false);
+  assert.equal(h.nodes.notificationUnread.textContent,1);
+  assert.match(h.nodes.notificationActionStatus.textContent,
+    /Unable to mark notifications read/);
+});
+
+test('Opening a notification cannot hang behind a stalled mark-read RPC',async()=>{
+  const h=await run({markHangs:true});
+  const item={dataset:{eventId:'notification-1'},href:'/member-directory/'};
+  const pending=h.nodes.notificationList.handlers.click({
+    target:{closest:()=>item},preventDefault(){}
+  });
+  await flush();
+  assert.equal(h.recorded.location.href,'');
+  await h.expire();
+  await pending;
+  assert.equal(h.recorded.location.href,'/member-directory/');
+});
+
+test('Stalled audio setup does not leave the notification inbox on its loading gate',async()=>{
+  const h=await run({mediaHangs:true});
+  assert.ok(!h.recorded.tables.includes('executive_events'));
+  await h.expire();
+  assert.match(h.nodes.notificationList.innerHTML,/New connection request/);
 });
 
 test('Mark-all failure is shown and does not fabricate a read count',async()=>{
