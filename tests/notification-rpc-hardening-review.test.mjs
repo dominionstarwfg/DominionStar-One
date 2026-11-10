@@ -56,13 +56,13 @@ test('Proposed Community email function prevents impersonation and arbitrary-bod
   assert.doesNotMatch(hardening,/GRANT EXECUTE ON FUNCTION public\.queue_community_email_notifications.*authenticated/s);
 });
 
-test('Both older Community email RPCs are server-only in the staged permissions',()=>{
+test('Frozen legacy grant is separately revoked in the ordered email cutover',()=>{
   assert.match(hardening,/queue_community_message_email/);
   assert.match(hardening,/GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role/);
   assert.match(hardening,/queue_community_email_notifications/);
   assert.match(hardening,/GRANT EXECUTE ON FUNCTION %s TO service_role/);
   assert.match(hardening,/has_function_privilege\('authenticated',old_community_oid,'EXECUTE'\)/);
-  assert.match(hardening,/OR has_function_privilege\('authenticated',new_community_oid,'EXECUTE'\)/);
+  assert.match(hardening,/OR NOT has_function_privilege\('authenticated',new_community_oid,'EXECUTE'\)/);
   assert.match(retired,/REVOKE EXECUTE ON FUNCTION public\.queue_community_message_email\(uuid\)/);
   assert.match(retired,/FROM PUBLIC, anon, authenticated/);
 });
