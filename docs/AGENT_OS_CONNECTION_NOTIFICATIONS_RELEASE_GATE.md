@@ -55,6 +55,31 @@ subscription is touched by this review change.
   approval, failed session, optional audio failures, read-state success and
   failure, and same-origin link fallback.
 
+## 2026-11-10 Notification inbox network resilience (review branch only)
+
+The previously approved notification UI could wait forever for:
+- a missing Auth response or approval query before showing the inbox,
+- a stalled `executive_events` fetch (no retry appeared),
+- `mark_my_executive_notifications_read` (Mark all stayed disabled), or
+- a per-event read-state RPC (the link to Members or Messages never opened).
+
+`assets/js/notifications-center.js` now bounds startup and database reads,
+treats sound initialization and realtime registration as best-effort, returns
+a retryable error when an inbox read times out, re-enables Mark all after a
+bounded RPC, and opens the verified same-origin notification destination
+after a short read-state timeout. A timed-out write is reported as an
+**unconfirmed** operation, not as proof that a server update failed. The UI
+does not invent new read counts.
+
+`tests/notification-center-connection-review.test.mjs` includes
+synthetic permanently-pending fetch/RPC/media promises and a failing
+realtime channel, in addition to the original approval, RLS-consumer,
+rendering, and cross-origin navigation tests.
+
+These are browser resilience changes; they do **not** activate connection
+notifications, web push, email alerts, member directory V2, or Supabase
+migrations. The active production project remains unchanged.
+
 ## Release dependencies — ALL required
 
 - [ ] Isolated Supabase Auth + PostgREST staging environment available, with
