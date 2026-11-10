@@ -40,7 +40,11 @@
  try{await bounded(window.CommunicationEngine?.init?.({client,session}),3000);}
  catch(_error){console.warn('Notification sound initialization unavailable.');}
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');
- let events=[],filter='all';
+ const PAGE_SIZE=100;
+ let events=[],filter='all',hasMore=false,loadingOlder=false;
+ let stats={unread:null,missed:null,today:null};
+ const more=document.getElementById('notificationLoadMore');
+ const pageInfo=document.getElementById('notificationPageInfo');
  const category=e=>e.event_type?.startsWith('connection.')?'connections':e.event_type?.startsWith('call.')?'calls':e.event_type?.startsWith('message.')?'communications':e.event_type?.startsWith('community.')?'community':(e.event_type?.startsWith('meeting.')||e.event_type?.startsWith('appointment.'))?'meetings':e.event_type?.startsWith('journey.')?'journey':e.event_type?.startsWith('recognition.')?'recognition':'communications';
  const notificationPaths={
   calls:'<path d="M6.6 2.5 9 7.2 6.9 9.3c1.1 2.3 2.9 4.1 5.2 5.2l2.1-2.1 4.7 2.4c.4.2.6.6.5 1-.4 2.4-2.5 4.2-5 4.2C8.6 20 4 15.4 4 9.6c0-2.5 1.8-4.6 4.2-5 .4-.1.8.1 1 .5Z"/>',
@@ -64,10 +68,47 @@
      return url.pathname+url.search+url.hash;
    }catch{return '/notifications/'}
  };
- const render=()=>{const shown=events.filter(e=>filter==='all'||category(e)===filter); list.innerHTML=shown.length?shown.map(e=>`<a class="notification-item notification-${category(e)} ${e.event_type==='call.missed'?'notification-missed ':''}${e.read_at?'':'unread'}" data-event-id="${esc(e.id)}" href="${esc(safeActionUrl(e.payload?.action_url||'/member-dashboard/'))}"><span class="notification-item-icon">${icon(e)}</span><div><strong>${esc(e.title)}</strong><p>${esc(e.description||'')}</p><small>${new Date(e.created_at).toLocaleString()}</small></div>${e.read_at?'':'<b>New</b>'}</a>`).join(''):'<div class="member-empty-state"><h2>All clear.</h2><p>No notifications in this category.</p></div>'; const unread=events.filter(e=>!e.read_at).length;document.getElementById('notificationUnread').textContent=unread;document.getElementById('notificationMissed').textContent=events.filter(e=>e.event_type==='call.missed').length;document.getElementById('notificationToday').textContent=events.filter(e=>Date.now()-new Date(e.created_at)<86400000).length;window.CommunicationEngine?.setBadge?.(unread)};
+ const render=()=>{const shown=events.filter(e=>filter==='all'||category(e)===filter); list.innerHTML=shown.length?shown.map(e=>`<a class="notification-item notification-${category(e)} ${e.event_type==='call.missed'?'notification-missed ':''}${e.read_at?'':'unread'}" data-event-id="${esc(e.id)}" href="${esc(safeActionUrl(e.payload?.action_url||'/member-dashboard/'))}"><span class="notification-item-icon">${icon(e)}</span><div><strong>${esc(e.title)}</strong><p>${esc(e.description||'')}</p><small>${new Date(e.created_at).toLocaleString()}</small></div>${e.read_at?'':'<b>New</b>'}</a>`).join(''):'<div class="member-empty-state"><h2>All clear.</h2><p>No matching alerts in the loaded results. Load earlier notifications if available.</p></div>'; const unread=events.filter(e=>!e.read_at).length;
+   const missed=events.filter(e=>e.event_type==='call.missed').length;
+   const today=events.filter(e=>Date.now()-new Date(e.created_at)<86400000).length;
+   const display=(total,minimum)=>total===null?(hasMore?'≥'+minimum:minimum):total;
+   document.getElementById('notificationUnread').textContent=display(stats.unread,unread);
+   document.getElementById('notificationMissed').textContent=display(stats.missed,missed);
+   document.getElementById('notificationToday').textContent=display(stats.today,today);
+   // The badge uses a verified server count when available, not the 100-row
+   // preview count. On count failure only a partial minimum is available.
+   window.CommunicationEngine?.setBadge?.(stats.unread??unread);
+   if(more){more.hidden=!hasMore;more.disabled=loadingOlder;
+     more.textContent=loadingOlder?'Loading earlier…':'Load earlier notifications';}
+   if(pageInfo)pageInfo.textContent=events.length
+     ?'Showing '+events.length+' most recent notifications'+(hasMore?' (more available).':'.')
+     :'';
+ };
  const actionStatus=document.getElementById('notificationActionStatus');
  const setStatus=message=>{if(actionStatus)actionStatus.textContent=message||'';};
  let loadVersion=0;
+ // The first page is a preview, not the entire private notification history.
+ // Use owner-scoped PostgREST HEAD counts; never infer totals from 100 rows.
+ const loadStats=async version=>{
+   const countQuery=filterQuery=>{
+     const base=client.from('executive_events')
+       .select('id',{count:'exact',head:true})
+       .eq('member_id',session.user.id);
+     return bounded(filterQuery(base),8000);
+   };
+   const results=await Promise.allSettled([
+     countQuery(q=>q.is('read_at',null)),
+     countQuery(q=>q.eq('event_type','call.missed')),
+     countQuery(q=>q.gte('created_at',new Date(Date.now()-86400000).toISOString()))
+   ]);
+   if(version!==loadVersion)return;
+   const countAt=i=>results[i].status==='fulfilled'
+      &&!results[i].value.error
+      &&Number.isInteger(results[i].value.count)
+      ?results[i].value.count:null;
+   stats={unread:countAt(0),missed:countAt(1),today:countAt(2)};
+   render();
+ };
  const load=async()=>{
    const version=++loadVersion;
    try{
@@ -75,13 +116,44 @@
      if(r.error)throw r.error;
      if(version!==loadVersion)return false;
      events=r.data||[];
+     hasMore=events.length===PAGE_SIZE;
+     stats={unread:null,missed:null,today:null};
      render();
+     void loadStats(version);
      return true;
    }catch(error){
      if(version!==loadVersion)return false;
      list.innerHTML=`<div class="dashboard-load-error" role="alert"><strong>Inbox unavailable.</strong><p>${esc(error?.message||'Unable to load notifications.')}</p><button type="button" id="notificationRetry">Retry</button></div>`;
      document.getElementById('notificationRetry')?.addEventListener('click',()=>void load(),{once:true});
      return false;
+   }
+ };
+ if(more)more.onclick=async()=>{
+   if(loadingOlder||!hasMore)return;
+   const version=loadVersion;
+   loadingOlder=true;
+   render();
+   try{
+     const offset=events.length;
+     const r=await bounded(client.from('executive_events')
+       .select('*').eq('member_id',session.user.id)
+       .order('created_at',{ascending:false})
+       .range(offset,offset+PAGE_SIZE-1),12000);
+     if(r.error)throw r.error;
+     if(version!==loadVersion)return; // Realtime fresh-page load superseded this.
+     const page=r.data||[];
+     const seen=new Set(events.map(e=>e.id));
+     for(const event of page){
+       if(!seen.has(event.id)){events.push(event);seen.add(event.id);}
+     }
+     hasMore=page.length===PAGE_SIZE;
+     setStatus('');
+   }catch(_error){
+     if(version===loadVersion)
+       setStatus('Earlier notifications could not load. Retry Load earlier.');
+   }finally{
+     loadingOlder=false;
+     render();
    }
  };
  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
