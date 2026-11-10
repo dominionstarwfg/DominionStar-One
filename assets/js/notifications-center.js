@@ -64,13 +64,15 @@
    try{
      const r=await client.from('executive_events').select('*').eq('member_id',session.user.id).order('created_at',{ascending:false}).limit(100);
      if(r.error)throw r.error;
-     if(version!==loadVersion)return;
+     if(version!==loadVersion)return false;
      events=r.data||[];
      render();
+     return true;
    }catch(error){
-     if(version!==loadVersion)return;
+     if(version!==loadVersion)return false;
      list.innerHTML=`<div class="dashboard-load-error" role="alert"><strong>Inbox unavailable.</strong><p>${esc(error?.message||'Unable to load notifications.')}</p><button type="button" id="notificationRetry">Retry</button></div>`;
      document.getElementById('notificationRetry')?.addEventListener('click',()=>void load(),{once:true});
+     return false;
    }
  };
  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
@@ -82,8 +84,10 @@
    try{
      const result=await client.rpc('mark_my_executive_notifications_read',{target_event_id:null});
      if(result.error)throw result.error;
-     await load();
-     setStatus('Notifications marked read.');
+     const confirmed=await load();
+     setStatus(confirmed
+       ?'Notifications marked read.'
+       :'Read update submitted, but the inbox could not refresh. Retry to confirm its status.');
    }catch(_error){
      setStatus('Unable to mark notifications read. Please retry.');
    }finally{markAll.disabled=false;}
