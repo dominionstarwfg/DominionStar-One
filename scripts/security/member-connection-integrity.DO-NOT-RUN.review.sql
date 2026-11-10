@@ -12,8 +12,28 @@ BEGIN
      OR to_regclass('public.member_public_profiles') IS NULL THEN
     RAISE EXCEPTION 'Expected Agent OS member tables are missing; refusing cutover';
   END IF;
+  -- The existing directional UNIQUE(requester_id,recipient_id) cannot stop
+  -- two opposite pending invites (A→B and B→A) racing each other. Halt
+  -- instead of silently choosing which existing member record to destroy.
+  IF EXISTS (
+    SELECT 1 FROM public.member_connections
+    GROUP BY pg_catalog.least(requester_id,recipient_id),
+             pg_catalog.greatest(requester_id,recipient_id)
+    HAVING count(*)>1
+  ) THEN RAISE EXCEPTION
+    'Existing reciprocal/duplicate connection pairs require explicit reconciliation';
+  END IF;
 END;
 $preflight$;
+
+-- Enforce ONE relationship per unordered pair, regardless of who sent first.
+-- This prevents duplicate pending/accepted links under simultaneous requests.
+-- Keep existing directional UNIQUE for compatibility; this index adds safety.
+CREATE UNIQUE INDEX member_connections_unordered_pair_once_idx
+  ON public.member_connections (
+    (pg_catalog.least(requester_id,recipient_id)),
+    (pg_catalog.greatest(requester_id,recipient_id))
+  );
 
 -- Only approved members can invite another approved, directory-visible member.
 -- The existing policy permits requester_id=auth.uid() but does not restrict
@@ -127,6 +147,9 @@ COMMIT;
 -- Private/unlisted recipients cannot be invited from the member directory.
 -- A tries to insert accepted/blocked status: rejected.
 -- Pending/unapproved A tries to invite approved B: rejected.
+-- C cannot send the reciprocal invitation while A->C already exists,
+-- even if both accounts are approved and both direction-specific IDs differ.
+-- Existing reciprocal pairs must be reconciled before this index is applied.
 -- A tries to accept own sent invitation: rejected.
 -- Unrelated C tries to respond, cancel, or modify either identity: rejected.
 -- B accepts or declines a pending invitation once: allowed.
