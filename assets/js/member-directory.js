@@ -252,17 +252,20 @@
     wireAvatarFallbacks(grid);
     grid.querySelectorAll('.connect-member').forEach(b=>b.addEventListener('click',async()=>{
       const recipient=b.dataset.id;
-      if(!recipient||recipient===session.user.id||!connectionsReady)return;
-      if(b.dataset.action==='review'){
-        connectionPanel?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
-        return;
-      }
+      if(!recipient||recipient===session.user.id)return;
+      // A connection-query failure must NOT disable the only action that
+      // can recover from it. Refresh does not write any database row.
       if(b.dataset.action==='refresh'){
         const refreshed=await loadConnections();
         if(refreshed){
           connectStates.delete(recipient);
           render();
         }
+        return;
+      }
+      if(!connectionsReady)return;
+      if(b.dataset.action==='review'){
+        connectionPanel?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
         return;
       }
       if(b.dataset.action==='cancel'){
