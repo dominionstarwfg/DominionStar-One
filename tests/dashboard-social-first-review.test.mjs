@@ -48,11 +48,15 @@ test('Backend-disabled preview reflects this visual change with correct sample c
 
 
 test('Sample Feed shows four distinct post formats with visible safe actions',()=>{
-  assert.match(preview,/ZOOM MEETING – SAVING YOUR FUTURE/);
-  assert.match(preview,/ds-review-zoom-card/);
+  assert.match(preview,/Saving Your <em>Future<\/em>/);
+  assert.match(preview,/ds-review-event-visual/);
+  assert.match(preview,/ds-review-event-details/);
+  assert.doesNotMatch(preview,/class="ds-review-zoom-card"/);
   assert.match(preview,/https:\/\/zoom\.us\/j\/7443001370/);
   assert.match(preview,/target="_blank" rel="noopener noreferrer"/);
   assert.match(preview,/ds-review-post-photo/);
+  assert.match(preview,/ds-review-photo-layout/);
+  assert.match(preview,/Full proportions preserved/);
   assert.match(preview,/assets\/founder-blue\.jpeg/);
   assert.match(preview,/ds-review-quote-card/);
   assert.match(preview,/Success is not just what you achieve/);
@@ -83,4 +87,22 @@ test('Preview-only fixtures parse as JavaScript without any live posting scripts
   // Node vm compiles but does not execute sample fixtures or access any backend.
   const {Script}=vm;
   assert.doesNotThrow(()=>new Script(body));
+});
+
+test('Preview improvements do not reach production or alter posting backend',()=>{
+  const visual=read('assets/css/dominionstar-social-preview-refinement.css');
+  const demo=read('assets/js/dominionstar-social-preview-interactions.js');
+  const htmlFeed=read('feed/index.html');
+  assert.match(visual,/body\\.ds-visual-review \\.ds-review-event/);
+  assert.match(visual,/object-fit:contain!important/);
+  assert.match(visual,/pointer-events:auto!important/);
+  assert.match(demo,/local preview only/i);
+  assert.match(demo,/data-preview-action/);
+  assert.match(demo,/Nothing was published/);
+  assert.doesNotMatch(demo,/\\b(?:supabase|\.rpc\\(|\.from\\(|fetch\\(|WebSocket\\(|sendBeacon\\()/);
+  assert.match(preview,/dominionstar-social-preview-refinement.css/);
+  assert.match(preview,/dominionstar-social-preview-interactions.js/);
+  assert.doesNotMatch(htmlFeed,/dominionstar-social-preview-interactions.js/);
+  assert.doesNotMatch(dashboard,/dominionstar-social-preview-interactions.js/);
+  assert.doesNotThrow(()=>new vm.Script(demo));
 });
