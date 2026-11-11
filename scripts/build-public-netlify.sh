@@ -353,7 +353,22 @@ h1{font:700 clamp(34px,5vw,58px)/1.02 Georgia,serif;margin:10px 0 12px}p{color:#
 <a class="card" href="/professional-profile/"><strong>My Profile</strong><span>Identity and professional record</span></a>
 <a class="card" href="/account-settings/"><strong>Agent Settings</strong><span>Compact settings workspace</span></a>
 </div></main></body></html>'''
-(dist/'index.html').write_text(hub,encoding='utf-8')
+# Keep the full page directory at a dedicated review route, but make the
+# preview landing URL show the actual Agent Dashboard immediately.
+(dist/'visual-review').mkdir(parents=True,exist_ok=True)
+(dist/'visual-review'/'index.html').write_text(hub,encoding='utf-8')
+landing='''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta http-equiv="refresh" content="0;url=/member-dashboard/">
+<title>DominionStar Agent Dashboard · Visual Review</title></head>
+<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#07172f;color:#f4f8ff;font-family:system-ui,sans-serif">
+<main><h1>DominionStar Agent Dashboard</h1>
+<p>Opening the social-first Agent Dashboard visual preview.</p>
+<p><a href="/member-dashboard/" style="color:#f0c15b">Open Dashboard</a> ·
+<a href="/visual-review/" style="color:#a6ceff">Browse all preview pages</a></p></main>
+</body></html>'''
+(dist/'index.html').write_text(landing,encoding='utf-8')
 PY
 
   cat > "$DIST/_headers" <<'HEADERS'
