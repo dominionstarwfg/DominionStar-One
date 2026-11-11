@@ -104,6 +104,25 @@ try{
           missing.push(response.status()+' '+new URL(response.url()).pathname);
       });
       await page.goto('http://127.0.0.1:'+port+'/feed/',{waitUntil:'networkidle'});
+
+      if(v.label==='desktop'){
+        // Exercise only the isolated preview controls, never real Supabase actions.
+        const like=page.locator('#feedPageStream .ds-review-zoom-post [data-preview-action="like"]');
+        await like.waitFor();
+        await like.click();
+        assert.equal(await like.getAttribute('aria-pressed'),'true',
+          'Sample Like should visibly toggle locally');
+        const comment=page.locator('#feedPageStream .ds-review-zoom-post [data-preview-action="comment"]');
+        await comment.click();
+        const input=page.locator('#feedPageStream .ds-review-zoom-post .ds-review-preview-comments input');
+        await input.fill('Preview-only comment test');
+        await page.locator('#feedPageStream .ds-review-zoom-post .ds-review-preview-comments button').click();
+        const localText=await page.locator('#feedPageStream .ds-review-zoom-post .ds-review-local-comment').innerText();
+        assert.match(localText,/Preview-only comment test/);
+        assert.match(await page.locator('#feedPageStream .ds-review-zoom-post .ds-review-preview-feedback').innerText(),
+          /Nothing was published/i);
+        process.stdout.write('SAMPLE_SOCIAL_CONTROLS_BROWSER_PASS — local only, no persistence\\n');
+      }
       await page.evaluate(html=>{
         const feed=document.getElementById('feedPageStream');
         if(!feed)throw Error('Real Feed stage missing');
@@ -244,7 +263,7 @@ try{
       assert.ok(before.composer.top<view.height,
         view.label+' composer must be in the initial viewport');
       assert.ok(before.firstPost.top<view.height+80,
-        view.label+' first network update should not be buried below KPI cards');
+        view.label+' first network update should not be buried below KPI cards (top='+Math.round(before.firstPost.top)+', viewport='+view.height+')');
       assert.ok(before.scrollWidth<=view.width+3,
         view.label+' Dashboard horizontal overflow: '+before.scrollWidth);
       assert.ok(before.stage.right<=view.width+3,
