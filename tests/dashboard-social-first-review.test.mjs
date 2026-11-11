@@ -99,7 +99,7 @@ test('Preview improvements do not reach production or alter posting backend',()=
   assert.match(demo,/local preview only/i);
   assert.match(demo,/data-preview-action/);
   assert.match(demo,/Nothing was published/);
-  assert.doesNotMatch(demo,/\\b(?:supabase|\.rpc\\(|\.from\\(|fetch\\(|WebSocket\\(|sendBeacon\\()/);
+  assert.ok(!['fetch(','.rpc(','.from(','.insert(','.update(','WebSocket(','sendBeacon('].some(api=>demo.includes(api)), 'Preview demo cannot call remote APIs');
   assert.match(preview,/dominionstar-social-preview-refinement.css/);
   assert.match(preview,/dominionstar-social-preview-interactions.js/);
   assert.doesNotMatch(htmlFeed,/dominionstar-social-preview-interactions.js/);
