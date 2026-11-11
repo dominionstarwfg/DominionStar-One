@@ -203,6 +203,86 @@ try{
       })+'\n');
     }finally{await page.close();}
   }
+
+  // Social-first Dashboard: the actual backend-free preview must bring the
+  // composer and network updates into the first viewport, not four KPI cards.
+  for (const view of [
+    {label:'desktop',width:1536,height:900},
+    {label:'tablet',width:768,height:850},
+    {label:'mobile',width:390,height:844}
+  ]) {
+    const page=await browser.newPage({viewport:{width:view.width,height:view.height},
+      deviceScaleFactor:1});
+    try {
+      const missing=[];
+      page.on('response',response=>{
+        if(response.status()>=400 && new URL(response.url()).hostname==='127.0.0.1')
+          missing.push(response.status()+' '+new URL(response.url()).pathname);
+      });
+      await page.goto('http://127.0.0.1:'+port+'/member-dashboard/',
+        {waitUntil:'networkidle'});
+      await page.locator('#dashboardSocialPreview .ds-review-post').first().waitFor();
+      const before=await page.evaluate(()=>{
+        const box=sel=>{
+          const r=document.querySelector(sel).getBoundingClientRect();
+          return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};
+        };
+        const overview=document.querySelector('.dsx-overview-drawer');
+        return {
+          closed:!overview.open,
+          firstPost:box('#dashboardSocialPreview .ds-review-post'),
+          composer:box('.dsx-dashboard-composer'),
+          insights:box('.dsx-overview-drawer'),
+          stage:box('.dsx-dashboard-social'),
+          scrollWidth:document.documentElement.scrollWidth,
+          viewport:window.innerWidth,
+          postCount:document.querySelectorAll('#dashboardSocialPreview .ds-review-post').length
+        };
+      });
+      assert.equal(before.closed,true,view.label+' metrics should default closed');
+      assert.ok(before.postCount>=2,view.label+' representative feed missing');
+      assert.ok(before.composer.top<view.height,
+        view.label+' composer must be in the initial viewport');
+      assert.ok(before.firstPost.top<view.height+80,
+        view.label+' first network update should not be buried below KPI cards');
+      assert.ok(before.scrollWidth<=view.width+3,
+        view.label+' Dashboard horizontal overflow: '+before.scrollWidth);
+      assert.ok(before.stage.right<=view.width+3,
+        view.label+' network feed extends beyond viewport');
+      assert.ok(before.insights.bottom<before.composer.top+2,
+        view.label+' insights toggle should precede the composer');
+      await page.locator('.dsx-overview-drawer>summary').click();
+      const expanded=await page.evaluate(()=>{
+        const details=document.querySelector('.dsx-overview-drawer');
+        return {
+          open:details.open,
+          cards:[...details.querySelectorAll('.dsx-stat')].filter(el=>
+            getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().height>0).length,
+          scrollWidth:document.documentElement.scrollWidth
+        };
+      });
+      assert.equal(expanded.open,true,view.label+' insights disclosure did not open');
+      assert.equal(expanded.cards,4,view.label+' KPI cards unavailable on expand');
+      assert.ok(expanded.scrollWidth<=view.width+3,
+        view.label+' expanded KPIs overflow horizontally');
+      await page.locator('.dsx-overview-drawer>summary').click();
+      assert.equal(await page.locator('.dsx-overview-drawer').evaluate(el=>el.open),false,
+        view.label+' insights disclosure did not close');
+      if(view.label==='desktop'||view.label==='mobile'){
+        await page.screenshot({path:path.join(out,'dashboard-social-first-'+view.label+'.png'),
+          fullPage:true,animations:'disabled'});
+      }
+      assert.equal(missing.length,0,
+        view.label+' missing dashboard preview assets: '+missing.join(', '));
+      process.stdout.write('SOCIAL_FIRST_DASHBOARD '+JSON.stringify({
+        view:view.label,composerTop:Math.round(before.composer.top),
+        firstPostTop:Math.round(before.firstPost.top),
+        initialViewport:view.height,metricsInitiallyHidden:before.closed,
+        kpiCardsOnExpand:expanded.cards
+      })+'\\n');
+    } finally { await page.close(); }
+  }
+  process.stdout.write('SOCIAL_FIRST_DASHBOARD_BROWSER_PASS — visual sample only; backend disabled\\n');
   process.stdout.write('FEED_BROWSER_GEOMETRY_PASS — synthetic posts only; backend disabled\n');
 }finally{
   await browser.close();
