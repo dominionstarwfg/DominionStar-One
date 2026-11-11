@@ -114,6 +114,49 @@ body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review o
 body.ds-visual-review .dm-welcome{display:none!important}
 .ds-directory-review-note,.dsx-directory-review-note{grid-column:1/-1;color:#b9cbe0;font:750 11px/1.4 system-ui,sans-serif;letter-spacing:.06em;padding:6px 0}
 .dsx-profile-review-notice{margin:0 0 10px!important;padding:8px 11px!important;color:#cfe4f7!important;background:rgba(24,119,242,.12)!important;border:1px solid rgba(126,168,221,.27)!important;border-radius:9px!important;font:800 10.5px/1.5 system-ui,sans-serif}
+/* Review-only mixed-media social examples: link / photo / quote / recognition. */
+body.ds-visual-review .ds-review-post{min-width:0;padding:15px!important}
+body.ds-visual-review .ds-review-author{gap:10px;flex-wrap:wrap}
+body.ds-visual-review .ds-review-author>span:nth-child(2){min-width:0;flex:1}
+body.ds-visual-review .ds-review-avatar{flex:0 0 40px;width:40px;height:40px}
+body.ds-visual-review .ds-review-author strong{font-size:13px!important;color:#eef4ff!important}
+body.ds-visual-review .ds-review-author small{font-size:10.5px!important;color:#b2c5dc!important}
+body.ds-visual-review .ds-review-post p{font-size:12.5px!important;color:#e0ebf6!important;line-height:1.6!important}
+body.ds-visual-review .ds-review-post-title{font-size:15px!important;margin:13px 0 3px!important}
+body.ds-visual-review .ds-review-sample-mark{flex:0 0 auto;margin-left:auto;border:1px solid rgba(240,193,91,.28);color:#f3d994;padding:4px 7px;border-radius:8px;background:rgba(240,193,91,.07);font-size:9px;font-weight:900;letter-spacing:.07em}
+body.ds-visual-review .ds-review-zoom-card{display:flex;gap:12px;align-items:center;min-width:0;padding:13px;margin:12px 0;border:1px solid rgba(121,175,236,.35);border-radius:13px;background:linear-gradient(120deg,rgba(17,64,113,.65),rgba(7,29,57,.9))}
+body.ds-visual-review .ds-review-zoom-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:11px;background:#1877f2;color:#fff}
+body.ds-visual-review .ds-review-zoom-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+body.ds-visual-review .ds-review-zoom-detail{flex:1;min-width:0;display:grid;gap:4px}
+body.ds-visual-review .ds-review-zoom-detail strong{color:#f6faff!important;font-size:13.5px;line-height:1.25}
+body.ds-visual-review .ds-review-zoom-detail small{color:#c2d2e5;font-size:11px}
+body.ds-visual-review .ds-review-zoom-id{color:#cfdded;font-size:10.5px;overflow-wrap:anywhere}
+body.ds-visual-review .ds-review-zoom-url{display:block;color:#8bc1ff!important;font-size:11px!important;overflow-wrap:anywhere}
+body.ds-visual-review .ds-review-zoom-join{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;border-radius:9px;background:linear-gradient(120deg,#1877f2,#0d59b5);color:#fff!important;min-height:38px;padding:9px 12px;font-size:11.5px;font-weight:800;text-decoration:none!important}
+body.ds-visual-review .ds-review-zoom-join:hover,body.ds-visual-review .ds-review-zoom-url:hover{text-decoration:underline!important}
+body.ds-visual-review .ds-review-quote-card{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:17px;min-height:225px;margin:12px 0;padding:28px 32px;border:1px solid rgba(236,187,84,.5);border-radius:15px;background:radial-gradient(circle at 92% 12%,rgba(245,195,87,.24),transparent 32%),radial-gradient(circle at 8% 100%,rgba(41,128,232,.27),transparent 45%),linear-gradient(130deg,#091a37,#123b68 56%,#06172e);box-shadow:inset 0 1px rgba(255,255,255,.05)}
+body.ds-visual-review .ds-review-quote-decoration{position:absolute;right:10px;top:-52px;color:rgba(250,212,139,.13);font:bold 220px/1 Georgia,serif;z-index:-1}
+body.ds-visual-review .ds-review-quote-brand{color:#f4d086;font-size:10px;font-weight:900;letter-spacing:.14em}
+body.ds-visual-review .ds-review-quote-brand span{font-size:8px;letter-spacing:.08em;margin-left:7px;color:#c9dbf0}
+body.ds-visual-review .ds-review-quote-card blockquote{margin:0;color:#fff;font:700 clamp(22px,3vw,36px)/1.25 Georgia,serif;letter-spacing:-.015em}
+body.ds-visual-review .ds-review-quote-card blockquote em{color:#f5cf79;font-style:normal}
+body.ds-visual-review .ds-review-quote-foot{color:#c1d4e9;font-size:9px;letter-spacing:.14em;font-weight:900}
+body.ds-visual-review .ds-review-quote-foot span{color:#f5cf79;padding:0 7px}
+body.ds-visual-review .ds-review-milestone-card{display:flex;gap:13px;align-items:center;margin:11px 0;padding:14px;border-radius:12px;border:1px solid rgba(240,193,91,.27);background:rgba(240,193,91,.07)}
+body.ds-visual-review .ds-review-milestone-card>span{font-size:29px}
+body.ds-visual-review .ds-review-milestone-card strong{display:block;font-size:13px;color:#f5d68b}
+body.ds-visual-review .ds-review-milestone-card small{display:block;margin-top:4px;font-size:10.5px;color:#c2d3e6}
+body.ds-visual-review .ds-review-engagement{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px 12px;font-size:11px;margin-top:10px;color:#bacce1}
+body.ds-visual-review .ds-review-actions span{font-size:11.5px;min-height:40px}
+body.ds-visual-review .ds-review-action-icon{width:17px;height:17px;flex:0 0 17px}
+@media(max-width:620px){
+  body.ds-visual-review .ds-review-zoom-card{flex-wrap:wrap}
+  body.ds-visual-review .ds-review-zoom-join{margin-left:54px}
+  body.ds-visual-review .ds-review-quote-card{padding:22px;min-height:205px}
+  body.ds-visual-review .ds-review-actions span{font-size:10px;gap:5px}
+  body.ds-visual-review .ds-review-post-media-shell{padding:0}
+}
+
 CSS
 
   mkdir -p "$DIST/assets/js"
@@ -162,13 +205,60 @@ CSS
   const bar=byId('journeyProgressBar');if(bar)bar.style.width='67%';
   html('dashboardNextAppointment','<article class="ds-review-event"><span class="appointment-status confirmed">Upcoming</span><h3>Saving Your Future</h3><p>Wednesday · 8:00 PM CT</p><small>DominionStar weekly financial awareness session</small><a href="#">Join Meeting</a></article>');
   html('dashboardAnnouncementPreview','<article class="dsos-pinned-update"><div class="dsos-pinned-update-head"><span class="dsos-pinned-label">Founder update</span><small>Today</small></div><h3>Weekly leadership focus</h3><p>Build with consistency, serve with professionalism, and keep your team moving forward.</p><a class="dsos-inline-link dsx-announcement-read" href="#">Read Full Update →</a></article>');
-  const post='<article class="ds-review-post ds-review-featured"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Jul 22, 2026</small></span><b class="ds-review-pinned">★ Pinned</b></div><h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3><p>Wednesday session · 9 PM ET · 8 PM CT · 6 PM PT</p><div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 reactions</span><span>8 comments</span></div><div class="ds-review-actions"><span class="active-like">'+likeAction+'Like</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
-  const dashboardSecond='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · 52m</small></span></div><p>Licensing milestone complete. Next focus is product training and consistent prospecting activity.</p><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>12 reactions</span><span>3 comments</span></div><div class="ds-review-actions"><span class="active-like">'+likeAction+'Like</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
-  html('dashboardSocialPreview',post+dashboardSecond);
+  // Representative example posts: real site visuals, fictitious engagement metrics.
+  // No records are created, no email/push is sent, and no account is impersonated.
+  const sampleMark='<span class="ds-review-sample-mark">EXAMPLE POST</span>';
+  const socialActions=(selected='like')=>'<div class="ds-review-actions">'+
+    '<span class="'+(selected==='love'?'active-love':'active-like')+'">'+(selected==='love'?loveAction+'Love':likeAction+'Like')+'</span>'+
+    '<span class="comment-action">'+commentAction+'Comment</span>'+
+    '<span class="repost-action">'+repostAction+'Repost</span>'+
+    '<span class="share-action">'+shareAction+'Share</span></div>';
+  const zoomUrl='https://zoom.us/j/7443001370';
 
-  // Full Feed representative density.
-  const photoPost='<article class="ds-review-post ds-review-photo-post"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · 1h</small></span></div><p class="ds-review-photo-caption">Leadership is built through consistency, service, and helping the next person move forward. Proud of the progress across DominionStar this week.</p><div class="ds-review-post-media-shell"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="DominionStar leadership photo"></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div><div class="ds-review-actions"><span class="active-love">'+loveAction+'Love</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
-  html('feedPageStream',post+photoPost);
+  const post='<article class="ds-review-post ds-review-featured ds-review-zoom-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Official announcement · Weekly session</small></span>'+sampleMark+'</div>'+
+    '<h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3>'+
+    '<p>Join the Wednesday financial awareness session. Share the invitation with a friend or colleague.</p>'+
+    '<div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div>'+
+    '<div class="ds-review-zoom-card">'+
+      '<span class="ds-review-zoom-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="13" height="14" rx="3"></rect><path d="m15.5 10 6-3v10l-6-3z"></path></svg></span>'+
+      '<div class="ds-review-zoom-detail"><strong>Join the live Zoom session</strong><small>Wednesdays · 9 PM ET · 8 PM CT · 6 PM PT</small>'+
+      '<span class="ds-review-zoom-id">Meeting ID: 744 300 1370 · Passcode: 360</span>'+
+      '<a class="ds-review-zoom-url" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">zoom.us/j/7443001370</a></div>'+
+      '<a class="ds-review-zoom-join" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer" aria-label="Open the example Zoom meeting link in a new tab">Open Zoom ↗</a>'+
+    '</div>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 reactions</span><span>8 comments · 5 shares</span></div>'+
+    socialActions('like')+'</article>';
+
+  const photoPost='<article class="ds-review-post ds-review-photo-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Photo update</small></span>'+sampleMark+'</div>'+
+    '<p class="ds-review-photo-caption">Leadership is built through consistency, service, and helping the next person move forward. Proud of the progress across DominionStar this week.</p>'+
+    '<div class="ds-review-post-media-shell"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="Original DominionStar founder photograph shared in a sample picture post"></div>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div>'+
+    socialActions('love')+'</article>';
+
+  const quotePost='<article class="ds-review-post ds-review-quote-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Daily inspiration · Quote</small></span>'+sampleMark+'</div>'+
+    '<p>Today’s leadership reminder:</p>'+
+    '<div class="ds-review-quote-card" role="img" aria-label="Leadership quote: Success is not just what you achieve. It is who you become.">'+
+      '<div class="ds-review-quote-decoration" aria-hidden="true">“</div>'+
+      '<div class="ds-review-quote-brand">DOMINIONSTAR <span>LEADERSHIP DEVELOPMENT</span></div>'+
+      '<blockquote>Success is not just what you achieve.<br><em>It’s who you become.</em></blockquote>'+
+      '<div class="ds-review-quote-foot">LEAD WITH PURPOSE <span>✦</span> GROW WITH CONSISTENCY</div>'+
+    '</div>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+loveBadge+celebrateBadge+'</span>42 reactions</span><span>6 comments · 11 shares</span></div>'+
+    socialActions('love')+'</article>';
+
+  const dashboardSecond='<article class="ds-review-post ds-review-milestone-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · Recognition · Sample member</small></span>'+sampleMark+'</div>'+
+    '<p>Congratulations to a new DominionStar producer for passing the state licensing exam! Next up: product training and continued professional growth.</p>'+
+    '<div class="ds-review-milestone-card"><span aria-hidden="true">🏆</span><div><strong>Licensing milestone achieved</strong><small>Exam passed · Next: licensing application & training</small></div></div>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>12 reactions</span><span>3 comments</span></div>'+
+    socialActions('like')+'</article>';
+
+  // Dashboard shows an engaging stream; the dedicated Feed contains all four formats.
+  html('dashboardSocialPreview',post+photoPost+quotePost);
+  html('feedPageStream',post+photoPost+quotePost+dashboardSecond);
 
   // Messages representative three-column state.
   html('dmConversationList','<button class="ds-review-conversation active"><span class="avatar">TM</span><span><strong>Team Member</strong><small>Great progress this week.</small></span><time>9:41</time></button><button class="ds-review-conversation"><span class="avatar">SA</span><span><strong>Senior Associate</strong><small>Can we review the training plan?</small></span><time>8:12</time></button><button class="ds-review-conversation"><span class="avatar">MD</span><span><strong>Marketing Director</strong><small>Meeting notes are ready.</small></span><time>Fri</time></button>');
