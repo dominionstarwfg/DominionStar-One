@@ -247,8 +247,16 @@ try{
           return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};
         };
         const overview=document.querySelector('.dsx-overview-drawer');
+        const stages=['.dsos-topbar','.dsos-page','.dsx-hero','.dsx-overview-drawer',
+          '.dsx-dashboard-grid','.dsx-dashboard-tabs','.dsx-dashboard-composer',
+          '.dsx-dashboard-feed-head'].map(selector=>{
+          const el=document.querySelector(selector);
+          const r=el?.getBoundingClientRect();
+          return {selector,top:r?.top,bottom:r?.bottom,height:r?.height};
+        });
         return {
           closed:!overview.open,
+          stages,
           firstPost:box('#dashboardSocialPreview .ds-review-post'),
           composer:box('.dsx-dashboard-composer'),
           insights:box('.dsx-overview-drawer'),
@@ -258,6 +266,7 @@ try{
           postCount:document.querySelectorAll('#dashboardSocialPreview .ds-review-post').length
         };
       });
+      process.stdout.write('DASHBOARD_FOLD_DIAGNOSTIC '+view.label+' '+JSON.stringify(before.stages)+'\\n');
       assert.equal(before.closed,true,view.label+' metrics should default closed');
       assert.ok(before.postCount>=2,view.label+' representative feed missing');
       assert.ok(before.composer.top<view.height,
