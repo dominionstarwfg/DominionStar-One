@@ -208,32 +208,37 @@ CSS
   // Representative example posts: real site visuals, fictitious engagement metrics.
   // No records are created, no email/push is sent, and no account is impersonated.
   const sampleMark='<span class="ds-review-sample-mark">EXAMPLE POST</span>';
-  const socialActions=(selected='like')=>'<div class="ds-review-actions">'+
-    '<span class="'+(selected==='love'?'active-love':'active-like')+'">'+(selected==='love'?loveAction+'Love':likeAction+'Like')+'</span>'+
-    '<span class="comment-action">'+commentAction+'Comment</span>'+
-    '<span class="repost-action">'+repostAction+'Repost</span>'+
-    '<span class="share-action">'+shareAction+'Share</span></div>';
+  const socialActions=(selected='like')=>'<div class="ds-review-actions" aria-label="Try social interactions in this sample">'+
+    '<button type="button" data-preview-action="'+selected+'" aria-pressed="false">'+(selected==='love'?loveAction:likeAction)+'<span class="ds-review-action-label">'+(selected==='love'?'Love':'Like')+'</span></button>'+
+    '<button type="button" data-preview-action="comment">'+commentAction+'<span class="ds-review-action-label">Comment</span></button>'+
+    '<button type="button" data-preview-action="repost">'+repostAction+'<span class="ds-review-action-label">Repost</span></button>'+
+    '<button type="button" data-preview-action="share">'+shareAction+'<span class="ds-review-action-label">Share</span></button></div>';
   const zoomUrl='https://zoom.us/j/7443001370';
 
+  // One unified, intentionally compact Zoom post: no duplicated meeting banner.
   const post='<article class="ds-review-post ds-review-featured ds-review-zoom-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Official announcement · Weekly session</small></span>'+sampleMark+'</div>'+
-    '<h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3>'+
-    '<p>Join the Wednesday financial awareness session. Share the invitation with a friend or colleague.</p>'+
-    '<div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div>'+
-    '<div class="ds-review-zoom-card">'+
-      '<span class="ds-review-zoom-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="13" height="14" rx="3"></rect><path d="m15.5 10 6-3v10l-6-3z"></path></svg></span>'+
-      '<div class="ds-review-zoom-detail"><strong>Join the live Zoom session</strong><small>Wednesdays · 9 PM ET · 8 PM CT · 6 PM PT</small>'+
-      '<span class="ds-review-zoom-id">Meeting ID: 744 300 1370 · Passcode: 360</span>'+
-      '<a class="ds-review-zoom-url" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">zoom.us/j/7443001370</a></div>'+
-      '<a class="ds-review-zoom-join" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer" aria-label="Open the example Zoom meeting link in a new tab">Open Zoom ↗</a>'+
+    '<p>Join our Wednesday financial awareness session. Invite a friend or colleague.</p>'+
+    '<div class="ds-review-event">'+
+      '<div class="ds-review-event-visual">'+
+        '<div><div class="ds-review-event-brand"><span class="ds-review-event-brand-mark">✦</span> DOMINIONSTAR LEADERSHIP</div>'+
+          '<h3>Saving Your <em>Future</em></h3><p>Plan today. Protect tomorrow.</p></div>'+
+        '<div class="ds-review-event-live"><strong>WEDNESDAY</strong><span>9 PM ET<br>8 PM CT<br>6 PM PT</span><small>Live online</small></div>'+
+      '</div>'+
+      '<div class="ds-review-event-details">'+
+        '<span class="ds-review-event-details-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" rx="2"></rect><path d="m15 10 6-3v10l-6-3"></path></svg></span>'+
+        '<div class="ds-review-event-details-copy"><strong>Join on Zoom · Meeting ID 744 300 1370</strong><small>Passcode: 360 · Weekly financial awareness webinar</small>'+
+        '<a class="ds-review-event-url" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">zoom.us/j/7443001370</a></div>'+
+        '<a class="ds-review-event-join" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer" aria-label="Open the Zoom meeting in a new tab">Open Zoom ↗</a>'+
+      '</div>'+
     '</div>'+
-    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 reactions</span><span>8 comments · 5 shares</span></div>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 sample reactions</span><span>8 sample comments · 5 sample shares</span></div>'+
     socialActions('like')+'</article>';
 
   const photoPost='<article class="ds-review-post ds-review-photo-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Photo update</small></span>'+sampleMark+'</div>'+
-    '<p class="ds-review-photo-caption">Leadership is built through consistency, service, and helping the next person move forward. Proud of the progress across DominionStar this week.</p>'+
-    '<div class="ds-review-post-media-shell"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="Original DominionStar founder photograph shared in a sample picture post"></div>'+
+    '<p class="ds-review-photo-caption">Real growth comes from consistency, service, and helping the next person move forward.</p>'+
+    '<figure class="ds-review-photo-layout"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="Original DominionStar founder photograph shown without cropping"><figcaption>Original photo · Full proportions preserved</figcaption></figure>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div>'+
     socialActions('love')+'</article>';
 
@@ -414,7 +419,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=9"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=9"></script></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
