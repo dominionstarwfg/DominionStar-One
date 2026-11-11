@@ -81,6 +81,6 @@ test('Preview-only fixtures parse as JavaScript without any live posting scripts
   assert.ok(body.includes('dashboardSocialPreview'),'sample posts must load in Dashboard');
   assert.doesNotMatch(body,/\b(?:supabase|fetch\(|\.rpc\(|\.insert\(|\.update\()\b/i);
   // Node vm compiles but does not execute sample fixtures or access any backend.
-  const {Script}=requireVMScript();
+  const {Script}=vm;
   assert.doesNotThrow(()=>new Script(body));
 });
