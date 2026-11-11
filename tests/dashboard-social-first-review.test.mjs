@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const dashboard=read('member-dashboard/index.html');
@@ -43,4 +44,43 @@ test('Backend-disabled preview reflects this visual change with correct sample c
   assert.match(preview,/visual-review'\/'index.html/);
   assert.match(preview,/DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK/);
   assert.match(preview,/connect-src 'none'/);
+});
+
+
+test('Sample Feed shows four distinct post formats with visible safe actions',()=>{
+  assert.match(preview,/ZOOM MEETING – SAVING YOUR FUTURE/);
+  assert.match(preview,/ds-review-zoom-card/);
+  assert.match(preview,/https:\/\/zoom\.us\/j\/7443001370/);
+  assert.match(preview,/target="_blank" rel="noopener noreferrer"/);
+  assert.match(preview,/ds-review-post-photo/);
+  assert.match(preview,/assets\/founder-blue\.jpeg/);
+  assert.match(preview,/ds-review-quote-card/);
+  assert.match(preview,/Success is not just what you achieve/);
+  assert.match(preview,/It’s who you become/);
+  assert.match(preview,/ds-review-milestone-card/);
+  assert.match(preview,/Licensing milestone achieved/);
+  assert.match(preview,/EXAMPLE POST/);
+  assert.match(preview,/socialActions\('like'\)/);
+  assert.match(preview,/socialActions\('love'\)/);
+  assert.match(preview,/html\('dashboardSocialPreview',post\+photoPost\+quotePost\)/);
+  assert.match(preview,/html\('feedPageStream',post\+photoPost\+quotePost\+dashboardSecond\)/);
+  assert.match(preview,/button,input,select,textarea,form\{pointer-events:none!important\}/);
+  assert.match(preview,/connect-src 'none'/);
+});
+
+test('Preview-only fixtures parse as JavaScript without any live posting scripts',()=>{
+  const marker='dominionstar-visual-review-fixtures.js';
+  const pos=preview.indexOf('cat > "$DIST/assets/js/'+marker+'"');
+  assert.ok(pos>0,'visual preview fixtures must exist');
+  const open=preview.indexOf("<<'JS'\n",pos);
+  assert.ok(open>pos,'visual preview JS heredoc must exist');
+  const close=preview.indexOf('\nJS\n',open);
+  assert.ok(close>open,'visual preview JS heredoc must close');
+  const body=preview.slice(open+7,close);
+  assert.ok(body.includes('feedPageStream'),'sample posts must load in Feed');
+  assert.ok(body.includes('dashboardSocialPreview'),'sample posts must load in Dashboard');
+  assert.doesNotMatch(body,/\b(?:supabase|fetch\(|\.rpc\(|\.insert\(|\.update\()\b/i);
+  // Node vm compiles but does not execute sample fixtures or access any backend.
+  const {Script}=requireVMScript();
+  assert.doesNotThrow(()=>new Script(body));
 });
