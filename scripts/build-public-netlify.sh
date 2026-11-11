@@ -129,9 +129,9 @@ CSS
   document.body.classList.add('ds-visual-review');
 
   // Shared preview identity. This is visual-review sample content only.
-  for(const id of ['topbarMemberName','heroProfileFullName','feedPageName'])set(id,'Levismous Aken');
+  for(const id of ['topbarMemberName','heroProfileFullName','feedPageName'])set(id,'Levismond Aken');
   for(const id of ['topbarContractLevel','heroContractLevel','feedPageRank'])set(id,'Contract Level: SMD');
-  set('heroMemberName','Levismous');
+  set('heroMemberName','Levismond');
   set('topbarFoundingBadge','Founding Member #01');
   set('heroFoundingBadge','Founding Member #01');
   set('feedPageFounding','Founding Member #01');
@@ -162,12 +162,12 @@ CSS
   const bar=byId('journeyProgressBar');if(bar)bar.style.width='67%';
   html('dashboardNextAppointment','<article class="ds-review-event"><span class="appointment-status confirmed">Upcoming</span><h3>Saving Your Future</h3><p>Wednesday · 8:00 PM CT</p><small>DominionStar weekly financial awareness session</small><a href="#">Join Meeting</a></article>');
   html('dashboardAnnouncementPreview','<article class="dsos-pinned-update"><div class="dsos-pinned-update-head"><span class="dsos-pinned-label">Founder update</span><small>Today</small></div><h3>Weekly leadership focus</h3><p>Build with consistency, serve with professionalism, and keep your team moving forward.</p><a class="dsos-inline-link dsx-announcement-read" href="#">Read Full Update →</a></article>');
-  const post='<article class="ds-review-post ds-review-featured"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismous Aken</strong><small>SMD · Founding Member #01 · Jul 22, 2026</small></span><b class="ds-review-pinned">★ Pinned</b></div><h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3><p>Wednesday, July 22 · 9 PM ET · 8 PM CT · 6 PM PT</p><div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 reactions</span><span>8 comments</span></div><div class="ds-review-actions"><span class="active-like">'+likeAction+'Like</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
+  const post='<article class="ds-review-post ds-review-featured"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Jul 22, 2026</small></span><b class="ds-review-pinned">★ Pinned</b></div><h3 class="ds-review-post-title">ZOOM MEETING – SAVING YOUR FUTURE</h3><p>Wednesday session · 9 PM ET · 8 PM CT · 6 PM PT</p><div class="ds-review-feature-media"><strong>DOMINIONSTAR</strong><span>Saving Your <em>Future</em></span></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 reactions</span><span>8 comments</span></div><div class="ds-review-actions"><span class="active-like">'+likeAction+'Like</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
   const dashboardSecond='<article class="ds-review-post"><div class="ds-review-author"><span class="ds-review-avatar">TM</span><span><strong>Team Member</strong><small>MD · 52m</small></span></div><p>Licensing milestone complete. Next focus is product training and consistent prospecting activity.</p><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>12 reactions</span><span>3 comments</span></div><div class="ds-review-actions"><span class="active-like">'+likeAction+'Like</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
   html('dashboardSocialPreview',post+dashboardSecond);
 
   // Full Feed representative density.
-  const photoPost='<article class="ds-review-post ds-review-photo-post"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismous Aken</strong><small>SMD · Founding Member #01 · 1h</small></span></div><p class="ds-review-photo-caption">Leadership is built through consistency, service, and helping the next person move forward. Proud of the progress across DominionStar this week.</p><div class="ds-review-post-media-shell"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="DominionStar leadership photo"></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div><div class="ds-review-actions"><span class="active-love">'+loveAction+'Love</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
+  const photoPost='<article class="ds-review-post ds-review-photo-post"><div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · 1h</small></span></div><p class="ds-review-photo-caption">Leadership is built through consistency, service, and helping the next person move forward. Proud of the progress across DominionStar this week.</p><div class="ds-review-post-media-shell"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="DominionStar leadership photo"></div><div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div><div class="ds-review-actions"><span class="active-love">'+loveAction+'Love</span><span class="comment-action">'+commentAction+'Comment</span><span class="repost-action">'+repostAction+'Repost</span><span class="share-action">'+shareAction+'Share</span></div></article>';
   html('feedPageStream',post+photoPost);
 
   // Messages representative three-column state.
@@ -231,9 +231,9 @@ CSS
 
   // Auth-disabled Profile is a visual illustration, not an authenticated professional record.
   if(byId('profileApp')&&!new URLSearchParams(location.search).has('member')){
-    set('profileDisplayName','Levismous Aken');
+    set('profileDisplayName','Levismond Aken');
     set('profileDisplayRank','SMD · Visual preview');
-    set('verifiedFullName','Levismous Aken');
+    set('verifiedFullName','Levismond Aken');
     set('verifiedRank','SMD');
     set('verifiedEmail','Not connected in preview');
     set('verifiedAgentCode','Not connected in preview');
@@ -244,7 +244,7 @@ CSS
     const contactForm=byId('contactProfileForm');
     if(contactForm){
       const fullName=contactForm.querySelector('input[name="full_name"]');
-      if(fullName)fullName.value='Levismous Aken';
+      if(fullName)fullName.value='Levismond Aken';
     }
     const verified=byId('verifiedStatus');
     if(verified){
@@ -338,7 +338,7 @@ h1{font:700 clamp(34px,5vw,58px)/1.02 Georgia,serif;margin:10px 0 12px}p{color:#
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px}.card{display:block;padding:18px;border:1px solid rgba(126,168,221,.2);border-radius:16px;background:linear-gradient(155deg,rgba(20,42,75,.94),rgba(9,25,49,.94));color:#f5f8fc;text-decoration:none;box-shadow:0 16px 36px rgba(0,0,0,.2)}
 .card:hover{border-color:rgba(24,119,242,.55);transform:translateY(-1px)}.card strong{display:block;margin-bottom:5px}.card span{font-size:12px;color:#9eb2c9}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:520px){.grid{grid-template-columns:1fr}}
 </style></head><body><main><p class="eyebrow">DominionStar Executive OS</p><h1>Visual review hub</h1>
-<p>Review the real static Agent OS layouts below. Production authentication, Supabase, realtime, calls, uploads, and serverless actions are disabled in this preview.</p>
+<p>Review the social-first Agent OS layouts below. The Dashboard now opens directly to network posting and updates, with executive metrics tucked into a collapsible insights row. Production authentication, Supabase, realtime, calls, uploads, and serverless actions are disabled in this preview.</p>
 <div class="notice"><strong>Design review only.</strong> Use this build to inspect proportions, spacing, colors, cards, typography, sidebar density, and page composition.</div>
 <div class="grid">
 <a class="card" href="/member-dashboard/"><strong>Dashboard</strong><span>Approved illustration composition</span></a>
