@@ -19,6 +19,7 @@
     if(panel)return panel;
     panel=document.createElement('div');
     panel.className='ds-review-preview-comments';
+    panel.hidden=true;
     const label=document.createElement('label');
     label.textContent='Try a sample comment (local preview only)';
     const form=document.createElement('form');
