@@ -13,6 +13,15 @@ body.ds-visual-review .ds-review-author{
   padding-bottom:10px;
   border-bottom:1px solid rgba(155,185,221,.13);
 }
+body.ds-visual-review .ds-review-avatar-photo{
+  display:block;flex:0 0 40px;width:40px;height:40px;
+  padding:0;overflow:hidden;border-radius:50%;
+}
+body.ds-visual-review .ds-review-avatar-photo img{
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;object-position:center;
+  display:block!important;border:0!important;
+}
 body.ds-visual-review .ds-review-author strong{
   font-size:13.5px!important;
   letter-spacing:-.01em;
