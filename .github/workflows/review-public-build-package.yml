@@ -104,14 +104,15 @@ jobs:
             cd "$preview/repo"
             NETLIFY=true CONTEXT=deploy-preview bash scripts/build-public-netlify.sh >/tmp/ds-preview-isolated.log 2>&1
             grep -Fq "DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK" /tmp/ds-preview-isolated.log
-            grep -Fq "Visual review hub" public-dist/index.html
-            grep -Fq 'href="/member-dashboard/"' public-dist/index.html
-            grep -Fq 'href="/feed/"' public-dist/index.html
-            grep -Fq 'href="/direct-messages/"' public-dist/index.html
-            grep -Fq 'href="/notifications/"' public-dist/index.html
-            grep -Fq 'href="/community/"' public-dist/index.html
-            grep -Fq 'href="/professional-profile/"' public-dist/index.html
-            grep -Fq 'href="/account-settings/"' public-dist/index.html
+            grep -Fq 'content="0;url=/member-dashboard/"' public-dist/index.html
+            grep -Fq "Visual review hub" public-dist/visual-review/index.html
+            grep -Fq 'href="/member-dashboard/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/feed/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/direct-messages/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/notifications/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/community/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/professional-profile/"' public-dist/visual-review/index.html
+            grep -Fq 'href="/account-settings/"' public-dist/visual-review/index.html
             test -s public-dist/member-dashboard/index.html
             test -s public-dist/feed/index.html
             test -s public-dist/direct-messages/index.html
