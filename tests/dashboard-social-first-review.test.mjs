@@ -93,7 +93,7 @@ test('Preview improvements do not reach production or alter posting backend',()=
   const visual=read('assets/css/dominionstar-social-preview-refinement.css');
   const demo=read('assets/js/dominionstar-social-preview-interactions.js');
   const htmlFeed=read('feed/index.html');
-  assert.match(visual,/body\\.ds-visual-review \\.ds-review-event/);
+  assert.ok(visual.includes('body.ds-visual-review .ds-review-event'));
   assert.match(visual,/object-fit:contain!important/);
   assert.match(visual,/pointer-events:auto!important/);
   assert.match(demo,/local preview only/i);
