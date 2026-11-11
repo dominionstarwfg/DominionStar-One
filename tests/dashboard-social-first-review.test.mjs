@@ -39,6 +39,8 @@ test('Backend-disabled preview reflects this visual change with correct sample c
   assert.match(preview,/Levismond Aken/);
   assert.doesNotMatch(preview,/Levismous/);
   assert.doesNotMatch(preview,/Wednesday, July 22/);
+  assert.match(preview,/meta http-equiv="refresh" content="0;url=\/member-dashboard\/"/);
+  assert.match(preview,/visual-review'\/'index.html/);
   assert.match(preview,/DOMINIONSTAR_DEPLOY_PREVIEW_STATIC_VISUAL_OK/);
   assert.match(preview,/connect-src 'none'/);
 });
