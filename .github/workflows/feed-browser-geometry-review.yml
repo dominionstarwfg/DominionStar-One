@@ -46,7 +46,9 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.57.0
-          npx playwright install --with-deps chromium
+          # Avoid external Ubuntu apt mirrors; a transient DNS outage previously broke this gate.
+          # GitHub's hosted Ubuntu image already carries Chromium's required shared libraries.
+          npx playwright install chromium
       - name: Build backend-free visual preview locally
         env:
           NETLIFY: 'true'
