@@ -184,6 +184,24 @@ body.dsos-executive #dashboardSocialPreview{
     gap:10px!important;
   }
 }
+@media(max-width:900px){
+  /* Fix cascade regression: the later cinematic desktop grid overrode
+     the shared-shell responsive collapse and kept an empty 248px rail.
+     The sidebar is already fixed and the hamburger manages its .open state. */
+  body.dsos-executive .dsos-shell{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  body.dsos-executive .dsos-main{
+    grid-column:1!important;min-width:0!important;
+  }
+  body.dsos-executive .dsos-sidebar{
+    transform:translateX(-105%)!important;
+  }
+  body.dsos-executive .dsos-sidebar.open{
+    transform:translateX(0)!important;
+  }
+}
+
 @media(max-width:960px){
   /* Topbar already displays the member's photo and rank. Avoid repeating
      the same identity panel and pushing the Feed below the initial fold. */
