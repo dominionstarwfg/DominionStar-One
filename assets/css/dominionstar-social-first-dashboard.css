@@ -185,6 +185,17 @@ body.dsos-executive #dashboardSocialPreview{
   }
 }
 @media(max-width:960px){
+  /* Topbar already displays the member's photo and rank. Avoid repeating
+     the same identity panel and pushing the Feed below the initial fold. */
+  body.dsos-executive .dsx-hero-profile{display:none!important}
+  body.dsos-executive .dsx-hero{
+    min-height:0!important;padding:12px 17px!important;gap:0!important;
+  }
+  body.dsos-executive .dsx-greeting{font-size:30px!important}
+  body.dsos-executive .dsx-welcome{
+    max-width:none!important;font-size:11.5px!important;margin-top:3px!important;
+  }
+
   body.dsos-executive .dsx-hero{
     grid-template-columns:minmax(0,1fr)!important;
   }
