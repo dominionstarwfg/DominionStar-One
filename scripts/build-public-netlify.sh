@@ -236,7 +236,7 @@ CSS
     socialActions('like')+'</article>';
 
   const photoPost='<article class="ds-review-post ds-review-photo-post">'+
-    '<div class="ds-review-author"><span class="ds-review-avatar">LA</span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Photo update</small></span>'+sampleMark+'</div>'+
+    '<div class="ds-review-author"><span class="ds-review-avatar ds-review-avatar-photo"><img src="/assets/founder-blue.jpeg" alt="Levismond Aken original profile photograph"></span><span><strong>Levismond Aken</strong><small>SMD · Founding Member #01 · Photo update</small></span>'+sampleMark+'</div>'+
     '<p class="ds-review-photo-caption">Real growth comes from consistency, service, and helping the next person move forward.</p>'+
     '<figure class="ds-review-photo-layout"><img class="ds-review-post-photo" src="/assets/founder-blue.jpeg" alt="Original DominionStar founder photograph shown without cropping"><figcaption>Original photo · Full proportions preserved</figcaption></figure>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+'</span>31 reactions</span><span>9 comments · 4 shares</span></div>'+
