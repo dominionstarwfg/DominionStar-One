@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/assets/css/member-dashboard-readability-v2.css?v=review-1">
 <link rel="stylesheet" href="/assets/css/dominionstar-cinematic-os.css?v=cinematic-1">
 <link rel="stylesheet" href="/assets/css/dominionstar-feed-flow.css?v=natural-flow-20261104">
+<link rel="stylesheet" href="/assets/css/dominionstar-social-first-dashboard.css?v=social-first-20261111">
 <link rel="icon" href="/assets/logo.jpeg">
 <script src="/assets/js/runtime-safety.js?v=8.0-genesis-rc5e-os-build1.7"></script>
 <script src="/assets/js/platform-core.js?v=8.0-genesis-rc5e-os-build1.7"></script>
@@ -110,7 +111,12 @@
         </a>
       </section>
 
-      <section class="dsx-overview" aria-label="Executive overview">
+      <details class="dsx-overview-drawer">
+        <summary aria-label="Expand or collapse your executive network insights">
+          <span class="dsx-overview-lead"><span class="dsx-overview-emblem" aria-hidden="true">▦</span>Network insights</span>
+          <span class="dsx-overview-end">Journey · Community · Notifications · Announcements <span class="dsx-overview-chevron" aria-hidden="true">⌄</span></span>
+        </summary>
+        <section class="dsx-overview" aria-label="Executive overview">
         <a class="dsx-stat dsx-stat-journey" href="/agent-journey/">
           <span class="dsx-stat-icon" aria-hidden="true"><svg class="ds30-icon"><use href="#ds30-journey"></use></svg></span>
           <span>My Journey</span>
@@ -135,7 +141,8 @@
           <strong id="activityAnnouncements">—</strong>
           <small>Active Founder updates</small>
         </a>
-      </section>
+        </section>
+      </details>
 
       <section class="dsx-dashboard-grid">
         <div class="dsx-dashboard-social">
@@ -170,7 +177,7 @@
 
           <section class="dsx-dashboard-feed-preview">
             <div class="dsx-dashboard-feed-head">
-              <div><p class="dsx-kicker">Professional Network</p><h2>Latest update</h2></div>
+              <div><p class="dsx-kicker">Professional Network</p><h2>From your network</h2></div>
               <a href="/feed/">Open full Feed →</a>
             </div>
             <div id="dashboardSocialPreview" class="dsos-feed-stream"><p class="dsos-muted">Loading your network…</p></div>
