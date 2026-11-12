@@ -20,15 +20,16 @@ function makeFeedTarget(id) {
 
 async function renderSample(target,body,options={}) {
   const post={
-    id:'post-full-1',title:options.title||'A complete training announcement',
+    id:'post-full-1',user_id:'post-author-1',is_locked:Boolean(options.locked),title:options.title||'A complete training announcement',
     body,author_full_name:'Approved Member',post_type:options.postType||'announcement',
     created_at:'2026-11-04T18:30:00Z'
   };
   const client={
     async rpc(){return {data:[post],error:null}},
-    from(){return {
+    from(table){return {
       select(){return this},in(){return this},eq(){return this},
-      then(resolve,reject){return Promise.resolve({data:[],error:null}).then(resolve,reject)}
+      then(resolve,reject){const rows=table==='community_comments'?(options.comments||[]):[];
+        return Promise.resolve({data:rows,error:null}).then(resolve,reject)}
     }}
   };
   const fakeDocument={
@@ -154,4 +155,45 @@ test('User-entered markup and unsafe schemes cannot become executable HTML links
   assert.doesNotMatch(html,/<script>|<img src=x/);
   assert.doesNotMatch(html,/href="javascript:/);
   assert.match(html,/href="\/feed\/\?tag=Safe"/);
+});
+
+test('Facebook-style Feed displays recent comments under the post without a separate page',async()=>{
+  const comments=[
+    {message_id:'post-full-1',user_id:'member-test-1',body:'First comment by me',created_at:'2026-11-10T11:00:00Z'},
+    {message_id:'post-full-1',user_id:'post-author-1',body:'Author replied here',created_at:'2026-11-10T12:00:00Z'},
+    {message_id:'post-full-1',user_id:'other-member',body:'Thanks & <script>alert(1)</script> #Leadership',created_at:'2026-11-10T13:00:00Z'}
+  ];
+  const html=await renderSample(makeFeedTarget('feedPageStream'),'Natural-length post.',{comments});
+  assert.match(html,/class="ds30-comments"/);
+  assert.match(html,/class="ds30-comment-list"/);
+  assert.match(html,/3 comments/);
+  assert.match(html,/Author replied here/);
+  assert.match(html,/Community member/);
+  assert.match(html,/View all 3 comments/);
+  assert.match(html,/class="ds30-comment-count"/);
+  assert.doesNotMatch(html,/First comment by me/,'Only last two comments should be previewed');
+  assert.match(html,/&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.doesNotMatch(html,/<script>alert\(1\)<\/script>/);
+  assert.match(html,/class="ds30-hashtag" href="\/feed\/\?tag=Leadership"/);
+  assert.match(html,/class="ds30-comment-form" hidden/);
+  assert.match(html,/Write a comment/);
+});
+
+test('Closed posts do not display a writable comment composer',async()=>{
+  const html=await renderSample(makeFeedTarget('feedPageStream'),'Locked post.',{locked:true});
+  assert.match(html,/Comments are closed for this post/);
+  assert.doesNotMatch(html,/<form class="ds30-comment-form"/);
+});
+
+test('Comments have their own readable, flexible bubble styling',()=>{
+  const commentsCss=read('assets/css/dominionstar-inline-comments.css');
+  for(const file of [feed,dashboard]){
+    assert.match(file,/dominionstar-inline-comments\.css\?v=inline-comments-20261111/);
+  }
+  assert.match(commentsCss,/ds30-comment-bubble/);
+  assert.match(commentsCss,/ds30-comment-avatar/);
+  assert.match(commentsCss,/max-height:none!important/);
+  assert.match(commentsCss,/ds30-comment-form\[hidden\]/);
+  assert.match(commentsCss,/ds30-comment-count:focus-visible/);
+  assert.match(commentsCss,/ds-review-sample-thread/);
 });
