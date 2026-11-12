@@ -279,6 +279,44 @@ try{
         view.label+' network feed extends beyond viewport');
       assert.ok(before.insights.bottom<before.composer.top+2,
         view.label+' insights toggle should precede the composer');
+      // Content decides each post's vertical size. No uniform-height cards,
+      // and each content category must have a readable, differentiated surface.
+      const postGeometry=await page.evaluate(()=>{
+        const kind=klass=>{
+          const card=document.querySelector('#dashboardSocialPreview .'+klass);
+          const r=card.getBoundingClientRect();
+          const body=card.querySelector('.ds-review-message,.ds-review-message-bubble,.ds-review-photo-layout');
+          const b=body?.getBoundingClientRect();
+          return {height:r.height,background:getComputedStyle(card).backgroundImage,
+            bottom:r.bottom,bodyBottom:b?.bottom||r.top};
+        };
+        const photo=document.querySelector('#dashboardSocialPreview .ds-review-photo-layout img');
+        return {short:kind('ds-review-text-post'),long:kind('ds-review-long-post'),
+          zoom:kind('ds-review-zoom-post'),quote:kind('ds-review-quote-post'),
+          photo:kind('ds-review-photo-post'),
+          photoFit:getComputedStyle(photo).objectFit,
+          photoLoaded:photo.complete&&photo.naturalWidth>0,
+          zoomHref:document.querySelector('#dashboardSocialPreview .ds-review-zoom-post .ds-review-message a[href^="https://zoom.us/"]')?.href
+        };
+      });
+      assert.ok(postGeometry.long.height>postGeometry.short.height*1.6,
+        view.label+' longer text should produce a substantially taller post');
+      assert.ok(postGeometry.zoom.height>postGeometry.short.height,
+        view.label+' Zoom message should have natural room for complete details');
+      assert.ok(postGeometry.long.bodyBottom<=postGeometry.long.bottom+1,
+        view.label+' long text runs outside its post card');
+      assert.ok(new Set([postGeometry.short.background,postGeometry.zoom.background,
+        postGeometry.photo.background,postGeometry.quote.background]).size>=3,
+        view.label+' different post types should not all share the same surface');
+      assert.equal(postGeometry.photoFit,'contain',
+        view.label+' photo must preserve original proportions');
+      assert.equal(postGeometry.photoLoaded,true,view.label+' sample photograph did not load');
+      assert.match(postGeometry.zoomHref||'',/^https:\/\/zoom\.us\/j\//,
+        view.label+' Zoom link should be a visible clickable URL');
+      process.stdout.write('ORGANIC_POST_GEOMETRY '+view.label+' '+JSON.stringify({
+        short:Math.round(postGeometry.short.height),long:Math.round(postGeometry.long.height),
+        zoom:Math.round(postGeometry.zoom.height),photoLoaded:postGeometry.photoLoaded
+      })+'\\n');
       await page.locator('.dsx-overview-drawer>summary').click();
       const expanded=await page.evaluate(()=>{
         const details=document.querySelector('.dsx-overview-drawer');
