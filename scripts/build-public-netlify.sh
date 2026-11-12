@@ -215,6 +215,15 @@ CSS
     '<button type="button" data-preview-action="share">'+shareAction+'<span class="ds-review-action-label">Share</span></button></div>';
   const zoomUrl='https://zoom.us/j/7443001370';
 
+  const sampleThread='<div class="ds-review-sample-thread" aria-label="Example comments; not real agent activity">'+
+    '<div class="ds30-comment-entry"><span class="ds30-comment-avatar" aria-hidden="true">SA</span>'+
+      '<div class="ds30-comment-bubble"><div class="ds30-comment-name">Sample Associate</div>'+
+      '<p class="ds30-comment-body">Looking forward to Wednesday’s session. Thanks for sharing the meeting details.</p>'+
+      '<small>Example comment · today</small></div></div>'+
+    '<div class="ds30-comment-entry"><span class="ds30-comment-avatar" aria-hidden="true">MD</span>'+
+      '<div class="ds30-comment-bubble"><div class="ds30-comment-name">Sample Marketing Director</div>'+
+      '<p class="ds30-comment-body">This is a helpful topic to share with our network. #SavingYourFuture</p>'+
+      '<small>Example comment · today</small></div></div></div>';
   // A Zoom link is a normal full-width post, not a squeezed advertisement card.
   const post='<article class="ds-review-post ds-review-zoom-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Weekly meeting · Shared link</small></span>'+sampleMark+'</div>'+
@@ -224,7 +233,7 @@ CSS
       '<p class="ds-review-message">Join us every Wednesday for financial awareness and practical conversations about planning ahead.\n\n9 PM Eastern · 8 PM Central · 6 PM Pacific\nMeeting ID: 744 300 1370\nPasscode: 360\n\nJoin Zoom: <a href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">https://zoom.us/j/7443001370</a>\n\n<a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a> <a class="ds-review-tag" href="/feed/?tag=FinancialAwareness">#FinancialAwareness</a></p>'+
     '</div>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 sample reactions</span><span>8 sample comments · 5 sample shares</span></div>'+
-    socialActions('like')+'</article>';
+    socialActions('like')+sampleThread+'</article>';
 
   const shortPost='<article class="ds-review-post ds-review-text-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">SA</span><span><strong>Sample Agent</strong><small>Senior Associate · Text update</small></span>'+sampleMark+'</div>'+
@@ -448,7 +457,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script><link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111"></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script><link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111"><link rel="stylesheet" href="/assets/css/dominionstar-inline-comments.css?v=inline-comments-20261111"></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
