@@ -204,7 +204,11 @@ body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-long-pos
   background:linear-gradient(150deg,#172e4a,#10273f)!important;
 }
 body.ds-visual-review .ds-review-post p,
-body.ds-visual-review .ds-review-post .ds-review-message{
+body.ds-visual-review .ds-review-post .ds-review-post-body{
+  display:block!important;
+  position:static!important;
+  width:100%!important;
+  min-width:0!important;
   height:auto!important;
   max-height:none!important;
   min-height:0!important;
@@ -224,7 +228,9 @@ body.ds-visual-review .ds-review-post .ds-review-message-bubble{
   border:1px solid rgba(139,185,231,.36);
   border-radius:16px;
 }
-body.ds-visual-review .ds-review-post .ds-review-message-bubble .ds-review-message{
+body.ds-visual-review .ds-review-post .ds-review-message-bubble .ds-review-post-body{
+  display:block!important;
+  width:100%!important;
   margin:0!important;
   white-space:pre-wrap!important;
 }
@@ -232,7 +238,7 @@ body.ds-visual-review .ds-review-post .ds-review-message-bubble strong{
   display:block;margin-bottom:10px;
   color:#c9def4;font-size:13px;
 }
-body.ds-visual-review .ds-review-post .ds-review-message a,
+body.ds-visual-review .ds-review-post .ds-review-post-body a,
 body.ds-visual-review .ds-review-post p a{
   color:#90c6ff!important;text-decoration:underline;
   text-underline-offset:3px;overflow-wrap:anywhere;
@@ -245,14 +251,14 @@ body.ds-visual-review .ds-review-post a.ds-review-tag{
 body.ds-visual-review .ds-review-post a.ds-review-tag:hover{
   text-decoration:underline!important;
 }
-body.ds-visual-review .ds-review-post .ds-review-message small{
+body.ds-visual-review .ds-review-post .ds-review-post-body small{
   display:block;margin-top:10px;color:#c7d5e6;
   font-size:12px;
 }
-body.ds-visual-review .ds-review-post.ds-review-text-post .ds-review-message{
+body.ds-visual-review .ds-review-post.ds-review-text-post .ds-review-post-body{
   font-size:18px!important;line-height:1.75!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-long-post .ds-review-message{
+body.ds-visual-review .ds-review-post.ds-review-long-post .ds-review-post-body{
   font-size:15px!important;line-height:1.88!important;
 }
 body.ds-visual-review .ds-review-post .ds-review-photo-layout{
