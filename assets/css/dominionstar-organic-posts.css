@@ -272,6 +272,31 @@ body.ds-visual-review .ds-review-post .ds-review-author{
   margin-bottom:11px;
   padding-bottom:12px!important;
 }
+/* Example hashtags remain functional even though the review database is disabled. */
+body.ds-visual-review .ds-review-tag-filter{
+  margin:0 0 17px;
+  padding:13px 16px;
+  border:1px solid rgba(217,175,100,.38);
+  border-radius:12px;
+  color:#f0ddba;
+  background:#132e4c;
+  font-size:13px;
+  line-height:1.5;
+}
+body.ds-visual-review .ds-review-tag-filter a{
+  margin-left:7px;
+  color:#9dc9ff;
+  text-decoration:underline;
+}
+body.ds-visual-review .ds-review-tag-empty{
+  margin:20px 0;
+  padding:20px;
+  color:#e2edf8;
+  border:1px solid rgba(140,177,212,.26);
+  border-radius:12px;
+  background:#122d4e;
+}
+
 @media(max-width:650px){
   #feedPageStream .ds30-social-post,
   .dsos-executive #dashboardSocialPreview .ds30-social-post{
