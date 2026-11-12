@@ -285,7 +285,7 @@ try{
         const kind=klass=>{
           const card=document.querySelector('#dashboardSocialPreview .'+klass);
           const r=card.getBoundingClientRect();
-          const body=card.querySelector('.ds-review-message,.ds-review-message-bubble,.ds-review-photo-layout');
+          const body=card.querySelector('.ds-review-post-body,.ds-review-message-bubble,.ds-review-photo-layout');
           const b=body?.getBoundingClientRect();
           return {height:r.height,background:getComputedStyle(card).backgroundImage,
             bottom:r.bottom,bodyBottom:b?.bottom||r.top};
@@ -296,9 +296,47 @@ try{
           photo:kind('ds-review-photo-post'),
           photoFit:getComputedStyle(photo).objectFit,
           photoLoaded:photo.complete&&photo.naturalWidth>0,
-          zoomHref:document.querySelector('#dashboardSocialPreview .ds-review-zoom-post .ds-review-message a[href^="https://zoom.us/"]')?.href
+          zoomHref:document.querySelector('#dashboardSocialPreview .ds-review-zoom-post .ds-review-post-body a[href^="https://zoom.us/"]')?.href
         };
       });
+      const textFlow=await page.evaluate(()=>{
+        const audit=(cardClass)=>{
+          const p=document.querySelector('#dashboardSocialPreview .'+cardClass+' .ds-review-post-body');
+          const style=getComputedStyle(p);
+          const anchor=p.querySelector('a');
+          const linkStyle=anchor?getComputedStyle(anchor):null;
+          const bounds=p.getBoundingClientRect();
+          return {display:style.display,whiteSpace:style.whiteSpace,
+            width:bounds.width,scrollWidth:p.scrollWidth,
+            linkDisplay:linkStyle?.display||null,
+            linkInside:!anchor||(anchor.getBoundingClientRect().left<=bounds.right+1),
+            plainText:p.innerText,
+            tagCount:p.querySelectorAll('a.ds-review-tag').length};
+        };
+        return {short:audit('ds-review-text-post'),long:audit('ds-review-long-post'),
+          zoom:audit('ds-review-zoom-post')};
+      });
+      for(const [postKind,flow] of Object.entries(textFlow)){
+        assert.equal(flow.display,'block',
+          view.label+' '+postKind+' post paragraph is being rendered as flex/grid columns');
+        assert.equal(flow.whiteSpace,'pre-wrap',
+          view.label+' '+postKind+' post lost natural paragraph breaks');
+        assert.ok(flow.width>120,view.label+' '+postKind+' paragraph was squeezed');
+        assert.ok(flow.scrollWidth<=flow.width+3,
+          view.label+' '+postKind+' paragraph has horizontal overflow');
+        assert.equal(flow.linkDisplay,'inline',
+          view.label+' '+postKind+' link/hashtag must flow in text, not a flex column');
+        assert.ok(flow.linkInside,
+          view.label+' '+postKind+' link escaped its content bounds');
+      }
+      assert.match(textFlow.zoom.plainText,/Meeting ID: 744 300 1370/);
+      assert.match(textFlow.zoom.plainText,/Passcode: 360/);
+      assert.match(textFlow.long.plainText,/Everyone moves at a different pace/);
+      assert.ok(textFlow.long.tagCount>=3,'long post should expose all hashtags');
+      process.stdout.write('FEED_TEXT_FLOW_PASS '+view.label+' '+
+        JSON.stringify(Object.fromEntries(Object.entries(textFlow).map(
+          ([kind,flow])=>[kind,{display:flow.display,linkDisplay:flow.linkDisplay,
+            width:Math.round(flow.width),tags:flow.tagCount}])))+'\\n');
       assert.ok(postGeometry.long.height>postGeometry.short.height*1.6,
         view.label+' longer text should produce a substantially taller post');
       assert.ok(postGeometry.zoom.height>postGeometry.short.height,
