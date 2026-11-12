@@ -215,24 +215,27 @@ CSS
     '<button type="button" data-preview-action="share">'+shareAction+'<span class="ds-review-action-label">Share</span></button></div>';
   const zoomUrl='https://zoom.us/j/7443001370';
 
-  // One unified, intentionally compact Zoom post: no duplicated meeting banner.
-  const post='<article class="ds-review-post ds-review-featured ds-review-zoom-post">'+
-    '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Official announcement · Weekly session</small></span>'+sampleMark+'</div>'+
-    '<p>Join our Wednesday financial awareness session. Invite a friend or colleague.</p>'+
-    '<div class="ds-review-event">'+
-      '<div class="ds-review-event-visual">'+
-        '<div><div class="ds-review-event-brand"><span class="ds-review-event-brand-mark">✦</span> DOMINIONSTAR LEADERSHIP</div>'+
-          '<h3>Saving Your <em>Future</em></h3><p>Plan today. Protect tomorrow.</p></div>'+
-        '<div class="ds-review-event-live"><strong>WEDNESDAY</strong><span>9 PM ET<br>8 PM CT<br>6 PM PT</span><small>Live online</small></div>'+
-      '</div>'+
-      '<div class="ds-review-event-details">'+
-        '<span class="ds-review-event-details-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="14" rx="2"></rect><path d="m15 10 6-3v10l-6-3"></path></svg></span>'+
-        '<div class="ds-review-event-details-copy"><strong>Join on Zoom · Meeting ID 744 300 1370</strong><small>Passcode: 360 · Weekly financial awareness webinar</small>'+
-        '<a class="ds-review-event-url" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">zoom.us/j/7443001370</a></div>'+
-        '<a class="ds-review-event-join" href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer" aria-label="Open the Zoom meeting in a new tab">Open Zoom ↗</a>'+
-      '</div>'+
+  // A Zoom link is a normal full-width post, not a squeezed advertisement card.
+  const post='<article class="ds-review-post ds-review-zoom-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">DS</span><span><strong>DominionStar Leadership</strong><small>Weekly meeting · Shared link</small></span>'+sampleMark+'</div>'+
+    '<p>Our next Saving Your Future session is Wednesday. Join us, bring your questions, and share with someone who might benefit. <a class="ds-review-tag" href="/feed/?tag=SavingYourFuture">#SavingYourFuture</a></p>'+
+    '<div class="ds-review-message-bubble">'+
+      '<strong>🔗 Saving Your Future · Live Zoom invitation</strong>'+
+      '<p class="ds-review-message">Join us every Wednesday for financial awareness and practical conversations about planning ahead.\n\n9 PM Eastern · 8 PM Central · 6 PM Pacific\nMeeting ID: 744 300 1370\nPasscode: 360\n\nJoin Zoom: <a href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">https://zoom.us/j/7443001370</a>\n\n<a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a> <a class="ds-review-tag" href="/feed/?tag=FinancialAwareness">#FinancialAwareness</a></p>'+
     '</div>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 sample reactions</span><span>8 sample comments · 5 sample shares</span></div>'+
+    socialActions('like')+'</article>';
+
+  const shortPost='<article class="ds-review-post ds-review-text-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">SA</span><span><strong>Sample Agent</strong><small>Senior Associate · Text update</small></span>'+sampleMark+'</div>'+
+    '<p class="ds-review-message">Small, consistent actions create meaningful progress. Keep learning and keep showing up. <a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a></p>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+'</span>7 sample reactions</span><span>2 sample comments</span></div>'+
+    socialActions('like')+'</article>';
+
+  const longPost='<article class="ds-review-post ds-review-long-post">'+
+    '<div class="ds-review-author"><span class="ds-review-avatar">MD</span><span><strong>Sample Marketing Director</strong><small>Marketing Director · Training insight</small></span>'+sampleMark+'</div>'+
+    '<p class="ds-review-message">Today’s team development reminder:\n\n1. Study consistently and understand your state licensing requirements.\n\n2. Build confidence through training before approaching clients.\n\n3. Ask questions, stay compliant, and focus on serving people well.\n\nOur training resources and agency information are available at <a href="https://dominionstarld.com" target="_blank" rel="noopener noreferrer">https://dominionstarld.com</a>.\n\nEveryone moves at a different pace. The objective is steady development, not rushing to the next milestone.\n\n<a class="ds-review-tag" href="/feed/?tag=AgentDevelopment">#AgentDevelopment</a> <a class="ds-review-tag" href="/feed/?tag=Leadership">#Leadership</a> <a class="ds-review-tag" href="/feed/?tag=Training">#Training</a></p>'+
+    '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+celebrateBadge+'</span>17 sample reactions</span><span>4 sample comments</span></div>'+
     socialActions('like')+'</article>';
 
   const photoPost='<article class="ds-review-post ds-review-photo-post">'+
@@ -262,8 +265,8 @@ CSS
     socialActions('like')+'</article>';
 
   // Dashboard shows an engaging stream; the dedicated Feed contains all four formats.
-  html('dashboardSocialPreview',post+photoPost+quotePost);
-  html('feedPageStream',post+photoPost+quotePost+dashboardSecond);
+  html('dashboardSocialPreview',shortPost+post+photoPost+longPost+quotePost);
+  html('feedPageStream',shortPost+post+photoPost+longPost+quotePost+dashboardSecond);
 
   // Messages representative three-column state.
   html('dmConversationList','<button class="ds-review-conversation active"><span class="avatar">TM</span><span><strong>Team Member</strong><small>Great progress this week.</small></span><time>9:41</time></button><button class="ds-review-conversation"><span class="avatar">SA</span><span><strong>Senior Associate</strong><small>Can we review the training plan?</small></span><time>8:12</time></button><button class="ds-review-conversation"><span class="avatar">MD</span><span><strong>Marketing Director</strong><small>Meeting notes are ready.</small></span><time>Fri</time></button>');
@@ -419,7 +422,7 @@ for rel in workspace_pages:
 
     # Inject the preview-only safety/visibility stylesheet.
     if 'dominionstar-visual-review.css' not in html:
-        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script></head>',1)
+        html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script><link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111"></head>',1)
 
     p.write_text(html,encoding='utf-8')
 
