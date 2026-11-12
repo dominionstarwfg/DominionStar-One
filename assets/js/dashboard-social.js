@@ -78,6 +78,10 @@
     }
     let posts = [];
     let avatarUrls = new Map();
+    let commentThreads = new Map();
+    const expandedComments = new Set();
+    const openComposers = new Set();
+    let lastCounts = new Map();
     let busy = false;
     let revision = 0;
     const status = document.createElement('p');
@@ -118,6 +122,7 @@
       const filterBanner=target.id==='feedPageStream'&&requestedTag
         ? '<div class="ds30-tag-filter" role="status"><span>Latest posts tagged <strong>#'+escapeHtml(requestedTag)+'</strong></span><a href="/feed/">Show all posts</a></div>'
         : '';
+      lastCounts=counts;
       target.innerHTML = filterBanner + (filtered.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
         const authorRank=String(post.author_rank||'').trim() || '—';
@@ -146,6 +151,22 @@
           .map(name=>'<span class="ds30-reaction-chip" title="'+reactionMeta[name].label+'">'+reactionBadge(name)+'</span>')
           .join('');
         const reactionLabel=viewerReaction?(reactionMeta[viewerReaction]?.label||'React'):'Like';
+        const thread=commentThreads.get(String(post.id))||[];
+        const expanded=expandedComments.has(String(post.id));
+        const shownComments=expanded?thread:thread.slice(-2);
+        // Approved members' comments come from RLS-scoped community_comments.
+        // Do not read unapproved private member_profiles for display names.
+        const commentRow=comment=>{
+          const self=comment.user_id===memberId;
+          const authorComment=comment.user_id===post.user_id;
+          const commenter=self?'You':authorComment?author:'Community member';
+          const avatarText=self?'Y':authorComment?(initials||'DS'):'CM';
+          return '<div class="ds30-comment-entry">'+
+            '<span class="ds30-comment-avatar" aria-hidden="true">'+escapeHtml(avatarText)+'</span>'+
+            '<div class="ds30-comment-bubble"><div class="ds30-comment-name">'+escapeHtml(commenter)+'</div>'+
+            '<p class="ds30-comment-body">'+linkify(String(comment.body||''))+'</p>'+
+            '<small>'+escapeHtml(displayDate(comment.created_at))+'</small></div></div>';
+        };
         return `
         <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}" data-post-kind="${escapeHtml(kind)}" data-post-length="${length}">
           <header class="ds30-post-authorbar">
@@ -174,7 +195,7 @@
           ${messageContent}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span class="ds30-reaction-summary">${reactionChips}<span>${reactionCount} ${stats.totalReactions===1?'reaction':'reactions'}</span></span>
-            <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
+            <button class="ds30-comment-count" type="button" data-social="comments" aria-expanded="${expanded}" aria-label="View comments for this post">${commentCount} ${stats.comments===1?'comment':'comments'}</button>
           </div>
           <div class="ds30-post-actions" role="group" aria-label="Post actions">
             <div class="ds30-react-wrap">
@@ -187,13 +208,20 @@
             <button type="button" data-social="repost" title="Share the original post to your professional network">${icon('repost')}<span>Repost</span></button>
             <button type="button" data-social="share">${icon('share')}<span>Share</span></button>
           </div>
-          <form class="ds30-comment-form" hidden>
-            <label for="ds30-comment-${escapeHtml(post.id)}">Your comment</label>
-            <div class="ds30-comment-row">
-              <textarea id="ds30-comment-${escapeHtml(post.id)}" maxlength="1500" rows="2" required placeholder="Write a thoughtful comment…"></textarea>
-              <button type="submit">Post</button>
-            </div>
-          </form>
+          <section class="ds30-comments" aria-label="Post comments">
+            ${!stats.commentsKnown?'<p class="ds30-comment-unavailable">Comments are temporarily unavailable.</p>':
+              (thread.length?
+                '<div class="ds30-comment-list">'+shownComments.map(commentRow).join('')+'</div>'+
+                (thread.length>2?'<button class="ds30-comments-more" type="button" data-social="comments" aria-expanded="'+expanded+'">'+
+                  (expanded?'Show fewer comments':'View all '+thread.length+' comments')+'</button>':'')
+                :'<p class="ds30-comment-empty" hidden>No comments yet.</p>')}
+            ${post.is_locked?'<p class="ds30-comment-locked">Comments are closed for this post.</p>':
+              '<form class="ds30-comment-form" '+(openComposers.has(String(post.id))?'':'hidden')+'>'+
+                '<label for="ds30-comment-'+escapeHtml(post.id)+'">Write a comment</label>'+
+                '<div class="ds30-comment-row">'+
+                  '<textarea id="ds30-comment-'+escapeHtml(post.id)+'" maxlength="1500" rows="2" required placeholder="Write a comment…"></textarea>'+
+                  '<button type="submit">Post</button></div></form>'}
+          </section>
         </article>`;
       }).join('') || '<div class="dashboard-empty-compact"><strong>No matching posts in the latest network updates.</strong><p>Try another hashtag or browse the full Feed.</p><a href="/feed/">Show all posts →</a></div>');
       // Broken/expired profile image URLs must fall back to the author's initials.
@@ -208,7 +236,7 @@
       if(current!==revision)return;
       if(result.error)throw result.error;
       posts=asPosts(result.data).filter(p=>p && p.id);
-      if(!posts.length){avatarUrls=new Map();render(new Map());return;}
+      if(!posts.length){avatarUrls=new Map();commentThreads=new Map();render(new Map());return;}
       const ids=posts.map(post=>post.id);
       const avatarPaths=[...new Set(posts.map(post=>post.author_avatar_path).filter(path=>typeof path==='string'&&path.trim()))];
       const avatarLookup=Promise.all(avatarPaths.map(async path=>{
@@ -219,7 +247,7 @@
       }));
       const [reactionResult,commentResult,avatarEntries]=await Promise.all([
         client.from('community_reactions').select('message_id,user_id,reaction').in('message_id',ids),
-        client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false),
+        client.from('community_comments').select('message_id,user_id,body,created_at').in('message_id',ids).eq('is_deleted',false),
         avatarLookup
       ]);
       avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
@@ -237,10 +265,18 @@
         info.reactions[name]=(info.reactions[name]||0)+1;
         if(reaction.user_id===memberId)info.viewerReaction=name;
       });
+      commentThreads=new Map();
       if(commentOk)(commentResult.data||[]).forEach(comment=>{
         const info=counts.get(String(comment.message_id));
-        if(info)info.comments+=1;
+        if(!info)return;
+        info.comments+=1;
+        if(typeof comment.body!=='string')return;
+        const key=String(comment.message_id);
+        if(!commentThreads.has(key))commentThreads.set(key,[]);
+        commentThreads.get(key).push(comment);
       });
+      for(const thread of commentThreads.values())thread.sort((a,b)=>
+        (new Date(a.created_at||0).getTime()||0)-(new Date(b.created_at||0).getTime()||0));
       render(counts);
       if(!reactionOk||!commentOk)notice('Some reaction totals are unavailable. You can still open the full conversation.');
     };
@@ -286,9 +322,19 @@
       closeMenus();
       if(action==='comment'){
         const form=card.querySelector('.ds30-comment-form');
-        form.hidden=!form.hidden;
-        button.setAttribute('aria-expanded',String(!form.hidden));
-        if(!form.hidden)form.querySelector('textarea')?.focus();
+        if(!form){notice('Comments are closed for this post.',true);return;}
+        const next=form.hidden;
+        form.hidden=!next;
+        if(next)openComposers.add(String(post.id));else openComposers.delete(String(post.id));
+        button.setAttribute('aria-expanded',String(next));
+        if(next)form.querySelector('textarea')?.focus();
+        return;
+      }
+      if(action==='comments'){
+        const id=String(post.id);
+        const next=!expandedComments.has(id);
+        if(next)expandedComments.add(id);else expandedComments.delete(id);
+        render(lastCounts);
         return;
       }
       if(action==='reaction')return void inFlight(async()=>{
@@ -381,6 +427,8 @@
         });
         if(result.error)throw result.error;
         // Noncritical mention alerts are handled separately by the Community workflow.
+        expandedComments.add(String(post.id));
+        openComposers.add(String(post.id));
         await refresh();notice('Comment posted.');
       });
     });
