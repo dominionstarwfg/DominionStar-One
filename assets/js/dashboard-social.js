@@ -6,9 +6,19 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   }[char]));
-  // Linkify only HTTP(S); keep all user-entered text escaped.
+  // Only linkify validated HTTP(S) URLs and hashtags. Never treat member input
+  // as HTML, javascript: URLs, or external data fetched without consent.
+  const hashtags = value => Array.from(
+    String(value ?? '').matchAll(/(^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{1,64})/gu),
+    match => match[2].toLocaleLowerCase()
+  );
+  const linkifyHashtags = value => String(value ?? '')
+    .split(/(#[\p{L}\p{N}_]{1,64})/gu)
+    .map(part => /^#[\p{L}\p{N}_]{1,64}$/u.test(part)
+      ? '<a class="ds30-hashtag" href="/feed/?tag='+encodeURIComponent(part.slice(1))+'">'+escapeHtml(part)+'</a>'
+      : escapeHtml(part)).join('');
   const linkify = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
-    if (!/^https?:\/\//i.test(part)) return escapeHtml(part);
+    if (!/^https?:\/\//i.test(part)) return linkifyHashtags(part);
     const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
     const candidate=part.slice(0,part.length-trailing.length);
     try {
@@ -17,6 +27,20 @@
       return '<a href="'+escapeHtml(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+escapeHtml(candidate)+'</a>'+escapeHtml(trailing);
     } catch { return escapeHtml(part); }
   }).join('');
+  const postKind = post => {
+    const body=String(post.body||post.description||'');
+    if (/https?:\/\/(?:[\w-]+\.)*zoom\.us\/(?:j\/|my\/|wc\/join\/|s\/)/i.test(body)) return 'meeting';
+    if (/https?:\/\/[^\s<>"']+/i.test(body)) return 'link';
+    if (/^(quote|inspiration)$/i.test(String(post.post_type||''))) return 'quote';
+    if (/^announcement$/i.test(String(post.post_type||''))) return 'announcement';
+    return 'text';
+  };
+  const requestedTag = (() => {
+    try {
+      const value=new URL(location.href||location.origin).searchParams.get('tag')||'';
+      return /^[\p{L}\p{N}_]{1,64}$/u.test(value)?value.toLocaleLowerCase():'';
+    } catch {return '';}
+  })();
 
   const icons = {
     like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
@@ -88,7 +112,13 @@
       finally{link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);}
     };
     const render = (counts) => {
-      target.innerHTML = posts.map(post => {
+      const filtered=target.id==='feedPageStream'&&requestedTag
+        ? posts.filter(post=>hashtags(String(post.title||'')+' '+String(post.body||post.description||'')).includes(requestedTag))
+        : posts;
+      const filterBanner=target.id==='feedPageStream'&&requestedTag
+        ? '<div class="ds30-tag-filter" role="status"><span>Latest posts tagged <strong>#'+escapeHtml(requestedTag)+'</strong></span><a href="/feed/">Show all posts</a></div>'
+        : '';
+      target.innerHTML = filterBanner + filtered.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
         const authorRank=String(post.author_rank||'').trim() || '—';
         const foundingNumber=Number(post.author_exclusive_number);
@@ -96,11 +126,15 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        // The full Feed is a reading surface. Only compact Dashboard previews
-        // may be excerpted; the post itself always grows to fit all its text.
-        const fullFeed=target.id==='feedPageStream';
-        const text=fullFeed ? description :
-          (description.length>900 ? description.slice(0,900)+'…' : description);
+        // Full text is shown in BOTH the Dashboard and Feed. A short post uses
+        // little space; a long post grows vertically without clipping.
+        const kind=postKind(post);
+        const length=description.length>320?'long':'short';
+        const messageContent=kind==='meeting'||kind==='link'
+          ? '<div class="ds30-post-message-bubble">'+
+              (kind==='meeting'?'<div class="ds30-post-message-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="12" height="14" rx="2"></rect><path d="m15 10 6-3v10l-6-3"></path></svg>Shared Zoom meeting link</div>':'')+
+              '<p class="ds30-post-copy">'+linkify(description)+'</p></div>'
+          : '<p class="ds30-post-copy">'+linkify(description)+'</p>';
         const stats=counts.get(String(post.id))||{};
         const reactionCount=readableCount(stats.totalReactions||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
@@ -113,7 +147,7 @@
           .join('');
         const reactionLabel=viewerReaction?(reactionMeta[viewerReaction]?.label||'React'):'Like';
         return `
-        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
+        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}" data-post-kind="${escapeHtml(kind)}" data-post-length="${length}">
           <header class="ds30-post-authorbar">
             <span class="ds30-author-avatar" aria-hidden="true">
               <span class="ds30-author-initials">${escapeHtml(initials||'DS')}</span>
@@ -136,9 +170,8 @@
               </div>
             </div>
           </header>
-          ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
-          <p class="ds30-post-copy">${linkify(text)}</p>
-          ${!fullFeed&&description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${post.title ? '<h3>'+linkify(post.title)+'</h3>' : ''}
+          ${messageContent}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span class="ds30-reaction-summary">${reactionChips}<span>${reactionCount} ${stats.totalReactions===1?'reaction':'reactions'}</span></span>
             <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
@@ -162,7 +195,7 @@
             </div>
           </form>
         </article>`;
-      }).join('') || '<div class="dashboard-empty-compact"><strong>No community posts yet.</strong><p>Be the first to share an update.</p><a href="/community/">Open Community →</a></div>';
+      }).join('') || '<div class="dashboard-empty-compact"><strong>No matching posts in the latest network updates.</strong><p>Try another hashtag or browse the full Feed.</p><a href="/feed/">Show all posts →</a></div>';
       // Broken/expired profile image URLs must fall back to the author's initials.
       target.querySelectorAll?.('.ds30-author-photo').forEach(image => {
         image.addEventListener('error',() => image.remove(),{once:true});
