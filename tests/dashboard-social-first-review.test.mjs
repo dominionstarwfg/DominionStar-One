@@ -48,9 +48,10 @@ test('Backend-disabled preview reflects this visual change with correct sample c
 
 
 test('Sample Feed shows four distinct post formats with visible safe actions',()=>{
-  assert.match(preview,/Saving Your <em>Future<\/em>/);
-  assert.match(preview,/ds-review-event-visual/);
-  assert.match(preview,/ds-review-event-details/);
+  assert.match(preview,/Saving Your Future · Live Zoom invitation/);
+  assert.match(preview,/ds-review-message-bubble/);
+  assert.match(preview,/ds-review-long-post/);
+  assert.match(preview,/ds-review-text-post/);
   assert.doesNotMatch(preview,/class="ds-review-zoom-card"/);
   assert.match(preview,/https:\/\/zoom\.us\/j\/7443001370/);
   assert.match(preview,/target="_blank" rel="noopener noreferrer"/);
@@ -66,8 +67,8 @@ test('Sample Feed shows four distinct post formats with visible safe actions',()
   assert.match(preview,/EXAMPLE POST/);
   assert.match(preview,/socialActions\('like'\)/);
   assert.match(preview,/socialActions\('love'\)/);
-  assert.match(preview,/html\('dashboardSocialPreview',post\+photoPost\+quotePost\)/);
-  assert.match(preview,/html\('feedPageStream',post\+photoPost\+quotePost\+dashboardSecond\)/);
+  assert.match(preview,/html\('dashboardSocialPreview',shortPost\+post\+photoPost\+longPost\+quotePost\)/);
+  assert.match(preview,/html\('feedPageStream',shortPost\+post\+photoPost\+longPost\+quotePost\+dashboardSecond\)/);
   assert.match(preview,/button,input,select,textarea,form\{pointer-events:none!important\}/);
   assert.match(preview,/connect-src 'none'/);
 });
@@ -105,4 +106,24 @@ test('Preview improvements do not reach production or alter posting backend',()=
   assert.doesNotMatch(htmlFeed,/dominionstar-social-preview-interactions.js/);
   assert.doesNotMatch(dashboard,/dominionstar-social-preview-interactions.js/);
   assert.doesNotThrow(()=>new vm.Script(demo));
+});
+
+
+test('Preview and real Feed retain natural vertical heights and content-dependent surfaces',()=>{
+  const organic=read('assets/css/dominionstar-organic-posts.css');
+  assert.match(organic,/data-post-kind="meeting"/);
+  assert.match(organic,/data-post-kind="link"/);
+  assert.match(organic,/data-post-kind="quote"/);
+  assert.match(organic,/data-post-kind="announcement"/);
+  assert.match(organic,/ds-review-zoom-post/);
+  assert.match(organic,/ds-review-photo-post/);
+  assert.match(organic,/ds-review-long-post/);
+  assert.match(organic,/max-height:none!important/);
+  assert.match(organic,/white-space:pre-wrap!important/);
+  assert.match(organic,/ds-review-message-bubble/);
+  for(const path of ['feed/index.html','member-dashboard/index.html']){
+    const html=read(path);
+    assert.match(html,/dominionstar-organic-posts\.css\?v=organic-20261111/);
+    assert.match(html,/dashboard-social\.js\?v=organic-20261111/);
+  }
 });
