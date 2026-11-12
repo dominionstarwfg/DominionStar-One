@@ -18,10 +18,10 @@ function makeFeedTarget(id) {
   };
 }
 
-async function renderSample(target,body) {
+async function renderSample(target,body,options={}) {
   const post={
-    id:'post-full-1',title:'A complete training announcement',
-    body,author_full_name:'Approved Member',post_type:'announcement',
+    id:'post-full-1',title:options.title||'A complete training announcement',
+    body,author_full_name:'Approved Member',post_type:options.postType||'announcement',
     created_at:'2026-11-04T18:30:00Z'
   };
   const client={
@@ -40,7 +40,7 @@ async function renderSample(target,body) {
   };
   const context={
     window:{},document:fakeDocument,navigator:{},
-    location:{origin:'https://dominionstarld.com'},URL
+    location:{origin:'https://dominionstarld.com',href:'https://dominionstarld.com/feed/'+(options.search||'')},URL
   };
   vm.runInNewContext(social,context);
   await context.window.DSDashboardSocial.mount({
@@ -49,7 +49,7 @@ async function renderSample(target,body) {
   return target.innerHTML;
 }
 
-test('Full Feed renders every character of a long post; Dashboard remains an excerpt',async()=>{
+test('Full Feed and Dashboard render every character of a long post with natural height',async()=>{
   const body='Original post starts.\n'+('Long-form agent training information stays visible. '.repeat(35))+'\nThe final paragraph is preserved.';
   assert.ok(body.length>900);
   const full=await renderSample(makeFeedTarget('feedPageStream'),body);
@@ -58,8 +58,9 @@ test('Full Feed renders every character of a long post; Dashboard remains an exc
   assert.ok(full.includes('Long-form agent training information stays visible.'),'Full Feed must show middle paragraph');
   assert.ok(!full.includes('Read full post'),'Full Feed must never insert a truncation link');
   const preview=await renderSample(makeFeedTarget('dashboardSocialPreview'),body);
-  assert.ok(!preview.includes('The final paragraph is preserved.'),'Dashboard should remain condensed');
-  assert.ok(preview.includes('Read full post'),'Condensed preview must link to the rest');
+  assert.ok(preview.includes('The final paragraph is preserved.'),'Dashboard must not truncate content either');
+  assert.ok(!preview.includes('Read full post'),'Dashboard must not add an artificial excerpt');
+  assert.match(preview,/data-post-length="long"/);
 });
 
 test('Feed layout does not clip cards and preserves line breaks and long URLs',()=>{
@@ -98,8 +99,59 @@ test('Feed fills main stage on wide screens, stacks right rail before narrow lay
 test('Feed repair stylesheet loads last and updated social script avoids stale cached version',()=>{
   for(const [path,html] of [['feed/index.html',feed],['member-dashboard/index.html',dashboard]]){
     assert.ok(html.indexOf('dominionstar-feed-flow.css?v=natural-flow-20261104')>html.indexOf('dominionstar-cinematic-os.css'),path+' must load after cinematic');
-    assert.match(html,/dashboard-social\.js\?v=natural-flow-20261104/);
+    assert.match(html,/dashboard-social\.js\?v=organic-20261111/);
   }
   assert.match(feed,/id="feedPageStream"/);
   assert.match(dashboard,/id="dashboardSocialPreview"/);
+});
+
+
+test('Short and long posts get length-specific styling without fixed-height truncation',async()=>{
+  const short=await renderSample(makeFeedTarget('feedPageStream'),'One short sentence.');
+  const long=await renderSample(makeFeedTarget('feedPageStream'),'Long agent update. '.repeat(45));
+  assert.match(short,/data-post-length="short"/);
+  assert.match(long,/data-post-length="long"/);
+  assert.match(short,/data-post-kind="announcement"/);
+  assert.match(long,/Long agent update/);
+  const organic=read('assets/css/dominionstar-organic-posts.css');
+  assert.match(organic,/max-height:none!important/);
+  assert.match(organic,/line-height:1\.85!important/);
+});
+
+test('Real posts safely linkify Zoom, ordinary links and hashtags, with a readable message bubble',async()=>{
+  const body='Join on Zoom https://us06web.zoom.us/j/7443001370 today.\n#SavingYourFuture #DominionStar';
+  const html=await renderSample(makeFeedTarget('feedPageStream'),body);
+  assert.match(html,/data-post-kind="meeting"/);
+  assert.match(html,/ds30-post-message-bubble/);
+  assert.match(html,/Shared Zoom meeting link/);
+  assert.match(html,/href="https:\/\/us06web\.zoom\.us\/j\/7443001370"/);
+  assert.match(html,/class="ds30-hashtag" href="\/feed\/\?tag=SavingYourFuture"/);
+  assert.match(html,/class="ds30-hashtag" href="\/feed\/\?tag=DominionStar"/);
+  assert.match(html,/rel="noopener noreferrer nofollow"/);
+  assert.doesNotMatch(html,/Read full post/);
+  const general=await renderSample(makeFeedTarget('feedPageStream'),'Read https://dominionstarld.com for more. #Leadership');
+  assert.match(general,/data-post-kind="link"/);
+  assert.match(general,/href="https:\/\/dominionstarld\.com\/"/);
+  assert.doesNotMatch(general,/Shared Zoom meeting link/);
+});
+
+test('Hashtag links select the latest matching posts and allow returning to full Feed',async()=>{
+  const body='Progress for #Leadership every day.';
+  const matched=await renderSample(makeFeedTarget('feedPageStream'),body,{search:'?tag=Leadership'});
+  assert.match(matched,/Latest posts tagged/);
+  assert.match(matched,/Progress for/);
+  assert.match(matched,/Show all posts/);
+  const missed=await renderSample(makeFeedTarget('feedPageStream'),body,{search:'?tag=Licensing'});
+  assert.match(missed,/No matching posts in the latest network updates/);
+  assert.doesNotMatch(missed,/>Progress for/);
+});
+
+test('User-entered markup and unsafe schemes cannot become executable HTML links',async()=>{
+  const body='Notice <img src=x onerror=alert(1)> & <script>alert(1)</script> javascript:alert(1) #Safe';
+  const html=await renderSample(makeFeedTarget('feedPageStream'),body);
+  assert.match(html,/&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(html,/&lt;script&gt;/);
+  assert.doesNotMatch(html,/<script>|<img src=x/);
+  assert.doesNotMatch(html,/href="javascript:/);
+  assert.match(html,/href="\/feed\/\?tag=Safe"/);
 });
