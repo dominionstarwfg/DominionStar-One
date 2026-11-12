@@ -267,6 +267,32 @@ CSS
   // Dashboard shows an engaging stream; the dedicated Feed contains all four formats.
   html('dashboardSocialPreview',shortPost+post+photoPost+longPost+quotePost);
   html('feedPageStream',shortPost+post+photoPost+longPost+quotePost+dashboardSecond);
+  // The visual review does not query production data. It locally filters
+  // sample posts when an example hashtag link is opened.
+  const previewTag=new URLSearchParams(location.search).get('tag');
+  const previewStream=document.getElementById('feedPageStream');
+  if(previewTag&&previewStream){
+    const normalized=previewTag.toLocaleLowerCase();
+    [...previewStream.querySelectorAll('.ds-review-post')].forEach(card=>{
+      const tags=[...card.querySelectorAll('a.ds-review-tag')]
+        .map(a=>a.textContent.trim().replace(/^#/,'').toLocaleLowerCase());
+      if(!tags.includes(normalized))card.remove();
+    });
+    const banner=document.createElement('div');
+    banner.className='ds-review-tag-filter';
+    banner.textContent='Example posts tagged #'+previewTag+' · ';
+    const clear=document.createElement('a');
+    clear.href='/feed/';
+    clear.textContent='Show all example posts';
+    banner.appendChild(clear);
+    previewStream.prepend(banner);
+    if(!previewStream.querySelector('.ds-review-post')){
+      const empty=document.createElement('p');
+      empty.className='ds-review-tag-empty';
+      empty.textContent='No example posts carry this tag. Try another or return to all posts.';
+      previewStream.appendChild(empty);
+    }
+  }
 
   // Messages representative three-column state.
   html('dmConversationList','<button class="ds-review-conversation active"><span class="avatar">TM</span><span><strong>Team Member</strong><small>Great progress this week.</small></span><time>9:41</time></button><button class="ds-review-conversation"><span class="avatar">SA</span><span><strong>Senior Associate</strong><small>Can we review the training plan?</small></span><time>8:12</time></button><button class="ds-review-conversation"><span class="avatar">MD</span><span><strong>Marketing Director</strong><small>Meeting notes are ready.</small></span><time>Fri</time></button>');
