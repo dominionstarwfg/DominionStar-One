@@ -230,20 +230,20 @@ CSS
     '<p>Our next Saving Your Future session is Wednesday. Join us, bring your questions, and share with someone who might benefit. <a class="ds-review-tag" href="/feed/?tag=SavingYourFuture">#SavingYourFuture</a></p>'+
     '<div class="ds-review-message-bubble">'+
       '<strong>🔗 Saving Your Future · Live Zoom invitation</strong>'+
-      '<p class="ds-review-message">Join us every Wednesday for financial awareness and practical conversations about planning ahead.\n\n9 PM Eastern · 8 PM Central · 6 PM Pacific\nMeeting ID: 744 300 1370\nPasscode: 360\n\nJoin Zoom: <a href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">https://zoom.us/j/7443001370</a>\n\n<a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a> <a class="ds-review-tag" href="/feed/?tag=FinancialAwareness">#FinancialAwareness</a></p>'+
+      '<p class="ds-review-post-body">Join us every Wednesday for financial awareness and practical conversations about planning ahead.\n\n9 PM Eastern · 8 PM Central · 6 PM Pacific\nMeeting ID: 744 300 1370\nPasscode: 360\n\nJoin Zoom: <a href="'+zoomUrl+'" target="_blank" rel="noopener noreferrer">https://zoom.us/j/7443001370</a>\n\n<a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a> <a class="ds-review-tag" href="/feed/?tag=FinancialAwareness">#FinancialAwareness</a></p>'+
     '</div>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+loveBadge+celebrateBadge+'</span>24 sample reactions</span><span>8 sample comments · 5 sample shares</span></div>'+
     socialActions('like')+sampleThread+'</article>';
 
   const shortPost='<article class="ds-review-post ds-review-text-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">SA</span><span><strong>Sample Agent</strong><small>Senior Associate · Text update</small></span>'+sampleMark+'</div>'+
-    '<p class="ds-review-message">Small, consistent actions create meaningful progress. Keep learning and keep showing up. <a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a></p>'+
+    '<p class="ds-review-post-body">Small, consistent actions create meaningful progress. Keep learning and keep showing up. <a class="ds-review-tag" href="/feed/?tag=DominionStar">#DominionStar</a></p>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+'</span>7 sample reactions</span><span>2 sample comments</span></div>'+
     socialActions('like')+'</article>';
 
   const longPost='<article class="ds-review-post ds-review-long-post">'+
     '<div class="ds-review-author"><span class="ds-review-avatar">MD</span><span><strong>Sample Marketing Director</strong><small>Marketing Director · Training insight</small></span>'+sampleMark+'</div>'+
-    '<p class="ds-review-message">Today’s team development reminder:\n\n1. Study consistently and understand your state licensing requirements.\n\n2. Build confidence through training before approaching clients.\n\n3. Ask questions, stay compliant, and focus on serving people well.\n\nOur training resources and agency information are available at <a href="https://dominionstarld.com" target="_blank" rel="noopener noreferrer">https://dominionstarld.com</a>.\n\nEveryone moves at a different pace. The objective is steady development, not rushing to the next milestone.\n\n<a class="ds-review-tag" href="/feed/?tag=AgentDevelopment">#AgentDevelopment</a> <a class="ds-review-tag" href="/feed/?tag=Leadership">#Leadership</a> <a class="ds-review-tag" href="/feed/?tag=Training">#Training</a></p>'+
+    '<p class="ds-review-post-body">Today’s team development reminder:\n\n1. Study consistently and understand your state licensing requirements.\n\n2. Build confidence through training before approaching clients.\n\n3. Ask questions, stay compliant, and focus on serving people well.\n\nOur training resources and agency information are available at <a href="https://dominionstarld.com" target="_blank" rel="noopener noreferrer">https://dominionstarld.com</a>.\n\nEveryone moves at a different pace. The objective is steady development, not rushing to the next milestone.\n\n<a class="ds-review-tag" href="/feed/?tag=AgentDevelopment">#AgentDevelopment</a> <a class="ds-review-tag" href="/feed/?tag=Leadership">#Leadership</a> <a class="ds-review-tag" href="/feed/?tag=Training">#Training</a></p>'+
     '<div class="ds-review-engagement"><span><span class="ds-review-reaction-summary">'+likeBadge+celebrateBadge+'</span>17 sample reactions</span><span>4 sample comments</span></div>'+
     socialActions('like')+'</article>';
 
