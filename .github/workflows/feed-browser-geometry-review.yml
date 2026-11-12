@@ -17,6 +17,7 @@ on:
       - 'scripts/build-public-netlify.sh'
       - 'assets/js/dashboard-social.js'
       - 'assets/css/dominionstar-feed-flow.css'
+      - 'assets/css/dominionstar-inline-comments.css'
       - 'assets/css/dominionstar-social-first-dashboard.css'
       - 'feed/**'
       - 'member-dashboard/**'
