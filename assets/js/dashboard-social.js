@@ -118,7 +118,7 @@
       const filterBanner=target.id==='feedPageStream'&&requestedTag
         ? '<div class="ds30-tag-filter" role="status"><span>Latest posts tagged <strong>#'+escapeHtml(requestedTag)+'</strong></span><a href="/feed/">Show all posts</a></div>'
         : '';
-      target.innerHTML = filterBanner + filtered.map(post => {
+      target.innerHTML = filterBanner + (filtered.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
         const authorRank=String(post.author_rank||'').trim() || '—';
         const foundingNumber=Number(post.author_exclusive_number);
@@ -195,7 +195,7 @@
             </div>
           </form>
         </article>`;
-      }).join('') || '<div class="dashboard-empty-compact"><strong>No matching posts in the latest network updates.</strong><p>Try another hashtag or browse the full Feed.</p><a href="/feed/">Show all posts →</a></div>';
+      }).join('') || '<div class="dashboard-empty-compact"><strong>No matching posts in the latest network updates.</strong><p>Try another hashtag or browse the full Feed.</p><a href="/feed/">Show all posts →</a></div>');
       // Broken/expired profile image URLs must fall back to the author's initials.
       target.querySelectorAll?.('.ds30-author-photo').forEach(image => {
         image.addEventListener('error',() => image.remove(),{once:true});
