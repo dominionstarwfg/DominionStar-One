@@ -123,6 +123,9 @@ jobs:
             grep -Fq 'dominionstar-social-preview-refinement.css' public-dist/member-dashboard/index.html
             grep -Fq 'dominionstar-social-preview-interactions.js' public-dist/feed/index.html
             test -s public-dist/assets/css/dominionstar-social-preview-refinement.css
+            test -s public-dist/assets/css/dominionstar-organic-posts.css
+            grep -Fq 'ds-review-long-post' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'URLSearchParams(location.search)' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             test -s public-dist/assets/js/dominionstar-social-preview-interactions.js
             grep -Fq 'dsos-body dsos-executive ds-visual-review' public-dist/member-dashboard/index.html
             if grep -Fq 'ds-auth-os-shell-active' public-dist/member-dashboard/index.html; then
@@ -131,7 +134,7 @@ jobs:
             fi
             echo 'DASHBOARD_PREVIEW_SINGLE_SHELL_OK'
             grep -Fq 'resultLimit' public-dist/assets/js/dashboard-social.js || true
-            grep -Fq 'ds-review-event-visual' public-dist/assets/js/dominionstar-visual-review-fixtures.js
+            grep -Fq 'ds-review-message-bubble' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'Team Member' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'ds-review-post-photo' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq '/assets/founder-blue.jpeg' public-dist/assets/js/dominionstar-visual-review-fixtures.js
