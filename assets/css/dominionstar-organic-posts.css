@@ -175,26 +175,32 @@ body.ds-visual-review #dashboardSocialPreview .ds-review-post{
   background:linear-gradient(145deg,#132d4b,#0c213a)!important;
   box-shadow:0 9px 24px rgba(0,0,0,.14)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-zoom-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-zoom-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-zoom-post{
   background:linear-gradient(145deg,#102d55,#0b2344 70%,#081d36)!important;
   border-color:rgba(113,170,227,.42)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-photo-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-photo-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-photo-post{
   background:linear-gradient(150deg,#1b3347,#102538)!important;
   border-color:rgba(154,180,196,.35)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-quote-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-quote-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-quote-post{
   background:linear-gradient(150deg,#242944,#152740)!important;
   border-color:rgba(221,179,102,.33)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-milestone-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-milestone-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-milestone-post{
   background:linear-gradient(145deg,#173b39,#102b35)!important;
   border-color:rgba(124,190,167,.36)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-text-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-text-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-text-post{
   background:linear-gradient(150deg,#132f4f,#112942)!important;
 }
-body.ds-visual-review .ds-review-post.ds-review-long-post{
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-long-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-long-post{
   background:linear-gradient(150deg,#172e4a,#10273f)!important;
 }
 body.ds-visual-review .ds-review-post p,
