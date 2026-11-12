@@ -127,3 +127,16 @@ test('Preview and real Feed retain natural vertical heights and content-dependen
     assert.match(html,/dashboard-social\.js\?v=organic-20261111/);
   }
 });
+
+test('Feed preview paragraphs never inherit the private-message flex layout',()=>{
+  const organic=read('assets/css/dominionstar-organic-posts.css');
+  const pCount=(preview.match(/<p class="ds-review-post-body">/g)||[]).length;
+  assert.equal(pCount,3,'Zoom, short text and long text should share a dedicated post-body class');
+  assert.doesNotMatch(preview,/<p class="ds-review-message">/);
+  assert.match(preview,/\.ds-review-message\{display:flex/);
+  assert.match(preview,/ds-review-post-body/);
+  assert.match(organic,/body\.ds-visual-review \.ds-review-post \.ds-review-post-body\{[\s\S]*?display:block!important/);
+  assert.match(organic,/ds-review-message-bubble \.ds-review-post-body/);
+  assert.doesNotMatch(organic,/\.ds-review-post \.ds-review-message(?=[\s,{])/);
+  assert.match(preview,/html\('dmThread','<article class="ds-review-message"/);
+});
