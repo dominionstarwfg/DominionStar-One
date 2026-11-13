@@ -83,3 +83,17 @@
 @media(max-width:840px){.dsg-page{padding:17px 11px 28px}.dsg-workspace{grid-template-columns:220px minmax(0,1fr);min-height:610px;height:78vh}.dsg-messages{padding:16px 12px}.dsg-chat-head{padding:13px 12px}.dsg-members-panel{right:11px;top:160px;bottom:28px}.dsg-chat-message{max-width:89%}}
 @media(max-width:650px){.dsg-workspace{display:flex;flex-direction:column;min-height:0;height:auto;overflow:visible}.dsg-groups-panel{border-right:0;border-bottom:1px solid #34516b;max-height:252px;min-height:185px}.dsg-group-list{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;min-height:76px;padding:0 10px 11px}.dsg-group-item{flex:0 0 185px}.dsg-sidebar-tip{display:none}.dsg-chat-panel{height:min(66vh,620px);min-height:430px}.dsg-members-panel{position:relative;top:auto;bottom:auto;right:auto;width:auto;display:block;border:0;border-radius:0;max-height:260px;overflow:auto}.dsg-members-panel[hidden]{display:none}.dsg-member-list{max-height:150px}.dsg-page-head h1{font-size:29px!important}.dsg-page-actions{width:100%}.dsg-page-actions>*{flex:1}.dsg-chat-message{max-width:96%}.dsg-member-actions{display:flex}.dsg-message-form{gap:6px;padding:10px}.dsg-message-form .dsg-button{padding:9px}.dsg-dialog footer{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* The isolated Netlify visual review disables all production controls by
+ * default. Re-enable ONLY the in-memory Team Groups demo's local controls.
+ * No Supabase, Storage, email, or notifications scripts run in that build. */
+body.ds-visual-review #teamGroupsApp button,
+body.ds-visual-review #teamGroupsApp input,
+body.ds-visual-review #teamGroupsApp textarea,
+body.ds-visual-review #teamGroupsApp form,
+body.ds-visual-review .dsg-dialog button,
+body.ds-visual-review .dsg-dialog input,
+body.ds-visual-review .dsg-dialog textarea,
+body.ds-visual-review .dsg-dialog form{
+  pointer-events:auto!important;
+}
