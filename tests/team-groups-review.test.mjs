@@ -14,7 +14,8 @@ test('Team Groups has a real create / select / chat / invite / accept interface'
   for(const id of ['teamGroupsGate','teamGroupsApp','dsgCreateButton','dsgCreateForm',
     'dsgGroupList','dsgMessages','dsgMessageInput','dsgMessageForm',
     'dsgInviteDialog','dsgInviteChoices','dsgInviteSearch','dsgMembersPanel',
-    'dsgMemberList','dsgMuteButton','dsgLeaveButton']){
+    'dsgMemberList','dsgMuteButton','dsgLeaveButton',
+    'dsgEditButton','dsgEditDialog','dsgEditForm','dsgEditName','dsgEditTopic']){
     assert.match(html,new RegExp('id="'+id+'"'));
   }
   assert.match(code,/async function createGroup/);
@@ -75,4 +76,36 @@ test('Review Netlify build uses only static sample groups without backend script
   assert.match(read('assets/js/dominionstar-agent-nav-shell.js'),/\['Team Groups','\/team-groups\/'/);
   assert.match(read('member-dashboard/index.html'),/href="\/team-groups\/"/);
   assert.match(read('direct-messages/index.html'),/href="\/team-groups\/"/);
+});
+
+test('Owner may edit the group, while admins can moderate members without expelling other admins',()=>{
+  assert.match(code,/async function editGroup\(/);
+  assert.match(code,/async function removeMember\(/);
+  assert.match(code,/async function declineInvite\(/);
+  assert.match(code,/const isOwner=g=>/);
+  assert.match(code,/m\.role==='admin'&&!isOwner\(g\)/);
+  assert.match(code,/\.update\(\{name,topic\}\)\.eq\('id',g\.id\)\.eq\('owner_id',state\.uid\)/);
+  assert.match(code,/\.delete\(\)\.eq\('group_id',g\.id\)\.eq\('user_id',m\.user_id\)/);
+  assert.match(code,/m\.status==='invited'\?'Cancel invitation':'Remove member'/);
+  assert.match(code,/Only the group owner can edit its details/);
+  assert.match(code,/You do not have permission to remove this member/);
+  assert.match(sql,/Ordinary admins may remove members/);
+  assert.match(sql,/role='member'\s+or exists\(select 1 from public\.agent_groups owner_group/);
+  assert.match(css,/\.dsg-member-item \.dsg-member-remove/);
+  assert.match(css,/\.dsg-invite-response/);
+});
+
+test('Invited members can accept or decline but cannot read messages and roster until acceptance',()=>{
+  assert.match(code,/mine\(g\)\?\.status==='invited'/);
+  assert.match(code,/Decline invitation/);
+  assert.match(code,/Accept invitation/);
+  assert.match(code,/Only invitation acceptance is allowed|invitation acceptance/i);
+  assert.match(code,/group\.id/);
+  assert.match(code,/Regional Growth Circle/);
+  assert.match(code,/state\.messages\.set\('demo-pending'/);
+  const tests=read('tests/sql/agent-team-groups-assertions.sql');
+  assert.match(tests,/Admin could remove another admin/);
+  assert.match(tests,/Admin could not remove ordinary member/);
+  assert.match(tests,/Group owner could not edit group details/);
+  assert.match(tests,/Owner could not remove another admin/);
 });
