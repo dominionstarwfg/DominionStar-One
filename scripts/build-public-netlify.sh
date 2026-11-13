@@ -459,6 +459,11 @@ for rel in workspace_pages:
     if 'dominionstar-visual-review.css' not in html:
         html=html.replace('</head>','<link rel="stylesheet" href="/assets/css/dominionstar-visual-review.css?v=10"><link rel="stylesheet" href="/assets/css/dominionstar-social-preview-refinement.css?v=20261111"><script defer src="/assets/js/dominionstar-visual-review-fixtures.js?v=10"></script><script defer src="/assets/js/dominionstar-social-preview-interactions.js?v=20261111"></script><link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111"><link rel="stylesheet" href="/assets/css/dominionstar-inline-comments.css?v=inline-comments-20261111"></head>',1)
 
+    # Re-enable only the inert, browser-local Feed composer preview.
+    # The original publishing code, Supabase and service calls stay stripped.
+    if rel == 'feed/index.html':
+        html=html.replace('</body>','<script defer src="/assets/js/dominionstar-feed-composer-preview.js?v=composer-preview-20261113"></script></body>',1)
+
     p.write_text(html,encoding='utf-8')
 
 hub='''<!doctype html>
