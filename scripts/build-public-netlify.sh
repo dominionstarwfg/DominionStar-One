@@ -415,7 +415,7 @@ workspace_pages=[
   'member-dashboard/index.html','feed/index.html','direct-messages/index.html',
   'notifications/index.html','community/index.html','member-directory/index.html',
   'agent-journey/index.html','agent-learning/index.html','appointments/index.html',
-  'professional-profile/index.html','account-settings/index.html'
+  'professional-profile/index.html','account-settings/index.html','team-groups/index.html'
 ]
 keep_scripts=('dominionstar-agent-nav-shell.js',)
 
@@ -463,6 +463,8 @@ for rel in workspace_pages:
     # The original publishing code, Supabase and service calls stay stripped.
     if rel == 'feed/index.html':
         html=html.replace('</body>','<script defer src="/assets/js/dominionstar-feed-composer-preview.js?v=composer-preview-20261113"></script></body>',1)
+    if rel == 'team-groups/index.html':
+        html=html.replace('</body>','<script defer src="/assets/js/dominionstar-team-groups.js?v=review-20261113"></script></body>',1)
 
     p.write_text(html,encoding='utf-8')
 
@@ -482,6 +484,7 @@ h1{font:700 clamp(34px,5vw,58px)/1.02 Georgia,serif;margin:10px 0 12px}p{color:#
 <a class="card" href="/member-dashboard/"><strong>Dashboard</strong><span>Approved illustration composition</span></a>
 <a class="card" href="/feed/"><strong>Feed</strong><span>Social stream and composer</span></a>
 <a class="card" href="/direct-messages/"><strong>Messages</strong><span>Three-column inbox</span></a>
+<a class="card" href="/team-groups/"><strong>Team Groups</strong><span>Private GroupMe-style team conversations, invitations, and group creation</span></a>
 <a class="card" href="/notifications/"><strong>Notifications</strong><span>Executive inbox</span></a>
 <a class="card" href="/community/"><strong>Community</strong><span>Composer, feed and standards</span></a>
 <a class="card" href="/member-directory/"><strong>Team Members</strong><span>Compact member directory</span></a>
