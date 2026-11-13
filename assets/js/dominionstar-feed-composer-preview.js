@@ -118,14 +118,13 @@
       event.stopImmediatePropagation();
     }
   },true);
-  if(document.body.classList.contains('ds-visual-review')){
-    // Visual-review controls operate only on browser-local strings.
-    const form=document.getElementById('feedPageComposer');
-    form?.addEventListener('submit',event=>{
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    },true);
-  }
+  // On Netlify visual reviews the identity fixture applies its body class
+  // at DOMContentLoaded, after deferred scripts. Check at event time instead.
+  document.getElementById('feedPageComposer')?.addEventListener('submit',event=>{
+    if(!document.body.classList.contains('ds-visual-review'))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  },true);
   render();
   window.DSFeedComposerPreview=Object.freeze({getKind,render});
 })();
