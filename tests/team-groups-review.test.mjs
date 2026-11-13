@@ -62,7 +62,7 @@ test('Group messages render as text, without trusting user-supplied HTML',()=>{
   assert.match(code,/safeLinkify\(bubble,msg\.body\)/);
   assert.doesNotMatch(code,/innerHTML\s*=/);
   assert.match(code,/noopener noreferrer nofollow/);
-  assert.match(code,/role='member'/);
+  assert.match(code,/role:'member'/);
   assert.match(code,/state\.preview/);
 });
 
