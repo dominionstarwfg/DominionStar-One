@@ -46,7 +46,7 @@
         <p id="dsgActionStatus" class="dsg-action-status" role="status" aria-live="polite"></p>
       </section>
       <aside id="dsgMembersPanel" class="dsg-members-panel" aria-label="Group details">
-        <div class="dsg-panel-head"><strong>Group details</strong><button type="button" id="dsgMuteButton" class="dsg-subtle-button" disabled>Mute</button></div>
+        <div class="dsg-panel-head"><strong>Group details</strong><div class="dsg-detail-actions"><button type="button" id="dsgEditButton" class="dsg-subtle-button" disabled>Edit</button><button type="button" id="dsgMuteButton" class="dsg-subtle-button" disabled>Mute</button></div></div>
         <div class="dsg-detail"><small>ACCESS</small><strong><span aria-hidden="true">● </span> Private · Invite only</strong><small>Invited agents cannot read messages until they join.</small></div>
         <div class="dsg-panel-head dsg-members-title"><strong>Members</strong><span id="dsgMembersCount">0</span></div>
         <div id="dsgMemberList" class="dsg-member-list"></div>
@@ -65,6 +65,16 @@
     <label for="dsgNewTopic">Group topic <span>(optional)</span></label><textarea id="dsgNewTopic" name="topic" rows="2" maxlength="200" placeholder="Training, licensing updates, team goals…"></textarea>
     <div class="dsg-create-privacy"><strong>🔒 Private group</strong><p>Invitation required. Your team members must already be approved DominionStar agents.</p></div>
     <footer><button type="button" data-close-dialog class="dsg-button dsg-secondary">Cancel</button><button type="submit" class="dsg-button dsg-primary">Create group</button></footer>
+  </form>
+</dialog>
+
+<dialog id="dsgEditDialog" class="dsg-dialog" aria-labelledby="dsgEditTitle">
+  <form id="dsgEditForm">
+    <header><h2 id="dsgEditTitle">Edit group details</h2><button type="button" class="dsg-close" data-close-dialog aria-label="Close">×</button></header>
+    <p>Only the group owner can edit its name or purpose. Existing members and messages stay unchanged.</p>
+    <label for="dsgEditName">Group name</label><input id="dsgEditName" maxlength="70" required>
+    <label for="dsgEditTopic">Group topic <span>(optional)</span></label><textarea id="dsgEditTopic" rows="2" maxlength="200"></textarea>
+    <footer><button type="button" data-close-dialog class="dsg-button dsg-secondary">Cancel</button><button type="submit" class="dsg-button dsg-primary">Save changes</button></footer>
   </form>
 </dialog>
 
