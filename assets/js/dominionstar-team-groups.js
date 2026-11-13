@@ -100,7 +100,10 @@ function renderGroups(){
 }
 function renderMembers(g){
   clear(nodes.members);
-  const list=membership(g.id);
+  const own=mine(g);
+  // An invited agent may know their invitation but not enumerate the group's
+  // active membership until they have explicitly accepted it.
+  const list=own?.status==='invited'?membership(g.id).filter(m=>m.user_id===state.uid):membership(g.id);
   const active=list.filter(m=>m.status==='active');
   nodes.memberCount.textContent=String(active.length);
   nodes.activeCount.textContent=String(active.length);
@@ -498,7 +501,8 @@ function localDemo(){
   contacts.forEach(p=>state.profiles.set(p.id,p));
   const groups=[
     {id:'demo-leadership',name:'DominionStar Leadership',topic:'Team vision, events & weekly priorities',owner_id:state.uid,created_at:'2026-11-10T00:00:00Z'},
-    {id:'demo-training',name:'New Agent Training',topic:'Licensing, development & coaching',owner_id:'demo-a',created_at:'2026-11-09T00:00:00Z'}
+    {id:'demo-training',name:'New Agent Training',topic:'Licensing, development & coaching',owner_id:'demo-a',created_at:'2026-11-09T00:00:00Z'},
+    {id:'demo-pending',name:'Regional Growth Circle',topic:'A pending invitation to regional mentoring',owner_id:'demo-c',created_at:'2026-11-08T00:00:00Z'}
   ];
   state.groups=groups;
   state.memberships.set('demo-leadership',[
@@ -512,6 +516,11 @@ function localDemo(){
     {user_id:'demo-a',role:'owner',status:'active'},
     {user_id:'demo-d',role:'member',status:'active'}
   ]);
+  state.memberships.set('demo-pending',[
+    {user_id:state.uid,role:'member',status:'invited'},
+    {user_id:'demo-c',role:'owner',status:'active'},
+    {user_id:'demo-a',role:'member',status:'active'}
+  ]);
   state.messages.set('demo-leadership',[
     {author_id:'demo-a',body:'Good morning, team! Our focus this week is training consistency and helping new agents move forward.',created_at:'2026-11-13T13:15:00Z'},
     {author_id:'demo-b',body:'Sharing our weekly Saving Your Future session: https://zoom.us/j/7443001370\nWednesday · 9 PM ET / 8 PM CT / 6 PM PT',created_at:'2026-11-13T13:17:00Z'},
@@ -521,6 +530,9 @@ function localDemo(){
   state.messages.set('demo-training',[
     {author_id:'demo-a',body:'Welcome to the New Agent Training group. Here we can share study progress and next steps.',created_at:'2026-11-13T10:30:00Z'},
     {author_id:'demo-d',body:'I am reviewing the state exam prep this week. Looking forward to our coaching call.',created_at:'2026-11-13T11:00:00Z'}
+  ]);
+  state.messages.set('demo-pending',[
+    {author_id:'demo-c',body:'Welcome to our regional mentorship circle. We share group coaching and leadership resources here.',created_at:'2026-11-13T09:00:00Z'}
   ]);
   nodes.mode.textContent='INTERACTIVE VISUAL PREVIEW · These groups, invitations, and messages exist only in this browser session. Nothing is sent or saved.';
   show();bindEvents();renderGroups();selectGroup('demo-leadership');
