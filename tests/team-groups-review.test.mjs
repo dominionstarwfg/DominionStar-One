@@ -99,8 +99,8 @@ test('Invited members can accept or decline but cannot read messages and roster 
   assert.match(code,/mine\(g\)\?\.status==='invited'/);
   assert.match(code,/Decline invitation/);
   assert.match(code,/Accept invitation/);
-  assert.match(code,/Only invitation acceptance is allowed|invitation acceptance/i);
-  assert.match(code,/group\.id/);
+  assert.match(sql,/Only invitation acceptance is allowed/);
+  assert.match(code,/const own=mine\(g\)/);
   assert.match(code,/Regional Growth Circle/);
   assert.match(code,/state\.messages\.set\('demo-pending'/);
   const tests=read('tests/sql/agent-team-groups-assertions.sql');
