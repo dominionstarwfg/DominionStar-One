@@ -17,7 +17,48 @@ values(:'group_id','11111111-1111-4111-8111-111111111111','Private meeting: http
 insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
 values(:'group_id','22222222-2222-4222-8222-222222222222','member','invited','11111111-1111-4111-8111-111111111111');
 
-do $$ begin
+-- Seed synthetic pre-existing group administrators and an ordinary member.
+-- Administrative membership promotion is NOT a public browser operation.
+reset role;
+insert into public.agent_group_members(group_id,user_id,role,status) values
+ (:'group_id','66666666-6666-4666-8666-666666666666','admin','active'),
+ (:'group_id','77777777-7777-4777-8777-777777777777','admin','active'),
+ (:'group_id','88888888-8888-4888-8888-888888888888','member','active');
+set role authenticated;
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',false);
+do $ begin
+  -- Admin cannot kick another administrator (RLS affects zero rows).
+  delete from public.agent_group_members where user_id='77777777-7777-4777-8777-777777777777';
+  if not exists(select 1 from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777') then
+    raise exception 'Admin could remove another admin';
+  end if;
+  delete from public.agent_group_members where user_id='88888888-8888-4888-8888-888888888888';
+  if exists(select 1 from public.agent_group_members
+    where user_id='88888888-8888-4888-8888-888888888888') then
+    raise exception 'Admin could not remove ordinary member';
+  end if;
+  update public.agent_groups set name='Unauthorized Rename';
+  if exists(select 1 from public.agent_groups where name='Unauthorized Rename') then
+    raise exception 'Non-owner admin renamed the group';
+  end if;
+end $;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+do $ begin
+  update public.agent_groups set name='Leadership & Learning Team',
+    topic='Updated owner-controlled topic';
+  if not exists(select 1 from public.agent_groups
+      where name='Leadership & Learning Team' and topic='Updated owner-controlled topic')
+  then raise exception 'Group owner could not edit group details';end if;
+  delete from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777';
+  if exists(select 1 from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777') then
+    raise exception 'Owner could not remove another admin';
+  end if;
+end $;
+
+do $ begin
   if not public.synthetic_assert_denied(
     $q$insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
        select id,'44444444-4444-4444-8444-444444444444','member','invited',owner_id
