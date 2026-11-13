@@ -105,6 +105,64 @@ try{
       });
       await page.goto('http://127.0.0.1:'+port+'/feed/',{waitUntil:'networkidle'});
 
+      if(v.label==='desktop'||v.label==='mobile'){
+        // Real Feed composer markup + inert review script. This must work even
+        // with CSP connect-src none and all publishing/auth scripts removed.
+        const composer=page.locator('#feedComposerBody');
+        const previewToggle=page.locator('#feedComposerPreviewToggle');
+        const preview=page.locator('#feedComposerPreview');
+        const sample='Our next Wednesday meeting:\\n\\nJoin https://zoom.us/j/7443001370\\nMeeting ID: 744 300 1370\\n\\n#SavingYourFuture #DominionStar';
+        await composer.fill(sample.replaceAll('\\\\n','\\n'));
+        await previewToggle.click();
+        await preview.waitFor({state:'visible'});
+        assert.equal(await previewToggle.getAttribute('aria-expanded'),'true',
+          v.label+' Preview post toggle did not open');
+        const p=await page.evaluate(()=>{
+          const text=document.getElementById('feedComposerPreviewText');
+          const card=document.getElementById('feedComposerPreview');
+          const rect=text.getBoundingClientRect();
+          return {
+            kind:card.dataset.postKind,
+            display:getComputedStyle(text).display,
+            whiteSpace:getComputedStyle(text).whiteSpace,
+            text:text.innerText,
+            href:text.querySelector('a[href^="https://zoom.us/"]')?.href,
+            tags:[...text.querySelectorAll('a.ds30-hashtag')].map(a=>a.textContent),
+            width:rect.width,scrollWidth:text.scrollWidth,
+            scrollWidthPage:document.documentElement.scrollWidth,
+            count:document.getElementById('feedComposerCharacterCount')?.textContent,
+            publisherEnabled:!document.getElementById('feedComposerPublish')?.disabled
+          };
+        });
+        assert.equal(p.kind,'meeting',v.label+' Zoom link not recognized');
+        assert.equal(p.display,'block',v.label+' preview text must be block-flow');
+        assert.equal(p.whiteSpace,'pre-wrap',v.label+' lost original line breaks');
+        assert.match(p.text,/Meeting ID: 744 300 1370/);
+        assert.equal(p.href,'https://zoom.us/j/7443001370');
+        assert.equal(p.tags.length,2);
+        assert.ok(p.scrollWidth<=p.width+3,
+          v.label+' long preview link exceeds the paragraph width');
+        assert.ok(p.scrollWidthPage<=v.width+3,
+          v.label+' preview creates horizontal page overflow');
+        assert.match(p.count,/\\d+ \\/ 2000 characters/);
+        await composer.fill('<script>alert(1)</script> #Leadership https://dominionstarld.com');
+        const safe=await page.evaluate(()=>{
+          const node=document.getElementById('feedComposerPreviewText');
+          return {scriptCount:node.querySelectorAll('script').length,
+            rawText:node.innerText,linkCount:node.querySelectorAll('a').length,
+            html:node.innerHTML};
+        });
+        assert.equal(safe.scriptCount,0,'User markup must never be executable');
+        assert.match(safe.rawText,/<script>alert\\(1\\)<\\/script>/);
+        assert.equal(safe.linkCount,2,'Ordinary URL and hashtag must be clickable');
+        assert.match(safe.html,/&lt;script&gt;/,'User markup must be escaped');
+        await previewToggle.click();
+        assert.equal(await preview.isVisible(),false,
+          v.label+' post preview should be collapsible');
+        process.stdout.write('FEED_COMPOSER_PREVIEW_BROWSER_PASS '+v.label+
+          ' — local text, Zoom link, hashtag and XSS checks; backend off\\n');
+      }
+
       if(v.label==='desktop'){
         // Exercise only the isolated preview controls, never real Supabase actions.
         const like=page.locator('#feedPageStream .ds-review-zoom-post [data-preview-action="like"]');
