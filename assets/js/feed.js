@@ -143,7 +143,9 @@
       // handles mentions after the coordinated database release.
 
       body.value='';
-      body.dispatchEvent(new Event('input',{bubbles:true}));
+      if(typeof Event==='function' && typeof body.dispatchEvent==='function'){
+        body.dispatchEvent(new Event('input',{bubbles:true}));
+      }
       showStatus('Posted to your Feed.','success');
       // A failed refresh is NOT a failed insert. Never encourage a duplicate.
       try{await mountFeed();}
