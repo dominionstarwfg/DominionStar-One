@@ -1,0 +1,50 @@
+# DominionStar One — Private Team Groups release gate (November 13, 2026)
+
+**Scope:** Web-based Agent Platform only. This is separate from DominionStar Meet. Work is in the review-only branch / PR #198. No production deployment or Supabase schema modification is authorized by this draft.
+
+## Product behavior / GroupMe reference
+
+- A Founder-approved agent can create a **private** group with a name and purpose.
+- Every new group starts with the creator as **owner**.
+- Group owners and authorized admins can invite only approved, directory-visible agents. Invitation creates a pending membership; the invited agent must explicitly accept.
+- Only active members can see messages or send messages. Invitations reveal only enough group metadata for a choice to accept.
+- Members can write multiline chat messages and share safe HTTP(S) links (including Zoom); the group conversation keeps natural-height bubbles.
+- Members may mute group notifications in their own membership settings (no actual group push/email delivery has been enabled).
+- Non-owner members can leave; owners cannot accidentally orphan a group.
+- The live backend has NOT been enabled. On Netlify deploy-preview-198, demo group creation, invitations, sending and mute operations are **ephemeral** in that browser session, do not touch Supabase, do not notify anyone, and reset on reload.
+
+**Not yet implemented:** file uploads, voice notes, video calls, invite-by-share-link (unsafe for private member-only groups without a gated accept flow), per-topic subchannels, polls, pinned messages, admin promotion/ownership transfer, group notifications, message reactions, or production Realtime. Do not describe these as existing capabilities. The GroupMe product is a design reference, not a service integration.
+
+## Existing data boundary
+
+- Actual group tables and RPC are defined **only as a SQL proposal**:
+  `scripts/security/agent-team-groups.DO-NOT-RUN.review.sql`.
+- The initial feature flag `DOMINIONSTAR_AGENT_DATA_FEATURES.teamGroupsV1` is **off / undefined**. Authenticated pages fail closed unless it and `publicMemberProfilesV2` are explicitly enabled together after staged migration.
+- Authenticated group code reads its own `member_profiles` row **only** to verify Founder approval; peer names are resolved solely from the safe, opted-in `member_public_profiles` projection.
+- SQL permissions use RLS on all three public group tables, a narrow privileged `create_agent_group` RPC, and private-schema membership check helpers. No peer identity or content is made public.
+- No browser service-role, no open anonymous invites, and no public group discovery.
+- Group messages use table API with member RLS; **no group Realtime publication**, no push/email side effects in this release.
+- The connected Supabase project is production and its read-only connection returned `28P01 password authentication failed` during this review. This blocks external verification and **must not be bypassed** by making an unreviewed production change.
+
+## Isolated verification
+
+- `.github/workflows/team-groups-isolation-review.yml` uses synthetic roles and a disposable Postgres 16 service. It compiles the exact SQL review draft and tests approved group create, owner assignment, invitation/acceptance, member message access, uninvited denial, revoked approval denial, anonymous denial, cross-group isolation prerequisites, role spoofing rejection, and creator orphan prevention.
+- `tests/team-groups-review.test.mjs` checks fail-closed flags, safe rendering, navigation and review-only build behavior.
+- `scripts/review-feed-browser-geometry.mjs` opens the static `/team-groups/` preview, creates a sample group, sends a message with a Zoom URL, invites a sample member, searches groups and checks desktop/mobile width and preview asset integrity.
+- CI cannot substitute for **real Supabase Auth**, authenticated PostgREST, invitation notification delivery, connected-agent multi-device trials, or a secured staging deployment.
+
+## Required release sequence
+
+1. Obtain a **separate isolated Supabase staging project or approved branch**; do not write to the currently connected production database to test this feature.
+2. Confirm the existing safe public-member-profile projection, approval enforcement, legacy migration integrity, and table/API grants match the group proposal. Resolve any naming or RLS conflicts.
+3. Apply reviewed SQL **to staging only**, run RLS/synthetic HTTP matrix and real approved/anonymous/invited/revoked-account tests.
+4. Add integration verification for member invitations, owner/admin controls, mute, multi-device message ordering, authorization revocation, link escaping, and attempts to enumerate group IDs.
+5. Only when staging passes, coordinate versioned SQL migration + frontend deployment, then explicitly enable both flags. Never enable `teamGroupsV1` without the matching RLS tables and `publicMemberProfilesV2`.
+6. Production must remain unchanged until the user approves the coordinated release.
+
+## User review links
+
+- Visual demo: `https://deploy-preview-198--melodious-buttercream-a99450.netlify.app/team-groups/`
+- Draft integration PR: `https://github.com/dominionstarwfg/DominionStar-One/pull/198`
+
+This feature belongs to Agent Platform **Team Groups** alongside, but distinct from, Direct Messages and Community.
