@@ -37,10 +37,13 @@ do $$ begin
     $q$update public.agent_group_members set role='admin'
        where user_id='22222222-2222-4222-8222-222222222222'$q$
   ) then raise exception 'Role elevation was possible';end if;
-  if not public.synthetic_assert_denied(
-    $q$delete from public.agent_group_members
-       where user_id='11111111-1111-4111-8111-111111111111'$q$
-  ) then raise exception 'Owner could leave without transferring ownership';end if;
+  -- RLS DELETE can safely affect zero rows without raising an error.
+  -- Assert that owner membership survives an attempted self-removal.
+  delete from public.agent_group_members
+    where user_id='11111111-1111-4111-8111-111111111111';
+  if not exists(select 1 from public.agent_group_members
+      where user_id='11111111-1111-4111-8111-111111111111' and role='owner')
+  then raise exception 'Owner could leave without transferring ownership';end if;
 end $$;
 
 -- Invited agent sees ONLY the group invitation and their membership row.
