@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="/assets/css/dominionstar-feed-flow.css?v=natural-flow-20261104">
 <link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111">
 <link rel="stylesheet" href="/assets/css/dominionstar-inline-comments.css?v=inline-comments-20261111">
+<link rel="stylesheet" href="/assets/css/dominionstar-feed-composer-preview.css?v=composer-preview-20261113">
 <script src="/assets/js/runtime-safety.js"></script>
 <script src="/assets/js/platform-core.js"></script>
 </head>
@@ -55,6 +56,27 @@
           <form id="feedPageComposer">
             <label for="feedComposerBody" class="dsos-screenreader">Share with your network</label>
             <textarea id="feedComposerBody" name="body" rows="3" maxlength="2000" required placeholder="Share an update, insight, win, or question with your DominionStar network…"></textarea>
+
+            <div class="ds30-composer-preview-controls">
+              <button id="feedComposerPreviewToggle" class="ds30-composer-preview-toggle" type="button" aria-controls="feedComposerPreview" aria-expanded="false">Preview post</button>
+              <span id="feedComposerCharacterCount" class="ds30-composer-character-count" aria-live="off">0 / 2000 characters</span>
+            </div>
+
+            <section id="feedComposerPreview" class="ds30-composer-preview" aria-label="Your post preview" data-post-kind="text" hidden>
+              <p class="ds30-composer-preview-label">Post appearance · <span id="feedComposerPreviewKind">Text post</span></p>
+              <div class="ds30-composer-preview-authorbar">
+                <span class="ds30-composer-preview-avatar" aria-hidden="true">
+                  <span id="feedComposerPreviewInitials">DS</span>
+                  <img id="feedComposerPreviewAvatar" alt="" hidden>
+                </span>
+                <span class="ds30-composer-preview-person">
+                  <strong id="feedComposerPreviewAuthor">DominionStar Member</strong>
+                  <small id="feedComposerPreviewRank">Approved member</small>
+                </span>
+              </div>
+              <p id="feedComposerPreviewText" class="ds30-composer-preview-copy ds30-preview-placeholder">Your post will appear here exactly as readers will see it.</p>
+              <p class="ds30-composer-preview-footer">Local preview only · No post, message, or email is sent until you publish.</p>
+            </section>
 
             <section id="feedMediaDraft" class="dsmedia-draft" aria-label="Attach media to a draft post">
               <div class="dsmedia-action-row dsx-feed-media-actions">
@@ -115,6 +137,7 @@
 <script src="/assets/js/member-auth.js"></script>
 <script src="/assets/js/dashboard-social.js?v=organic-20261111"></script>
 <script src="/assets/js/community-media-draft-review.js?v=review-1"></script>
+<script src="/assets/js/dominionstar-feed-composer-preview.js?v=composer-preview-20261113"></script>
 <script src="/assets/js/feed.js?v=source-notifications-20261109"></script>
 <script src="/assets/js/dominionstar-agent-nav-shell.js?v=os-stage-1"></script>
 </body>
