@@ -24,6 +24,7 @@ const nodes={
   activeCount:$('dsgActiveMembersCount'),memberPanel:$('dsgMembersPanel'),
   toggle:$('dsgMembersToggle'),invite:$('dsgInviteButton'),
   leave:$('dsgLeaveButton'),mute:$('dsgMuteButton'),create:$('dsgCreateButton'),
+  edit:$('dsgEditButton'),editDialog:$('dsgEditDialog'),editForm:$('dsgEditForm'),
   createDialog:$('dsgCreateDialog'),createForm:$('dsgCreateForm'),
   inviteDialog:$('dsgInviteDialog'),inviteList:$('dsgInviteChoices'),inviteSearch:$('dsgInviteSearch')
 };
@@ -61,6 +62,7 @@ const selected=()=>state.groups.find(g=>g.id===state.selected);
 const membership=id=>state.memberships.get(id)||[];
 const mine=g=>membership(g.id).find(m=>m.user_id===state.uid);
 const isAdmin=g=>['owner','admin'].includes(mine(g)?.role)&&mine(g)?.status==='active';
+const isOwner=g=>mine(g)?.role==='owner'&&mine(g)?.status==='active'&&g.owner_id===state.uid;
 const isActive=g=>mine(g)?.status==='active';
 const displayName=id=>state.profiles.get(id)?.full_name||
   (id===state.uid?'You':'Community member');
@@ -110,6 +112,28 @@ function renderMembers(g){
       (m.role==='owner'?'Owner':m.role==='admin'?'Admin':'Member')+
       (m.status==='invited'?' · Invitation pending':'')));
     line.append(name);
+    const canModerate=isAdmin(g)&&m.user_id!==state.uid&&m.role!=='owner'&&
+      (m.role!=='admin'||isOwner(g));
+    if(canModerate){
+      const label=m.status==='invited'?'Cancel invitation':'Remove member';
+      const button=el('button','dsg-member-remove',label);
+      button.type='button';
+      button.setAttribute('aria-label',label+' for '+displayName(m.user_id));
+      button.addEventListener('click',async()=>{
+        if(state.busy)return;
+        const target=displayName(m.user_id);
+        const question=m.status==='invited'?'Cancel invitation for '+target+'?':
+          'Remove '+target+' from this private group?';
+        if(!confirm(question))return;
+        state.busy=true;button.disabled=true;
+        try{
+          await removeMember(g,m);
+          status(m.status==='invited'?'Invitation cancelled.':target+' was removed from the group.');
+        }catch(err){status(err?.message||'Unable to update membership.',true);}
+        finally{state.busy=false;button.disabled=false;}
+      });
+      line.append(button);
+    }
     nodes.members.append(line);
   }
 }
@@ -125,7 +149,15 @@ function renderMessages(g){
       try{await acceptInvite(g);status('You joined '+g.name+'.');}
       catch(error){status(error?.message||'Unable to accept invitation.',true);}
     });
-    box.append(accept);nodes.messages.append(box);return;
+    const decline=el('button','dsg-button dsg-secondary','Decline invitation');
+    decline.type='button';decline.addEventListener('click',async()=>{
+      if(!confirm('Decline your invitation to '+g.name+'?'))return;
+      try{await declineInvite(g);status('Invitation declined.');}
+      catch(error){status(error?.message||'Unable to decline invitation.',true);}
+    });
+    const actions=el('div','dsg-invite-response');
+    actions.append(accept,decline);
+    box.append(actions);nodes.messages.append(box);return;
   }
   const messages=state.messages.get(g.id)||[];
   if(!messages.length){
@@ -155,6 +187,7 @@ async function selectGroup(id){
   nodes.input.disabled=!isActive(g);
   nodes.send.disabled=!isActive(g);
   nodes.invite.disabled=!isAdmin(g);
+  nodes.edit.disabled=!isOwner(g);
   nodes.leave.disabled=mine(g)?.role==='owner'||!isActive(g);
   nodes.mute.disabled=!isActive(g);
   nodes.mute.textContent=state.muted.has(g.id)?'Unmute':'Mute';
@@ -200,10 +233,20 @@ async function loadGroups(){
   for(const g of state.groups)await loadMembers(g.id);
   renderGroups();
   if(state.groups.length)await selectGroup(state.groups.some(g=>g.id===previous)?previous:state.groups[0].id);
-  else{
-    clear(nodes.messages);nodes.messages.append(el('p','dsg-empty-item','Create your first team group.'));
-    nodes.name.textContent='No groups yet';
-  }
+  else resetEmptyGroup();
+}
+function resetEmptyGroup(){
+  state.selected=null;
+  clear(nodes.messages);
+  nodes.messages.append(el('p','dsg-empty-item','Create your first team group.'));
+  clear(nodes.members);
+  nodes.name.textContent='No groups yet';
+  nodes.topic.textContent='Create a private group to get started.';
+  nodes.icon.textContent='✦';
+  nodes.count.textContent=String(state.groups.length);
+  nodes.memberCount.textContent='0';
+  nodes.activeCount.textContent='0';
+  for(const name of ['input','send','invite','leave','mute','edit'])nodes[name].disabled=true;
 }
 async function acceptInvite(g){
   if(state.preview){
@@ -216,6 +259,55 @@ async function acceptInvite(g){
     .select('group_id').single();
   if(r.error)throw r.error;
   await loadGroups();
+}
+async function editGroup(name,topic){
+  const g=selected();
+  if(!g||!isOwner(g))throw Error('Only the group owner can edit its details.');
+  if(name.length<3||name.length>70||topic.length>200)
+    throw Error('Use a group name of 3–70 characters and a topic of 200 or fewer.');
+  if(!state.preview){
+    const r=await state.client.from('agent_groups')
+      .update({name,topic}).eq('id',g.id).eq('owner_id',state.uid)
+      .select('id,name,topic').single();
+    if(r.error)throw r.error;
+    g.name=r.data.name;
+    g.topic=r.data.topic;
+  }else{
+    g.name=name;g.topic=topic;
+  }
+  await selectGroup(g.id);
+}
+async function removeMember(g,m){
+  if(!isAdmin(g)||m.role==='owner'||m.user_id===state.uid||
+     (m.role==='admin'&&!isOwner(g)))
+    throw Error('You do not have permission to remove this member.');
+  if(state.preview){
+    state.memberships.set(g.id,membership(g.id).filter(x=>x.user_id!==m.user_id));
+    renderMembers(g);
+    return;
+  }
+  const r=await state.client.from('agent_group_members')
+    .delete().eq('group_id',g.id).eq('user_id',m.user_id)
+    .select('user_id').single();
+  if(r.error)throw r.error;
+  await loadMembers(g.id);
+  renderMembers(g);
+}
+async function declineInvite(g){
+  if(mine(g)?.status!=='invited')throw Error('No pending invitation to decline.');
+  if(!state.preview){
+    const r=await state.client.from('agent_group_members')
+      .delete().eq('group_id',g.id).eq('user_id',state.uid)
+      .select('user_id').single();
+    if(r.error)throw r.error;
+    await loadGroups();
+    return;
+  }
+  state.groups=state.groups.filter(x=>x.id!==g.id);
+  state.selected=null;
+  renderGroups();
+  if(state.groups.length)await selectGroup(state.groups[0].id);
+  else resetEmptyGroup();
 }
 async function createGroup(name,topic){
   if(state.preview){
@@ -269,6 +361,7 @@ async function leaveGroup(){
     state.selected=null;
     renderGroups();
     if(state.groups.length)await selectGroup(state.groups[0].id);
+    else resetEmptyGroup();
     return;
   }
   const r=await state.client.from('agent_group_members')
@@ -333,6 +426,26 @@ async function prepareInvites(){
 }
 function bindEvents(){
   nodes.create.addEventListener('click',()=>openDialog(nodes.createDialog));
+  nodes.edit.addEventListener('click',()=>{
+    const g=selected();
+    if(!g||!isOwner(g))return;
+    $('dsgEditName').value=g.name;
+    $('dsgEditTopic').value=g.topic||'';
+    openDialog(nodes.editDialog);
+  });
+  nodes.editForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(state.busy)return;
+    const name=$('dsgEditName').value.trim();
+    const topic=$('dsgEditTopic').value.trim();
+    state.busy=true;
+    try{
+      await editGroup(name,topic);
+      closeDialog(nodes.editDialog);
+      status(state.preview?'Sample group details updated in this browser only.':'Group details updated.');
+    }catch(err){status(err?.message||'Unable to update group details.',true);}
+    finally{state.busy=false;}
+  });
   document.querySelectorAll('[data-close-dialog]').forEach(b=>
     b.addEventListener('click',()=>closeDialog(b.closest('dialog'))));
   nodes.createForm.addEventListener('submit',async event=>{
