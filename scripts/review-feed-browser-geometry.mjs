@@ -111,8 +111,10 @@ try{
         const composer=page.locator('#feedComposerBody');
         const previewToggle=page.locator('#feedComposerPreviewToggle');
         const preview=page.locator('#feedComposerPreview');
-        const sample='Our next Wednesday meeting:\\n\\nJoin https://zoom.us/j/7443001370\\nMeeting ID: 744 300 1370\\n\\n#SavingYourFuture #DominionStar';
-        await composer.fill(sample.replaceAll('\\\\n','\\n'));
+        await composer.fill([
+          'Our next Wednesday meeting:','','Join https://zoom.us/j/7443001370',
+          'Meeting ID: 744 300 1370','','#SavingYourFuture #DominionStar'
+        ].join(String.fromCharCode(10)));
         await previewToggle.click();
         await preview.waitFor({state:'visible'});
         assert.equal(await previewToggle.getAttribute('aria-expanded'),'true',
@@ -144,7 +146,7 @@ try{
           v.label+' long preview link exceeds the paragraph width');
         assert.ok(p.scrollWidthPage<=v.width+3,
           v.label+' preview creates horizontal page overflow');
-        assert.match(p.count,/\\d+ \\/ 2000 characters/);
+        assert.ok(p.count.includes(' / 2000 characters'),'Character counter not updated');
         await composer.fill('<script>alert(1)</script> #Leadership https://dominionstarld.com');
         const safe=await page.evaluate(()=>{
           const node=document.getElementById('feedComposerPreviewText');
@@ -153,7 +155,7 @@ try{
             html:node.innerHTML};
         });
         assert.equal(safe.scriptCount,0,'User markup must never be executable');
-        assert.match(safe.rawText,/<script>alert\\(1\\)<\\/script>/);
+        assert.ok(safe.rawText.includes('<script>alert(1)</script>'), 'Markup must be displayed as plain text');
         assert.equal(safe.linkCount,2,'Ordinary URL and hashtag must be clickable');
         assert.match(safe.html,/&lt;script&gt;/,'User markup must be escaped');
         await previewToggle.click();
