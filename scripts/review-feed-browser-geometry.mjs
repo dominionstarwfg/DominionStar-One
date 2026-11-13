@@ -464,21 +464,47 @@ try{
       await page.locator('#teamGroupsApp').waitFor({state:'visible'});
       assert.match(await page.locator('#dsgModeNotice').innerText(),
         /INTERACTIVE VISUAL PREVIEW/);
-      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),2,
-        view.label+' two sample groups missing');
+      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),3,
+        view.label+' initial groups plus pending invitation missing');
       const initial=await page.locator('#dsgActiveName').innerText();
       assert.equal(initial,'DominionStar Leadership');
       assert.match(await page.locator('#dsgMessages').innerText(),
         /Saving Your Future session/);
       const zoom=page.locator('#dsgMessages a[href^="https://zoom.us/"]');
       assert.equal(await zoom.count(),1,'Zoom link should be clickable in group chat');
+      await page.locator('#dsgGroupList .dsg-group-item')
+        .filter({hasText:'Regional Growth Circle'}).click();
+      assert.equal(await page.locator('#dsgMessageInput').isDisabled(),true);
+      assert.match(await page.locator('#dsgMessages').innerText(),/invited to this private group/);
+      assert.ok(!(await page.locator('#dsgMessages').innerText()).includes('Welcome to our regional mentorship'));
+      // The same synthetic invitation can be accepted or declined depending
+      // on viewport, verifying that it never exposes messages before joining.
+      if(view.label==='desktop'){
+        await page.locator('#dsgMessages button').filter({hasText:'Accept invitation'}).click();
+        assert.equal(await page.locator('#dsgMessageInput').isEnabled(),true);
+        assert.match(await page.locator('#dsgMessages').innerText(),/regional mentorship circle/);
+      }else{
+        page.once('dialog',dialog=>dialog.accept());
+        await page.locator('#dsgMessages button').filter({hasText:'Decline invitation'}).click();
+        assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),2);
+      }
       await page.locator('#dsgCreateButton').click();
       await page.locator('#dsgCreateDialog').waitFor({state:'visible'});
       await page.locator('#dsgNewName').fill('Texas Growth Team');
       await page.locator('#dsgNewTopic').fill('Licensing, training, and recognition');
       await page.locator('#dsgCreateForm button[type="submit"]').click();
       assert.equal(await page.locator('#dsgActiveName').innerText(),'Texas Growth Team');
-      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),3);
+      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),
+        view.label==='desktop'?4:3);
+      await page.locator('#dsgEditButton').click();
+      await page.locator('#dsgEditDialog').waitFor({state:'visible'});
+      await page.locator('#dsgEditName').fill('Texas Growth Alliance');
+      await page.locator('#dsgEditTopic').fill('Updated licensing and coaching plans');
+      await page.locator('#dsgEditForm button[type="submit"]').click();
+      assert.equal(await page.locator('#dsgActiveName').innerText(),'Texas Growth Alliance');
+      assert.match(await page.locator('#dsgActiveTopic').innerText(),/Updated licensing/);
+      await page.locator('#dsgMuteButton').click();
+      assert.equal(await page.locator('#dsgMuteButton').innerText(),'Unmute');
       await page.locator('#dsgMessageInput').fill('Welcome #team\\nJoin https://zoom.us/j/7443001370');
       await page.locator('#dsgSendButton').click();
       const chat=page.locator('#dsgMessages .dsg-chat-message');
@@ -494,6 +520,15 @@ try{
       await option.first().click();
       assert.match(await page.locator('#dsgMemberList').innerText(),
         /Invitation pending/);
+      page.once('dialog',dialog=>dialog.accept());
+      await page.locator('#dsgMemberList .dsg-member-remove')
+        .filter({hasText:'Cancel invitation'}).click();
+      assert.doesNotMatch(await page.locator('#dsgMemberList').innerText(),
+        /Invitation pending/);
+      await page.locator('#dsgInviteButton').click();
+      await page.locator('#dsgInviteSearch').fill('Alex');
+      await page.locator('#dsgInviteChoices .dsg-invite-choice').click();
+      assert.match(await page.locator('#dsgMemberList').innerText(),/Invitation pending/);
       await page.locator('#dsgSearch').fill('Texas');
       assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),1);
       const geometry=await page.evaluate(()=>({
