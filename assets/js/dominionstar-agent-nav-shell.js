@@ -14,7 +14,7 @@
     '#communityApp','#chatApp','#appointmentApp','#directoryApp','#profileApp','#settingsApp',
     '#recognitionApp','#notificationApp','#dmApp','#communityCenterApp','#digitalCardApp','#mindsetApp',
     '#founderApp','#founderDashboard','#founderAppointmentApp','#emailAdminApp','#qaApp','#featureApp','#diagApp',
-    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp','#feedApp'
+    '#releaseCheckApp','#agentJourneyApp','#agentLearningApp','#agentDriveApp','#agentTasksApp','#feedApp','#teamGroupsApp'
   ];
   const app=rootSelectors.map(selector=>document.querySelector(selector)).find(Boolean);
   if(!app || app.querySelector('[data-ds-agent-shell]')) return;
@@ -38,6 +38,7 @@
     ['Dashboard','/member-dashboard/','home'],
     ['Feed','/feed/','feed'],
     ['Messages','/direct-messages/','message'],
+    ['Team Groups','/team-groups/','users'],
     ['Meet','/meet/','video'],
     ['Notifications','/notifications/','bell'],
     ['Community','/community/','community'],
@@ -59,6 +60,7 @@
     ['Feature Controls','/founder-features/','sliders'],
     ['Diagnostics','/founder-diagnostics/','pulse'],
     ['Release Check','/release-check/','shield'],
+    ['Team Groups','/team-groups/','users'],
     ['Member Feed','/feed/','feed']
   ];
   const items=founderMode?founderItems:agentItems;
