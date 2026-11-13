@@ -217,7 +217,7 @@ test('Feed composer previews long text, hashtags, and Zoom links before publishi
   assert.match(js,/\.createTextNode\(/);
   assert.match(js,/\.replaceChildren\(/);
   assert.match(js,/noopener noreferrer nofollow/);
-  assert.match(js,/data-post-kind/);
+  assert.match(js,/panel.dataset.postKind=kind/);
   assert.doesNotMatch(js,/\b(?:fetch\(|\.rpc\(|\.insert\(|\.upload\(|\.invoke\()/);
   assert.match(build,/if rel == 'feed\/index.html':/);
   assert.match(build,/dominionstar-feed-composer-preview\.js\?v=composer-preview-20261113/);
