@@ -97,3 +97,27 @@ body.ds-visual-review .dsg-dialog textarea,
 body.ds-visual-review .dsg-dialog form{
   pointer-events:auto!important;
 }
+
+/* Admin tools remain secondary to conversation readability. */
+.dsg-detail-actions{display:flex;align-items:center;gap:6px;min-width:0}
+.dsg-member-item .dsg-member-remove{
+  flex:0 0 auto;align-self:center;
+  padding:6px 8px;
+  border:1px solid rgba(237,167,149,.36);
+  border-radius:8px;
+  color:#efb9ad;
+  background:rgba(122,40,45,.16);
+  font:700 10px/1.35 system-ui,sans-serif;
+  cursor:pointer;
+}
+.dsg-member-item .dsg-member-remove:hover:not(:disabled){
+  color:#fff;border-color:#f0afa0;background:rgba(140,52,53,.32)
+}
+.dsg-member-item .dsg-member-remove:disabled{opacity:.5;cursor:not-allowed}
+.dsg-invite-response{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
+.dsg-invite-response .dsg-button{flex:0 0 auto}
+@media(max-width:650px){
+ .dsg-panel-head{flex-wrap:wrap;gap:5px}
+ .dsg-detail-actions{justify-content:flex-start}
+ .dsg-member-item .dsg-member-remove{max-width:110px;white-space:normal}
+}
