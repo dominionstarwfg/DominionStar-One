@@ -116,11 +116,24 @@ create policy agent_members_self_update on public.agent_group_members
   for update to authenticated
   using(user_id=(select auth.uid()) and status in ('active','invited'))
   with check(user_id=(select auth.uid()) and status='active');
+-- Ordinary admins may remove members / cancel invitations but cannot expel
+-- fellow admins. The group owner may remove any non-owner member. A member
+-- may remove only their own membership. No owner can abandon a group.
 create policy agent_members_leave_or_admin_remove on public.agent_group_members
   for delete to authenticated
-  using(role<>'owner' and
-    (user_id=(select auth.uid()) or
-      (agent_private.is_group_admin(group_id) and user_id<>(select auth.uid()))));
+  using(role<>'owner' and (
+    user_id=(select auth.uid())
+    or (
+      agent_private.is_group_admin(group_id)
+      and user_id<>(select auth.uid())
+      and (
+        role='member'
+        or exists(select 1 from public.agent_groups owner_group
+          where owner_group.id=group_id
+            and owner_group.owner_id=(select auth.uid()))
+      )
+    )
+  ));
 
 create function agent_private.guard_group_member_update()
 returns trigger language plpgsql security invoker set search_path=''
