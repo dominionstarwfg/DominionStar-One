@@ -1,0 +1,80 @@
+name: DominionStar — Private Team Groups Isolation Review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'team-groups/**'
+      - 'assets/js/dominionstar-team-groups.js'
+      - 'assets/css/dominionstar-team-groups.css'
+      - 'scripts/security/agent-team-groups.DO-NOT-RUN.review.sql'
+      - 'tests/sql/agent-team-groups-*.sql'
+      - 'tests/team-groups-review.test.mjs'
+      - 'scripts/build-public-netlify.sh'
+      - '.github/workflows/team-groups-isolation-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-team-groups:
+    name: Group owner/invite/message RLS against disposable PostgreSQL 16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: SYNTHETIC_GROUPS_NOT_PRODUCTION
+      PGDATABASE: synthetic_agent_groups
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC_GROUPS_NOT_PRODUCTION
+          POSTGRES_DB: synthetic_agent_groups
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synthetic_agent_groups"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 14
+    steps:
+      - name: Checkout review-only branch
+        uses: actions/checkout@v4
+      - name: Keep all real project tokens and hosted database URLs absent
+        run: |
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = synthetic_agent_groups
+          test "$DOMINIONSTAR_STAGING_ISOLATION_APPROVED" = ""
+          test -z "${SUPABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          test -z "${DATABASE_URL:-}"
+          test -z "${RESEND_API_KEY:-}"
+      - name: Install local Postgres client if needed
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql -v ON_ERROR_STOP=1 -Atc "select current_database()" | grep -Fx synthetic_agent_groups
+      - name: Prepare synthetic-only group security fixture
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/agent-team-groups-fixture.sql
+      - name: Compile private group SQL in disposable PostgreSQL only
+        run: |
+          grep -Fq "DO NOT RUN IN PRODUCTION" scripts/security/agent-team-groups.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/agent-team-groups.DO-NOT-RUN.review.sql
+      - name: Reject uninvited, pending, spoofed, anonymous and revoked group access
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/agent-team-groups-assertions.sql | tee /tmp/agent-groups-review.txt
+          grep -Fq 'ISOLATED_TEAM_GROUP_RLS_PASS' /tmp/agent-groups-review.txt
+      - name: Verify group UI is backend-disabled by default
+        run: |
+          node --check assets/js/dominionstar-team-groups.js
+          node --test tests/team-groups-review.test.mjs
+      - name: Confirm no persistent database was used
+        run: echo 'DISPOSABLE_TEAM_GROUPS_NO_PRODUCTION_ACCESS_PASS'
