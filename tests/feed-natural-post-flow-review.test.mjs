@@ -197,3 +197,37 @@ test('Comments have their own readable, flexible bubble styling',()=>{
   assert.match(commentsCss,/ds30-comment-count:focus-visible/);
   assert.match(commentsCss,/ds-review-sample-thread/);
 });
+
+
+test('Feed composer previews long text, hashtags, and Zoom links before publishing',()=>{
+  const markup=read('feed/index.html');
+  const css=read('assets/css/dominionstar-feed-composer-preview.css');
+  const js=read('assets/js/dominionstar-feed-composer-preview.js');
+  const build=read('scripts/build-public-netlify.sh');
+  assert.match(markup,/id="feedComposerPreviewToggle"/);
+  assert.match(markup,/id="feedComposerPreview"[^>]*hidden/);
+  assert.match(markup,/id="feedComposerPreviewText"/);
+  assert.match(markup,/id="feedComposerCharacterCount"/);
+  assert.match(markup,/dominionstar-feed-composer-preview\.css\?v=composer-preview-20261113/);
+  assert.match(markup,/dominionstar-feed-composer-preview\.js\?v=composer-preview-20261113/);
+  assert.match(css,/#feedApp \.ds30-composer-preview-copy/);
+  assert.match(css,/white-space:pre-wrap!important/);
+  assert.match(css,/body\.ds-visual-review #feedComposerBody/);
+  assert.match(css,/body\.ds-visual-review #feedComposerPublish/);
+  assert.match(js,/\.createTextNode\(/);
+  assert.match(js,/\.replaceChildren\(/);
+  assert.match(js,/noopener noreferrer nofollow/);
+  assert.match(js,/data-post-kind/);
+  assert.doesNotMatch(js,/\b(?:fetch\(|\.rpc\(|\.insert\(|\.upload\(|\.invoke\()/);
+  assert.match(build,/if rel == 'feed\/index.html':/);
+  assert.match(build,/dominionstar-feed-composer-preview\.js\?v=composer-preview-20261113/);
+  assert.match(build,/keep_scripts=\('dominionstar-agent-nav-shell\.js',\)/);
+});
+
+test('The publishing form resets the preview counter only after a successful insert',()=>{
+  const source=read('assets/js/feed.js');
+  const insert=source.indexOf("if(insert.error)throw insert.error");
+  const cleared=source.indexOf("body.value=''");
+  const notified=source.indexOf("body.dispatchEvent(new Event('input',{bubbles:true}))");
+  assert.ok(insert>=0 && cleared>insert && notified>cleared);
+});
