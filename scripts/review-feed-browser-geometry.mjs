@@ -447,6 +447,75 @@ try{
     } finally { await page.close(); }
   }
   process.stdout.write('SOCIAL_FIRST_DASHBOARD_BROWSER_PASS — visual sample only; backend disabled\\n');
+
+  // Private Team Groups: creation, chat, invitations and responsive geometry
+  // must work in-memory while Supabase/auth scripts are absent.
+  for(const view of [{label:'desktop',width:1536,height:900},
+                     {label:'mobile',width:390,height:844}]){
+    const page=await browser.newPage({viewport:{width:view.width,height:view.height},
+      deviceScaleFactor:1});
+    const blocked=[];
+    page.on('response',response=>{
+      if(response.status()>=400&&new URL(response.url()).hostname==='127.0.0.1')
+        blocked.push(response.status()+' '+new URL(response.url()).pathname);
+    });
+    try{
+      await page.goto('http://127.0.0.1:'+port+'/team-groups/',{waitUntil:'networkidle'});
+      await page.locator('#teamGroupsApp').waitFor({state:'visible'});
+      assert.match(await page.locator('#dsgModeNotice').innerText(),
+        /INTERACTIVE VISUAL PREVIEW/);
+      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),2,
+        view.label+' two sample groups missing');
+      const initial=await page.locator('#dsgActiveName').innerText();
+      assert.equal(initial,'DominionStar Leadership');
+      assert.match(await page.locator('#dsgMessages').innerText(),
+        /Saving Your Future session/);
+      const zoom=page.locator('#dsgMessages a[href^="https://zoom.us/"]');
+      assert.equal(await zoom.count(),1,'Zoom link should be clickable in group chat');
+      await page.locator('#dsgCreateButton').click();
+      await page.locator('#dsgCreateDialog').waitFor({state:'visible'});
+      await page.locator('#dsgNewName').fill('Texas Growth Team');
+      await page.locator('#dsgNewTopic').fill('Licensing, training, and recognition');
+      await page.locator('#dsgCreateForm button[type="submit"]').click();
+      assert.equal(await page.locator('#dsgActiveName').innerText(),'Texas Growth Team');
+      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),3);
+      await page.locator('#dsgMessageInput').fill('Welcome #team\\nJoin https://zoom.us/j/7443001370');
+      await page.locator('#dsgSendButton').click();
+      const chat=page.locator('#dsgMessages .dsg-chat-message');
+      await chat.first().waitFor();
+      assert.equal(await chat.count(),1);
+      assert.match(await chat.first().innerText(),/Welcome #team/);
+      assert.equal(await chat.first().locator('a[href^="https://zoom.us/"]').count(),1);
+      await page.locator('#dsgInviteButton').click();
+      await page.locator('#dsgInviteDialog').waitFor({state:'visible'});
+      await page.locator('#dsgInviteSearch').fill('Alex');
+      const option=page.locator('#dsgInviteChoices .dsg-invite-choice');
+      assert.equal(await option.count(),1);
+      await option.first().click();
+      assert.match(await page.locator('#dsgMemberList').innerText(),
+        /Invitation pending/);
+      await page.locator('#dsgSearch').fill('Texas');
+      assert.equal(await page.locator('#dsgGroupList .dsg-group-item').count(),1);
+      const geometry=await page.evaluate(()=>({
+        viewport:innerWidth,
+        scrollWidth:document.documentElement.scrollWidth,
+        appWidth:document.getElementById('teamGroupsApp').getBoundingClientRect().width,
+        groupCount:document.querySelectorAll('.dsg-group-item').length,
+        messageCount:document.querySelectorAll('.dsg-chat-message').length,
+        preview:document.getElementById('dsgModeNotice').innerText
+      }));
+      assert.ok(geometry.scrollWidth<=view.width+3,
+        view.label+' team groups overflow horizontally: '+JSON.stringify(geometry));
+      assert.equal(blocked.length,0,
+        view.label+' missing Team Groups static assets: '+blocked.join(','));
+      await page.screenshot({path:path.join(out,'team-groups-'+view.label+'.png'),
+        fullPage:true,animations:'disabled'});
+      process.stdout.write('TEAM_GROUPS_VISUAL_BROWSER_PASS '+view.label+' '+
+        JSON.stringify({groupCount:geometry.groupCount,chatMessages:geometry.messageCount,
+          viewport:geometry.viewport})+'\\n');
+    }finally{await page.close();}
+  }
+
   process.stdout.write('FEED_BROWSER_GEOMETRY_PASS — synthetic posts only; backend disabled\n');
 }finally{
   await browser.close();
