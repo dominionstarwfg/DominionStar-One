@@ -6,6 +6,9 @@ on:
       - review/notification-readability-20261029
     paths:
       - 'scripts/build-public-netlify.sh'
+      - 'team-groups/**'
+      - 'assets/js/dominionstar-team-groups.js'
+      - 'assets/css/dominionstar-team-groups.css'
       - 'scripts/check-staging-public-dist.mjs'
       - 'scripts/check-agent-release-gates.mjs'
       - 'package.json'
@@ -43,6 +46,9 @@ on:
       - main
     paths:
       - 'scripts/build-public-netlify.sh'
+      - 'team-groups/**'
+      - 'assets/js/dominionstar-team-groups.js'
+      - 'assets/css/dominionstar-team-groups.css'
       - 'scripts/check-staging-public-dist.mjs'
       - 'scripts/check-agent-release-gates.mjs'
       - 'package.json'
@@ -124,6 +130,11 @@ jobs:
             grep -Fq 'dominionstar-social-preview-interactions.js' public-dist/feed/index.html
             test -s public-dist/assets/css/dominionstar-social-preview-refinement.css
             test -s public-dist/assets/css/dominionstar-organic-posts.css
+            test -s public-dist/team-groups/index.html
+            grep -Fq 'dsgCreateDialog' public-dist/team-groups/index.html
+            grep -Fq 'dominionstar-team-groups.js?v=review-20261113' public-dist/team-groups/index.html
+            test -s public-dist/assets/js/dominionstar-team-groups.js
+            test -s public-dist/assets/css/dominionstar-team-groups.css
             grep -Fq 'ds-review-long-post' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             grep -Fq 'URLSearchParams(location.search)' public-dist/assets/js/dominionstar-visual-review-fixtures.js
             test -s public-dist/assets/js/dominionstar-social-preview-interactions.js
