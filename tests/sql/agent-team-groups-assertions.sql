@@ -96,6 +96,9 @@ do $$ begin
   if (select count(*) from public.agent_group_messages)<>0 then
     raise exception 'Invited, not joined agent read private messages';
   end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Invited agent obtained private unread metadata';
+  end if;
   if not public.synthetic_assert_denied(
     $q$insert into public.agent_group_messages(group_id,author_id,body)
        select id,'22222222-2222-4222-8222-222222222222','Not yet joined'
@@ -123,13 +126,43 @@ do $$ begin
        select group_id,'11111111-1111-4111-8111-111111111111','Spoofed message'
        from public.agent_group_members limit 1$q$
   ) then raise exception 'Ordinary member could spoof author';end if;
-end $$;
+end $;
+
+-- An owner post after acceptance must become unread only for other joined agents.
+-- Owners' own posts do not count. Read positions cannot be moved backwards or
+-- into the future and never reveal message content to an outsider.
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+insert into public.agent_group_messages(group_id,author_id,body)
+  values(:'group_id','11111111-1111-4111-8111-111111111111','New after invitation acceptance');
+do $ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
+  then raise exception 'Owner own message counted as unread';end if;
+end $;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+do $ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>1
+  then raise exception 'Joined member lacks one new unread group message';end if;
+end $;
+update public.agent_group_members
+  set last_read_at=(select max(created_at) from public.agent_group_messages
+                    where author_id='11111111-1111-4111-8111-111111111111')
+  where group_id=:'group_id' and user_id='22222222-2222-4222-8222-222222222222';
+do $ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
+  then raise exception 'Reading messages did not clear unread count';end if;
+  if not public.synthetic_assert_denied(
+    $q$update public.agent_group_members set last_read_at=now()+interval '7 day'
+      where user_id='22222222-2222-4222-8222-222222222222'$q$
+  ) then raise exception 'Future-dated read cursor accepted';end if;
+end $;
 update public.agent_group_members set muted=true
  where user_id='22222222-2222-4222-8222-222222222222';
 insert into public.agent_group_messages(group_id,author_id,body)
 values(:'group_id','22222222-2222-4222-8222-222222222222','Message after invitation acceptance');
 do $$ begin
-  if (select count(*) from public.agent_group_messages)<>2 then
+  if (select count(*) from public.agent_group_messages)<>3 then
     raise exception 'Joined member cannot send messages';
   end if;
 end $$;
@@ -140,6 +173,8 @@ do $$ begin
   if (select count(*) from public.agent_groups)<>0 then raise exception 'Uninvited agent sees group';end if;
   if (select count(*) from public.agent_group_members)<>0 then raise exception 'Uninvited agent sees membership';end if;
   if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Uninvited agent sees chat';end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Uninvited agent learned unread metadata';end if;
   if not public.synthetic_assert_denied(
     $q$select public.create_agent_group('', 'bad')$q$
   ) then raise exception 'Blank group name accepted';end if;
@@ -159,6 +194,8 @@ select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222'
 do $$ begin
   if (select count(*) from public.agent_groups)<>0 then raise exception 'Revoked member sees group';end if;
   if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Revoked member sees messages';end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Revoked member learned unread metadata';end if;
 end $$;
 
 select set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',false);
@@ -174,6 +211,8 @@ set role anon;
 do $$ begin
   if not public.synthetic_assert_denied($q$select * from public.agent_group_messages$q$)
     then raise exception 'Anonymous member read group messages';end if;
+  if not public.synthetic_assert_denied($q$select * from public.list_agent_group_unread()$q$)
+    then raise exception 'Anonymous member called unread summary';end if;
   if not public.synthetic_assert_denied($q$select public.create_agent_group('Anon Group','')$q$)
     then raise exception 'Anonymous member could create group';end if;
 end $$;
