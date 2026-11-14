@@ -468,6 +468,21 @@ try{
         view.label+' initial groups plus pending invitation missing');
       const initial=await page.locator('#dsgActiveName').innerText();
       assert.equal(initial,'DominionStar Leadership');
+      assert.equal(await page.locator('#dsgUnreadTotal').innerText(),'2');
+      assert.equal(await page.locator('#dsgSimulateButton').isVisible(),true);
+      await page.locator('#dsgSimulateButton').click();
+      assert.equal(await page.locator('#dsgUnreadTotal').innerText(),'3');
+      assert.match(await page.locator('#dsgIncomingNotice').innerText(),
+        /New Agent Training/);
+      await page.locator('#dsgSoundToggle').click();
+      assert.equal(await page.locator('#dsgSoundToggle').getAttribute('aria-pressed'),'true');
+      await page.locator('#dsgGroupList .dsg-group-item')
+        .filter({hasText:'New Agent Training'}).click();
+      assert.equal(await page.locator('#dsgUnreadTotal').isVisible(),false);
+      assert.match(await page.locator('#dsgMessages').innerText(),
+        /Wednesday coaching starts at 8 PM CT/);
+      await page.locator('#dsgGroupList .dsg-group-item')
+        .filter({hasText:'DominionStar Leadership'}).click();
       assert.match(await page.locator('#dsgMessages').innerText(),
         /Saving Your Future session/);
       const zoom=page.locator('#dsgMessages a[href^="https://zoom.us/"]');
