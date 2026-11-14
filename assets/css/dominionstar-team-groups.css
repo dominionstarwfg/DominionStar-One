@@ -121,3 +121,31 @@ body.ds-visual-review .dsg-dialog form{
  .dsg-detail-actions{justify-content:flex-start}
  .dsg-member-item .dsg-member-remove{max-width:110px;white-space:normal}
 }
+
+/* Group alerts are metadata only. Muting suppresses the sound and toast but
+ * never suppresses visible unread counts or blocks other team members. */
+.dsg-inbox-count{display:flex;align-items:center;gap:8px;min-width:0}
+.dsg-unread-total{padding:4px 8px;border-radius:14px;background:#236ec8;
+  border:1px solid #4795e7;color:#fff;font:850 10px/1.1 system-ui,sans-serif}
+.dsg-unread-total[hidden],.dsg-incoming-notice[hidden],.dsg-demo-only[hidden]{
+  display:none!important;
+}
+.dsg-inbox-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+  padding:0 13px 12px}
+.dsg-inbox-tools>.dsg-subtle-button{padding:6px 9px;min-height:32px;
+  font-size:10px;white-space:normal}
+.dsg-inbox-tools .dsg-demo-only{border-color:rgba(232,192,108,.48)!important;
+  color:#f1d292}
+.dsg-incoming-notice{font-size:11px;line-height:1.5;margin:0 12px 10px;
+  padding:10px 12px;border-radius:10px;background:#123e65;
+  border:1px solid rgba(126,188,245,.38);color:#e5f1ff}
+.dsg-update-hint{font-size:10px!important;color:#91aecb!important;margin-top:4px!important}
+.dsg-group-unread{flex:0 0 auto;min-width:19px;text-align:center;
+  background:#2579de;color:#fff;border-radius:11px;padding:4px 6px;
+  font:850 10px/1.1 system-ui,sans-serif}
+.dsg-group-item[aria-selected="true"] .dsg-group-unread{
+  background:#e7bd6f;color:#142f51}
+@media(max-width:650px){
+ .dsg-inbox-tools{padding:0 11px 9px}
+ .dsg-inbox-tools>.dsg-subtle-button{flex:1;max-width:none}
+}
