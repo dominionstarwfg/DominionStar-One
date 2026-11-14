@@ -149,3 +149,11 @@ body.ds-visual-review .dsg-dialog form{
  .dsg-inbox-tools{padding:0 11px 9px}
  .dsg-inbox-tools>.dsg-subtle-button{flex:1;max-width:none}
 }
+
+/* Keep horizontal mobile group-picker controls clear of sticky global nav.
+ * Without scroll-margin, scrolling to another group can place its hit target
+ * beneath the shared executive header and make it impossible to select. */
+@media(max-width:1040px){
+  .dsg-group-item{scroll-margin-top:145px!important;scroll-margin-bottom:24px!important}
+  .dsg-groups-panel{scroll-margin-top:145px!important}
+}
