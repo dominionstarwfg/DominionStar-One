@@ -126,7 +126,7 @@ do $$ begin
        select group_id,'11111111-1111-4111-8111-111111111111','Spoofed message'
        from public.agent_group_members limit 1$q$
   ) then raise exception 'Ordinary member could spoof author';end if;
-end $;
+end $$;
 
 -- An owner post after acceptance must become unread only for other joined agents.
 -- Owners' own posts do not count. Read positions cannot be moved backwards or
@@ -136,27 +136,27 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
 insert into public.agent_group_messages(group_id,author_id,body)
   values(:'group_id','11111111-1111-4111-8111-111111111111','New after invitation acceptance');
-do $ begin
+do $$ begin
   if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
   then raise exception 'Owner own message counted as unread';end if;
-end $;
+end $$;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
-do $ begin
+do $$ begin
   if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>1
   then raise exception 'Joined member lacks one new unread group message';end if;
-end $;
+end $$;
 update public.agent_group_members
   set last_read_at=(select max(created_at) from public.agent_group_messages
                     where author_id='11111111-1111-4111-8111-111111111111')
   where group_id=:'group_id' and user_id='22222222-2222-4222-8222-222222222222';
-do $ begin
+do $$ begin
   if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
   then raise exception 'Reading messages did not clear unread count';end if;
   if not public.synthetic_assert_denied(
     $q$update public.agent_group_members set last_read_at=now()+interval '7 day'
       where user_id='22222222-2222-4222-8222-222222222222'$q$
   ) then raise exception 'Future-dated read cursor accepted';end if;
-end $;
+end $$;
 update public.agent_group_members set muted=true
  where user_id='22222222-2222-4222-8222-222222222222';
 insert into public.agent_group_messages(group_id,author_id,body)
