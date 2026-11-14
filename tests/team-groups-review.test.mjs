@@ -109,3 +109,50 @@ test('Invited members can accept or decline but cannot read messages and roster 
   assert.match(tests,/Group owner could not edit group details/);
   assert.match(tests,/Owner could not remove another admin/);
 });
+
+
+test('Group updates remain scoped to active approved members and respect mute',()=>{
+  for(const id of ['dsgUnreadTotal','dsgIncomingNotice','dsgSoundToggle',
+    'dsgSimulateButton','dsgRefreshButton','dsgUpdateHint']){
+    assert.match(html,new RegExp('id="'+id+'"'));
+  }
+  assert.match(sql,/last_read_at timestamptz not null default now\(\)/);
+  assert.match(sql,/list_agent_group_unread\(\)/);
+  assert.match(sql,/language sql stable security invoker set search_path=''/);
+  assert.match(sql,/agent_private\.is_group_member\(member\.group_id,false\)/);
+  assert.match(sql,/message\.author_id<>\(select auth\.uid\(\)\)/);
+  assert.match(sql,/member\.status='active'/);
+  assert.match(sql,/grant execute on function public\.list_agent_group_unread\(\) to authenticated/);
+  assert.match(sql,/grant update\(last_read_at\) on public\.agent_group_members to authenticated/);
+  assert.match(sql,/Read cursor may only advance/);
+  assert.match(code,/async function refreshUnread/);
+  assert.match(code,/async function refreshUpdates/);
+  assert.match(code,/function startRefresh/);
+  assert.match(code,/document\.visibilityState==='hidden'/);
+  assert.match(code,/window\.setInterval\(\(\)=>refreshUpdates\(\),20000\)/);
+  assert.match(code,/state\.muted\.has\(group\.id\)/);
+  assert.match(code,/state\.unread\.set\(destination\.id,count\)/);
+  assert.match(code,/state\.soundEnabled/);
+  assert.match(code,/state\.client\.rpc\('list_agent_group_unread'\)/);
+  assert.match(code,/\.update\(\{last_read_at:latest\}\)/);
+  assert.doesNotMatch(code,/service_role|RESEND_API_KEY|Notification\.requestPermission|pushManager/i);
+  assert.match(css,/\.dsg-group-unread/);
+  assert.match(css,/\.dsg-unread-total/);
+});
+
+test('Unread metadata cannot be enumerated by pending, revoked or anonymous members',()=>{
+  const rls=read('tests/sql/agent-team-groups-assertions.sql');
+  for(const claim of ['Invited agent obtained private unread metadata',
+    'Uninvited agent learned unread metadata',
+    'Revoked member learned unread metadata',
+    'Anonymous member called unread summary',
+    'Owner own message counted as unread',
+    'Joined member lacks one new unread group message',
+    'Reading messages did not clear unread count',
+    'Future-dated read cursor accepted']){
+    assert.ok(rls.includes(claim),claim);
+  }
+  assert.match(sql,/revoke all on function public\.list_agent_group_unread\(\) from public,anon/);
+  assert.match(sql,/new\.last_read_at<old\.last_read_at/);
+  assert.match(sql,/new\.last_read_at>now\(\)\+interval '1 second'/);
+});
