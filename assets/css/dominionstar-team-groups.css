@@ -157,3 +157,11 @@ body.ds-visual-review .dsg-dialog form{
   .dsg-group-item{scroll-margin-top:145px!important;scroll-margin-bottom:24px!important}
   .dsg-groups-panel{scroll-margin-top:145px!important}
 }
+
+/* The shared mobile agent shell is sticky above this page. Set viewport scroll
+ * padding (not only item scroll-margin) so programmatic/focus scrolling keeps
+ * selectable groups below its header rather than behind it. */
+@media(max-width:1040px){
+  html:has(#teamGroupsApp){scroll-padding-top:160px!important}
+  .dsg-body{scroll-padding-top:160px!important}
+}
