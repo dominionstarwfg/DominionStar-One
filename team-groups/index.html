@@ -25,7 +25,9 @@
     <p id="dsgModeNotice" class="dsg-mode-notice" role="status">Loading your private groups…</p>
     <div class="dsg-workspace">
       <aside class="dsg-groups-panel" aria-label="Your team groups">
-        <div class="dsg-panel-head"><strong>My Groups</strong><span id="dsgGroupCount">0</span></div>
+        <div class="dsg-panel-head"><strong>My Groups</strong><div class="dsg-inbox-count"><span id="dsgUnreadTotal" aria-label="Unread group messages" class="dsg-unread-total" hidden>0</span><span id="dsgGroupCount">0</span></div></div>
+        <div class="dsg-inbox-tools"><button id="dsgRefreshButton" type="button" class="dsg-subtle-button" title="Refresh private group conversations">↻ Refresh</button><button id="dsgSoundToggle" type="button" class="dsg-subtle-button" aria-pressed="false">Sound off</button><button id="dsgSimulateButton" type="button" class="dsg-subtle-button dsg-demo-only" hidden>Simulate message</button></div>
+        <p id="dsgIncomingNotice" class="dsg-incoming-notice" role="status" aria-live="polite" hidden></p>
         <label class="dsg-screenreader" for="dsgSearch">Search your groups</label>
         <input id="dsgSearch" type="search" placeholder="Search groups…" autocomplete="off">
         <div id="dsgGroupList" class="dsg-group-list" role="listbox" aria-label="Choose group"></div>
@@ -34,7 +36,7 @@
       <section class="dsg-chat-panel" aria-label="Group conversation">
         <div class="dsg-chat-head">
           <span class="dsg-group-avatar" id="dsgActiveIcon">✦</span>
-          <div class="dsg-chat-heading"><strong id="dsgActiveName">Select a group</strong><small id="dsgActiveTopic">Create a private group or choose an existing one.</small></div>
+          <div class="dsg-chat-heading"><strong id="dsgActiveName">Select a group</strong><small id="dsgActiveTopic">Create a private group or choose an existing one.</small><small id="dsgUpdateHint" class="dsg-update-hint">Conversations refresh while this page is open.</small></div>
           <button id="dsgMembersToggle" class="dsg-icon-button" type="button" aria-label="Show group members" aria-expanded="true" title="Group members">♟ <span id="dsgActiveMembersCount">0</span></button>
         </div>
         <div id="dsgMessages" class="dsg-messages" role="log" aria-label="Group messages" aria-live="polite" aria-relevant="additions text"><div class="dsg-chat-empty"><span>✦</span><strong>Your team conversations belong here.</strong><p>Choose a group to see its conversation.</p></div></div>
