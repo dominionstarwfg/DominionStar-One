@@ -221,7 +221,7 @@ grant select,insert(group_id,author_id,body) on public.agent_group_messages to a
 create function public.list_agent_group_unread()
 returns table(group_id uuid,unread_count bigint,muted boolean)
 language sql stable security invoker set search_path=''
-as $
+as $$
   select member.group_id, count(message.id)::bigint, member.muted
   from public.agent_group_members member
   left join public.agent_group_messages message
@@ -232,7 +232,7 @@ as $
     and member.status='active'
     and agent_private.is_group_member(member.group_id,false)
   group by member.group_id,member.muted;
-$;
+$$;
 revoke all on function public.list_agent_group_unread() from public,anon;
 grant execute on function public.list_agent_group_unread() to authenticated;
 grant update(last_read_at) on public.agent_group_members to authenticated;
