@@ -230,8 +230,7 @@ as $
     and message.author_id<>(select auth.uid())
   where member.user_id=(select auth.uid())
     and member.status='active'
-    and exists(select 1 from public.member_profiles profile
-      where profile.id=(select auth.uid()) and profile.verification_status='approved')
+    and agent_private.is_group_member(member.group_id,false)
   group by member.group_id,member.muted;
 $;
 revoke all on function public.list_agent_group_unread() from public,anon;
