@@ -1,0 +1,97 @@
+/* DominionStar One — member-directory identity fidelity, review-only.
+   Loaded after shared styles to keep profile initials legible, with natural
+   portrait geometry, including broken or missing signed-photo URLs. */
+.member-directory-card .member-directory-avatar > .member-directory-fallback {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  font-size:26px;
+  font-weight:850;
+  line-height:1;
+  z-index:0;
+}
+.member-directory-card .member-directory-avatar > img.member-directory-photo {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  border-radius:50%;
+  object-fit:cover;
+  z-index:1;
+}
+.member-directory-card .member-directory-avatar > span.online,
+.member-directory-card .member-directory-avatar > span.offline {
+  position:absolute;
+  right:4px;
+  bottom:4px;
+  width:14px;
+  height:14px;
+  border:2px solid #1d2127;
+  border-radius:50%;
+  z-index:2;
+}
+.team-member-card > .team-member-avatar {
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  padding:0;
+  background:linear-gradient(140deg,#18385a,#0c182b);
+  color:#eed38c;
+}
+.team-member-card > .team-member-avatar > .team-member-initials {
+  display:block;
+  font-weight:850;
+  font-size:clamp(2.25rem,4vw,4.25rem);
+  line-height:1;
+  letter-spacing:-.025em;
+}
+.team-member-card > .team-member-avatar > img {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:transparent;
+}
+
+/* Compact connection inbox belongs to Members, not a new dashboard panel. */
+.dsx-connection-inbox{
+  margin:12px 0 18px;
+  padding:14px 16px;
+  border:1px solid rgba(117,163,220,.22);
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(15,42,79,.92),rgba(8,24,49,.94));
+  color:#e4eef9;
+}
+.dsx-connection-inbox.member-hidden{display:none!important}
+.dsx-connection-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.dsx-connection-header h2{margin:0;font-size:16px;line-height:1.4;color:#f7faff}
+.dsx-connection-inbox .btn{min-height:36px;color:#dceaff}
+#directoryConnectionStatus:empty{display:none}
+#directoryConnectionStatus:not(:empty){margin:8px 0 0;color:#c5d8ed;font-size:13px}
+.dsx-connection-empty{margin:8px 0 0;color:#acc3df;font-size:13px}
+.dsx-connection-request{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+ padding:10px 0;border-top:1px solid rgba(148,173,208,.15);
+ font-size:13px;
+}
+.dsx-connection-request:first-child{margin-top:10px}
+.dsx-connection-request strong{color:#f5d28b;font-weight:800}
+.dsx-connection-request>span{color:#c8d7e7}
+.dsx-connection-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.dsx-connection-actions button{min-width:86px}
+.dsx-connection-actions button:first-child{background:#176ee6;color:#fff;border-color:#176ee6}
+@media(max-width:520px){
+ .dsx-connection-inbox{padding:12px}
+ .dsx-connection-actions{width:100%;margin-left:0}
+ .dsx-connection-actions button{flex:1}
+}

@@ -22,7 +22,12 @@ test('cinematic OS outranks high-specificity legacy light controls',()=>{
 });
 
 test('Messages uses signed member photos with resilient initials fallback',()=>{
-  assert.match(messages,/\.select\('id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path'\)/);
+  // The public-safe projection preserves signed photos/initials; private
+  // peer identity fallback is prohibited before the approved cutover.
+  assert.match(messages,/\.from\('member_public_profiles'\)/);
+  assert.match(messages,/if\(!publicDirectoryV2\)\{/);
+  assert.match(messages,/id,full_name,preferred_name,rank,verification_status,avatar_path/);
+  assert.doesNotMatch(messages,/id,full_name,preferred_name,rank,agent_code,smd_name,verification_status,avatar_path/);
   assert.match(messages,/\.from\('member-avatars'\)[\s\S]*createSignedUrl\(member\.avatar_path, 3600\)/);
   assert.match(messages,/class="dm-avatar-fallback member-hidden"/);
   assert.match(messages,/class="dm-avatar-photo"/);

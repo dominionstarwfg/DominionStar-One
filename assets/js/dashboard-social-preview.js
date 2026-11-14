@@ -70,6 +70,10 @@
     event.preventDefault();
     const text=body.value.trim();
     if(!text){setStatus('Write something before posting.','error');body.focus();return;}
+    if(text.length>2000){
+      setStatus('Posts can contain up to 2,000 characters. Please shorten your post.','error');
+      return;
+    }
 
     publish.disabled=true;
     publish.textContent='Posting…';
@@ -85,17 +89,18 @@
       }).select('id').single();
       if(inserted.error)throw inserted.error;
 
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:inserted.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error&&!['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
+      // Community mention/reply delivery is triggered by the verified
+      // saved source row in Supabase after the coordinated SQL cutover.
+      // Do not call the revoked, caller-body RPC from the browser.
 
       body.value='';
-      await target.__ds30Controller?.refresh?.();
       setStatus('Posted to your network.','success');
+      // A post committed in Supabase must not be reported as a failed
+      // publication solely because the preview could not refresh.
+      try{await target.__ds30Controller?.refresh?.();}
+      catch(_refreshError){
+        setStatus('Posted successfully. Preview refresh failed; open Feed to see your post.','error');
+      }
     }catch(error){
       setStatus(error?.message||'Your post could not be published.','error');
     }finally{

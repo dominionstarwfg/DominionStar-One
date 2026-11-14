@@ -34,7 +34,8 @@ test('selected email defaults do not turn every social event into email',()=>{
   assert.match(settings,/Selected email alerts/);
   assert.match(settings,/Founder & critical announcements/);
   assert.match(settings,/Appointments & schedule changes/);
-  assert.match(settingsHtml,/Email is reserved for the categories you choose/);
+  assert.match(settingsHtml,/Only selected priority events are eligible for email/);
+  assert.match(settingsHtml,/id="priorityNotificationEmail"/);
   assert.match(schema,/messages_email_enabled boolean not null default false/);
   assert.match(schema,/community_email_enabled boolean not null default false/);
   assert.match(schema,/coalesce\(prefs\.messages_email_enabled,false\)/);

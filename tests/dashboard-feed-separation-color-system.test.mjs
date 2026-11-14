@@ -34,7 +34,8 @@ test('Dashboard and Feed are separate first-class Agent OS workspaces',()=>{
   assert.match(feed,/feed\.js/);
   assert.match(feedJs,/window\.DSDashboardSocial\.mount/);
   assert.match(feedJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(feedJs,/community_notify_mentions/);
+  // Saved community_messages trigger is the only approved mention source.
+  assert.doesNotMatch(feedJs,/rpc\('community_notify_mentions'/);
 
   assert.match(nav,/\['Dashboard','\/member-dashboard\/','home'\]/);
   assert.match(nav,/\['Feed','\/feed\/','feed'\]/);

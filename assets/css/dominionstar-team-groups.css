@@ -1,0 +1,194 @@
+/* DominionStar One / Team Groups — independent web workspace, not Meet */
+:root{color-scheme:dark}
+.dsg-body{background:#061529;color:#ebf3fe;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.dsg-gate{min-height:58vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;gap:9px;text-align:center;background:#07172c}
+.dsg-gate strong{font-size:19px}.dsg-gate p{color:#abc0da;max-width:490px}
+.dsg-body .dsg-app.member-hidden,.dsg-body .dsg-gate.member-hidden{display:none!important}
+.dsg-app{min-height:100vh;position:relative}
+.dsg-page{margin:0 auto;max-width:1800px;padding:29px 24px 45px;min-width:0}
+.dsg-page-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:16px}
+.dsg-page-head h1{font:700 clamp(28px,3vw,37px)/1.15 Georgia,serif!important;color:#fafcff!important;margin:3px 0 8px}
+.dsg-page-head p{font-size:13px;color:#bed0e5;margin:0}
+.dsg-page-head .dsg-kicker{font:850 10px/1.5 system-ui,sans-serif;letter-spacing:.16em;color:#edc371}
+.dsg-page-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dsg-back-link{font-size:12px;text-decoration:none;color:#b5d4f5;border:1px solid #355470;border-radius:10px;padding:10px 14px;white-space:nowrap}
+.dsg-back-link:hover{color:#fff;border-color:#79a6dd}
+.dsg-button,.dsg-subtle-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:39px;font:750 12px/1.4 system-ui,sans-serif!important;border-radius:9px;padding:9px 13px;cursor:pointer;white-space:nowrap;text-align:center}
+.dsg-button:disabled,.dsg-subtle-button:disabled{opacity:.5;cursor:not-allowed!important}
+.dsg-primary{border:1px solid #2784f8;background:linear-gradient(130deg,#1c83f1,#155bb8);color:#fff!important}
+.dsg-primary:not(:disabled):hover{background:#257de1}
+.dsg-secondary{border:1px solid rgba(129,173,225,.42);background:rgba(25,66,105,.52);color:#d5e9ff!important}
+.dsg-secondary:not(:disabled):hover{background:rgba(44,91,139,.7)}
+.dsg-subtle-button{padding:7px 10px;min-height:32px;border:1px solid rgba(142,177,215,.25);background:transparent;color:#aac8ed}
+.dsg-body button:focus-visible,.dsg-body a:focus-visible,.dsg-body input:focus-visible,.dsg-body textarea:focus-visible{outline:2px solid #91c4ff!important;outline-offset:3px!important}
+.dsg-mode-notice{display:block;margin:0 0 15px;padding:11px 13px;border-radius:10px;border:1px solid rgba(208,171,91,.34);background:#102943;color:#f0d29a;font:680 11.5px/1.55 system-ui,sans-serif}
+.dsg-workspace{min-height:650px;height:min(78vh,850px);display:grid;grid-template-columns:minmax(230px,275px) minmax(0,1fr) minmax(235px,265px);gap:0;background:linear-gradient(150deg,#0d2745,#091a31);border:1px solid rgba(120,163,214,.32);border-radius:17px;box-shadow:0 20px 55px rgba(0,0,0,.21);overflow:hidden}
+.dsg-groups-panel,.dsg-chat-panel,.dsg-members-panel{min-width:0;min-height:0;display:flex;flex-direction:column}
+.dsg-groups-panel{border-right:1px solid rgba(145,182,221,.22);background:rgba(7,25,47,.68)}
+.dsg-members-panel{border-left:1px solid rgba(145,182,221,.22);background:rgba(7,25,47,.52)}
+.dsg-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:18px 17px 11px}
+.dsg-panel-head strong{font-size:13px;font-weight:850;color:#eef5ff}
+.dsg-panel-head>span{font-size:11px;color:#b6cde7;background:rgba(100,146,196,.2);padding:3px 9px;border-radius:8px}
+.dsg-groups-panel input,.dsg-dialog input,.dsg-dialog textarea{box-sizing:border-box;width:calc(100% - 28px);min-height:41px;border-radius:10px;border:1px solid rgba(143,181,223,.35);background:#081e37;color:#eef7ff;padding:10px 12px;font-size:12.5px;outline:none}
+.dsg-groups-panel input{margin:0 14px 13px}
+.dsg-group-list{overflow-y:auto;flex:1;min-height:0;padding:0 9px}
+.dsg-group-item{width:100%;text-align:left;display:flex;gap:10px;align-items:center;padding:13px 10px;margin-bottom:6px;border:1px solid transparent;background:transparent;border-radius:13px;color:#ecf5ff;cursor:pointer}
+.dsg-group-item:hover{background:#173b60}
+.dsg-group-item[aria-selected="true"]{border-color:rgba(245,199,112,.47);background:linear-gradient(105deg,#18436a,#16334f)}
+.dsg-group-item b{display:block;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere}
+.dsg-group-item small{display:block;margin-top:4px;font-size:10.5px;color:#adc5df;overflow-wrap:anywhere}
+.dsg-group-item .dsg-group-avatar{flex-basis:39px;width:39px;height:39px;font-size:16px}
+.dsg-group-avatar{display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:13px;border:1px solid rgba(242,196,113,.5);background:linear-gradient(140deg,#1c4a78,#102d50);color:#f3ce83;font-weight:850;font-size:18px}
+.dsg-group-text{flex:1;min-width:0}
+.dsg-group-unread{flex:0 0 auto;border-radius:9px;background:#237be2;color:#fff;font-weight:850;font-size:10px;padding:3px 6px}
+.dsg-sidebar-tip{margin:14px;padding:13px;border-radius:11px;border:1px solid rgba(134,172,205,.18);background:rgba(14,40,70,.56)}
+.dsg-sidebar-tip strong{font-size:11.5px;color:#edcf90}.dsg-sidebar-tip p{font-size:10.5px;line-height:1.55;color:#b7cadc;margin:5px 0 0}
+.dsg-chat-head{padding:15px 20px;display:flex;gap:12px;align-items:center;min-height:76px;border-bottom:1px solid rgba(148,178,208,.22);background:rgba(12,40,68,.64)}
+.dsg-chat-heading{flex:1;min-width:0}.dsg-chat-heading strong{display:block;font-size:15px;color:#f5faff}.dsg-chat-heading small{display:block;margin-top:3px;font-size:11px;line-height:1.5;color:#b8cce2}
+.dsg-icon-button{display:inline-flex;align-items:center;gap:5px;border-radius:9px;border:1px solid rgba(121,167,215,.33);background:rgba(16,52,85,.65);color:#d7ebff;padding:9px;cursor:pointer;font-size:12px}
+.dsg-messages{flex:1;min-height:0;overflow-y:auto;padding:24px 20px 28px;display:flex;flex-direction:column;gap:14px;scrollbar-color:#335777 transparent;background:radial-gradient(circle at 80% 4%,rgba(20,65,110,.18),transparent 40%)}
+.dsg-chat-empty{margin:auto;max-width:390px;text-align:center;color:#b7cee5}.dsg-chat-empty>span{display:grid;place-items:center;margin:0 auto 15px;width:51px;height:51px;font-size:24px;color:#e6c278;border-radius:16px;border:1px solid rgba(219,170,84,.33);background:rgba(28,71,119,.34)}.dsg-chat-empty strong{display:block;font-size:14px;color:#f2f7ff}.dsg-chat-empty p{margin:7px 0 0;font-size:12px;line-height:1.7}
+.dsg-chat-message{max-width:min(77%,640px);min-width:95px;align-self:flex-start;display:flex;flex-direction:column;gap:5px}
+.dsg-chat-message.dsg-mine{align-self:flex-end;align-items:flex-end}
+.dsg-chat-message .dsg-message-meta{color:#a9c6e5;font-size:10.5px;display:flex;gap:8px;align-items:center}
+.dsg-chat-bubble{border:1px solid rgba(144,181,217,.27);border-radius:15px 15px 15px 4px;background:#143659;color:#eef6ff;padding:11px 14px;line-height:1.63;font-size:12.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.dsg-mine .dsg-chat-bubble{background:linear-gradient(135deg,#216cc3,#194d88);border-color:#347ecb;border-radius:15px 15px 4px 15px}
+.dsg-chat-bubble a{color:#ffdb98;text-decoration:underline;overflow-wrap:anywhere}
+.dsg-message-form{display:flex;gap:10px;align-items:flex-end;padding:13px 16px;border-top:1px solid rgba(144,185,221,.2);background:#0b243e}
+.dsg-message-form textarea{box-sizing:border-box;flex:1;min-width:0;min-height:47px;max-height:125px;resize:vertical;border-radius:13px;padding:13px 15px;background:#071c34;border:1px solid rgba(135,173,215,.38);color:#f5faff;font:500 13px/1.55 system-ui,sans-serif}
+.dsg-message-form textarea::placeholder{color:#8ea9c5}.dsg-message-form .dsg-button{min-height:45px}
+.dsg-action-status{font-size:11px;line-height:1.5;margin:0;padding:0 17px 10px;color:#b3cdf0;min-height:18px;background:#0b243e}
+.dsg-detail{padding:4px 17px 15px;border-bottom:1px solid rgba(142,181,221,.19)}
+.dsg-detail small{display:block;color:#a9c3dd;font-size:10px;margin:5px 0}.dsg-detail strong{display:block;color:#e4d09b;font-size:12px}
+.dsg-members-title{padding-top:16px}.dsg-member-list{padding:0 12px;min-height:0;flex:1;overflow-y:auto}
+.dsg-member-item{display:flex;align-items:center;gap:9px;padding:10px 5px;border-bottom:1px solid rgba(131,171,214,.12)}
+.dsg-member-badge{flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#194369;border:1px solid rgba(138,185,224,.37);color:#efca78;font-size:11px;font-weight:850}
+.dsg-member-item .dsg-member-name{min-width:0;flex:1;font-size:11.5px;color:#f3f9ff;font-weight:750;overflow-wrap:anywhere}.dsg-member-item small{display:block;font-size:10px;margin-top:3px;color:#a5bfd8}
+.dsg-member-actions{padding:14px 16px;display:grid;gap:9px}.dsg-member-actions>*{width:100%}
+.dsg-quiet-note{font-size:10px;line-height:1.55;color:#93b2d0;padding:0 17px 14px;margin:0}
+.dsg-empty-item{padding:14px;color:#bad0e5;font-size:12px;line-height:1.6}
+.dsg-screenreader{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.dsg-dialog{box-sizing:border-box;width:min(94vw,470px);max-height:min(85vh,750px);overflow:auto;color:#eef5ff;background:#0d2948;border:1px solid rgba(149,186,230,.43);border-radius:16px;padding:0;box-shadow:0 22px 70px #0008}
+.dsg-dialog::backdrop{background:rgba(1,9,22,.76);backdrop-filter:blur(4px)}
+.dsg-dialog form{padding:23px;display:grid;gap:11px}
+.dsg-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px}.dsg-dialog h2{color:#f6f9ff!important;font-size:20px!important;margin:0!important}.dsg-close{background:transparent;border:0;color:#c6dbf1;font-size:27px;cursor:pointer}
+.dsg-dialog p{font-size:12px;line-height:1.65;color:#b8cee6;margin:0 0 5px}.dsg-dialog label{color:#e2edf9;font-size:12px;font-weight:780}.dsg-dialog label span{color:#9eafc1;font-weight:450}
+.dsg-dialog input,.dsg-dialog textarea{width:100%;resize:vertical}
+.dsg-create-privacy{padding:13px;border:1px solid rgba(224,182,103,.33);border-radius:11px;background:rgba(211,173,93,.07)}
+.dsg-create-privacy strong{font-size:12px;color:#f0d595}.dsg-create-privacy p{margin:5px 0 0}
+.dsg-dialog footer{display:flex;justify-content:flex-end;gap:9px;margin-top:6px}
+.dsg-invite-choices{display:grid;gap:7px;max-height:280px;overflow:auto}.dsg-invite-choice{width:100%;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border:1px solid rgba(152,189,221,.24);border-radius:10px;background:#0b223b;color:#e6f1ff;text-align:left;cursor:pointer}
+.dsg-invite-choice:disabled{opacity:.5;cursor:not-allowed}.dsg-invite-choice strong{font-size:12px}.dsg-invite-choice small{display:block;font-size:10px;color:#b9cbdf;margin-top:3px}.dsg-invite-choice:hover:not(:disabled){border-color:#79ade9}
+@media(max-width:1230px){.dsg-workspace{grid-template-columns:245px minmax(0,1fr)}.dsg-members-panel{position:absolute;right:24px;top:175px;bottom:45px;width:255px;z-index:2;border:1px solid rgba(126,168,221,.4);border-radius:0 15px 15px 0;box-shadow:-12px 0 35px #0004}.dsg-members-panel[hidden]{display:none!important}}
+@media(max-width:840px){.dsg-page{padding:17px 11px 28px}.dsg-workspace{grid-template-columns:220px minmax(0,1fr);min-height:610px;height:78vh}.dsg-messages{padding:16px 12px}.dsg-chat-head{padding:13px 12px}.dsg-members-panel{right:11px;top:160px;bottom:28px}.dsg-chat-message{max-width:89%}}
+@media(max-width:650px){.dsg-workspace{display:flex;flex-direction:column;min-height:0;height:auto;overflow:visible}.dsg-groups-panel{border-right:0;border-bottom:1px solid #34516b;max-height:252px;min-height:185px}.dsg-group-list{display:flex;gap:7px;overflow-x:auto;overflow-y:hidden;min-height:76px;padding:0 10px 11px}.dsg-group-item{flex:0 0 185px}.dsg-sidebar-tip{display:none}.dsg-chat-panel{height:min(66vh,620px);min-height:430px}.dsg-members-panel{position:relative;top:auto;bottom:auto;right:auto;width:auto;display:block;border:0;border-radius:0;max-height:260px;overflow:auto}.dsg-members-panel[hidden]{display:none}.dsg-member-list{max-height:150px}.dsg-page-head h1{font-size:29px!important}.dsg-page-actions{width:100%}.dsg-page-actions>*{flex:1}.dsg-chat-message{max-width:96%}.dsg-member-actions{display:flex}.dsg-message-form{gap:6px;padding:10px}.dsg-message-form .dsg-button{padding:9px}.dsg-dialog footer{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* The isolated Netlify visual review disables all production controls by
+ * default. Re-enable ONLY the in-memory Team Groups demo's local controls.
+ * No Supabase, Storage, email, or notifications scripts run in that build. */
+body.ds-visual-review #teamGroupsApp button,
+body.ds-visual-review #teamGroupsApp input,
+body.ds-visual-review #teamGroupsApp textarea,
+body.ds-visual-review #teamGroupsApp form,
+body.ds-visual-review .dsg-dialog button,
+body.ds-visual-review .dsg-dialog input,
+body.ds-visual-review .dsg-dialog textarea,
+body.ds-visual-review .dsg-dialog form{
+  pointer-events:auto!important;
+}
+
+/* Admin tools remain secondary to conversation readability. */
+.dsg-detail-actions{display:flex;align-items:center;gap:6px;min-width:0}
+.dsg-member-item .dsg-member-remove{
+  flex:0 0 auto;align-self:center;
+  padding:6px 8px;
+  border:1px solid rgba(237,167,149,.36);
+  border-radius:8px;
+  color:#efb9ad;
+  background:rgba(122,40,45,.16);
+  font:700 10px/1.35 system-ui,sans-serif;
+  cursor:pointer;
+}
+.dsg-member-item .dsg-member-remove:hover:not(:disabled){
+  color:#fff;border-color:#f0afa0;background:rgba(140,52,53,.32)
+}
+.dsg-member-item .dsg-member-remove:disabled{opacity:.5;cursor:not-allowed}
+.dsg-invite-response{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
+.dsg-invite-response .dsg-button{flex:0 0 auto}
+@media(max-width:650px){
+ .dsg-panel-head{flex-wrap:wrap;gap:5px}
+ .dsg-detail-actions{justify-content:flex-start}
+ .dsg-member-item .dsg-member-remove{max-width:110px;white-space:normal}
+}
+
+/* Group alerts are metadata only. Muting suppresses the sound and toast but
+ * never suppresses visible unread counts or blocks other team members. */
+.dsg-inbox-count{display:flex;align-items:center;gap:8px;min-width:0}
+.dsg-unread-total{padding:4px 8px;border-radius:14px;background:#236ec8;
+  border:1px solid #4795e7;color:#fff;font:850 10px/1.1 system-ui,sans-serif}
+.dsg-unread-total[hidden],.dsg-incoming-notice[hidden],.dsg-demo-only[hidden]{
+  display:none!important;
+}
+.dsg-inbox-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+  padding:0 13px 12px}
+.dsg-inbox-tools>.dsg-subtle-button{padding:6px 9px;min-height:32px;
+  font-size:10px;white-space:normal}
+.dsg-inbox-tools .dsg-demo-only{border-color:rgba(232,192,108,.48)!important;
+  color:#f1d292}
+.dsg-incoming-notice{font-size:11px;line-height:1.5;margin:0 12px 10px;
+  padding:10px 12px;border-radius:10px;background:#123e65;
+  border:1px solid rgba(126,188,245,.38);color:#e5f1ff}
+.dsg-update-hint{font-size:10px!important;color:#91aecb!important;margin-top:4px!important}
+.dsg-group-unread{flex:0 0 auto;min-width:19px;text-align:center;
+  background:#2579de;color:#fff;border-radius:11px;padding:4px 6px;
+  font:850 10px/1.1 system-ui,sans-serif}
+.dsg-group-item[aria-selected="true"] .dsg-group-unread{
+  background:#e7bd6f;color:#142f51}
+@media(max-width:650px){
+ .dsg-inbox-tools{padding:0 11px 9px}
+ .dsg-inbox-tools>.dsg-subtle-button{flex:1;max-width:none}
+}
+
+/* Keep horizontal mobile group-picker controls clear of sticky global nav.
+ * Without scroll-margin, scrolling to another group can place its hit target
+ * beneath the shared executive header and make it impossible to select. */
+@media(max-width:1040px){
+  .dsg-group-item{scroll-margin-top:145px!important;scroll-margin-bottom:24px!important}
+  .dsg-groups-panel{scroll-margin-top:145px!important}
+}
+
+/* The shared mobile agent shell is sticky above this page. Set viewport scroll
+ * padding (not only item scroll-margin) so programmatic/focus scrolling keeps
+ * selectable groups below its header rather than behind it. */
+@media(max-width:1040px){
+  html:has(#teamGroupsApp){scroll-padding-top:160px!important}
+  .dsg-body{scroll-padding-top:160px!important}
+}
+
+/* Mobile inbox tools added a second row above the horizontal group picker.
+ * The old 252px max-height let the picker overlap the chat header, so chat
+ * intercepted taps. Size the group panel from its actual content. */
+@media(max-width:650px){
+  .dsg-workspace>.dsg-groups-panel{
+    display:flex!important;
+    flex:0 0 auto!important;
+    height:auto!important;
+    max-height:none!important;
+    min-height:0!important;
+    overflow:visible!important;
+    position:relative;
+    z-index:1;
+  }
+  .dsg-groups-panel .dsg-group-list{
+    display:flex!important;
+    flex:0 0 98px!important;
+    height:98px!important;
+    min-height:98px!important;
+    max-height:98px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  .dsg-groups-panel .dsg-group-item{align-self:stretch!important}
+  .dsg-chat-panel{position:relative;z-index:0}
+}

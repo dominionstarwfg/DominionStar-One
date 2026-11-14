@@ -29,6 +29,8 @@
     result.className = `member-message show ${type}`;
   }
 
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+
   const profileInitials = value => String(value || 'DS')
     .trim().split(/\s+/).filter(Boolean).slice(0,2)
     .map(part => part.charAt(0)).join('').toUpperCase() || 'DS';
@@ -98,8 +100,8 @@
     setValue('country', profile.country);
 
     document.getElementById('profileBadgeRow').innerHTML = `
-      <span class="founding-member-badge">${profile.verification_status || 'pending'}</span>
-      <span class="founding-member-badge">${profile.rank || 'TA'}</span>
+      <span class="founding-member-badge">${escapeHtml(profile.verification_status || 'pending')}</span>
+      <span class="founding-member-badge">${escapeHtml(profile.rank || 'TA')}</span>
       ${profile.founding_member === true &&
           Number.isInteger(Number(profile.exclusive_member_number)) &&
           Number(profile.exclusive_member_number) >= 1 &&
@@ -130,6 +132,88 @@
     return;
   }
 
+  // Member links from Messages must not open the signed-in member's editable profile.
+  // This is a separate read-only route, restricted to approved viewers and members.
+  const requestedMemberId = new URLSearchParams(location.search).get('member');
+  if(requestedMemberId && requestedMemberId!==session.user.id){
+    const invalidId=!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestedMemberId);
+    if(invalidId){
+      gate.innerHTML='<p class="eyebrow">Unavailable</p><h1>Invalid member link.</h1>';
+      return;
+    }
+    const viewer=await supabase.from('member_profiles')
+      .select('verification_status').eq('id',session.user.id).maybeSingle();
+    if(viewer.error||viewer.data?.verification_status!=='approved'){
+      gate.innerHTML='<p class="eyebrow">Restricted</p><h1>Founder approval is required to view member profiles.</h1>';
+      return;
+    }
+    // A member-to-member profile is never an authorization shortcut to the
+    // private member_profiles table. The staged cutover uses only the
+    // approved/opted-in public-safe source without a private-data fallback.
+    const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+    if(!publicDirectoryV2){
+      gate.innerHTML='<p class="eyebrow">Privacy Update</p><h1>Professional profile temporarily unavailable</h1><p>The privacy-protected member directory must be enabled before this profile can be viewed.</p>';
+      return;
+    }
+    const memberResult=await supabase.from('member_public_profiles')
+      .select('id,full_name,preferred_name,rank,city,state,avatar_path,founding_member,exclusive_member_number,verification_status')
+      .eq('id',requestedMemberId).eq('verification_status','approved').maybeSingle();
+    if(memberResult.error||!memberResult.data){
+      gate.innerHTML='<p class="eyebrow">Unavailable</p><h1>This approved member profile could not be found.</h1>';
+      return;
+    }
+    const member=memberResult.data;
+    const memberName=member.preferred_name||member.full_name||'DominionStar Member';
+    const publicSet=(id,value)=>{
+      const node=document.getElementById(id);
+      if(node)node.textContent=String(value??'—');
+    };
+    const header=app.querySelector('.member-dashboard-header');
+    const title=header?.querySelector('h1');
+    const description=header?.querySelector('p');
+    if(title)title.textContent='Member Profile';
+    if(description)description.textContent='Read-only professional information for an approved DominionStar member.';
+    publicSet('memberPublicName',memberName);
+    publicSet('memberPublicRank','Contract level: '+(member.rank||'—'));
+    publicSet('memberPublicContract',member.rank||'—');
+    publicSet('memberPublicLocation',[member.city,member.state].filter(Boolean).join(', ')||'Not listed');
+    publicSet('memberPublicStatus','Approved');
+    const fallback=document.getElementById('memberPublicInitials');
+    if(fallback)fallback.textContent=profileInitials(memberName);
+    const badge=document.getElementById('memberPublicFounding');
+    if(badge&&member.founding_member===true){
+      const n=Number(member.exclusive_member_number);
+      badge.textContent=Number.isInteger(n)&&n>=1&&n<=20
+        ? 'Founding Member #'+String(n).padStart(2,'0'):'Founding Member';
+      badge.classList.remove('member-hidden');
+    }
+    const messageLink=document.getElementById('memberPublicMessage');
+    if(messageLink)messageLink.href='/direct-messages/?member='+encodeURIComponent(member.id);
+    document.getElementById('ownProfileLayout')?.classList.add('member-hidden');
+    document.getElementById('memberPublicProfile')?.classList.remove('member-hidden');
+    gate.classList.add('member-hidden');
+    app.classList.remove('member-hidden');
+    const publicPhoto=document.getElementById('memberPublicPhoto');
+    if(publicPhoto&&member.avatar_path){
+      try{
+        const signed=await supabase.storage.from('member-avatars')
+          .createSignedUrl(member.avatar_path,3600);
+        if(!signed.error&&signed.data?.signedUrl){
+          publicPhoto.onload=()=>{
+            publicPhoto.classList.remove('member-hidden');
+            fallback?.classList.add('member-hidden');
+          };
+          publicPhoto.onerror=()=>{
+            publicPhoto.classList.add('member-hidden');
+            fallback?.classList.remove('member-hidden');
+          };
+          publicPhoto.src=signed.data.signedUrl;
+        }
+      }catch(_error){ /* Member initials remain available. */ }
+    }
+    return;
+  }
+
   await supabase.rpc('ensure_member_profile');
 
   const response = await supabase
@@ -139,7 +223,10 @@
     .single();
 
   if (response.error || !response.data) {
-    gate.innerHTML = `<p class="eyebrow">Profile Error</p><h1>${response.error?.message || 'Profile not found.'}</h1>`;
+    gate.innerHTML = '<p class="eyebrow">Profile Error</p><h1>Unable to load your profile.</h1>';
+    const detail = document.createElement('p');
+    detail.textContent = response.error?.message || 'Profile not found.';
+    gate.appendChild(detail);
     return;
   }
 

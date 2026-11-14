@@ -6,7 +6,6 @@
   const result=document.getElementById('chatResult');
   const statusEl=document.getElementById('chatConnectionStatus');
   const unread=document.getElementById('chatUnreadBadge');
-  const emailPref=document.getElementById('chatEmailPreference');
 
   let client,session,profile,channel,pollTimer,reconnectTimer,typingTimer;
 
@@ -46,7 +45,11 @@
   async function fetchProfiles(ids){
     const unique=[...new Set(ids.filter(Boolean))];
     if(!unique.length)return {};
-    const r=await client.from('member_profiles')
+    if(window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2!==true){
+      // Chat content can load with generic initials until the safe directory is released.
+      return {};
+    }
+    const r=await client.from('member_public_profiles')
       .select('id,full_name,preferred_name,rank,exclusive_member_number,avatar_path')
       .in('id',unique);
     if(r.error)throw r.error;
@@ -158,12 +161,6 @@ form.addEventListener('submit',async e=>{
       body
     }).select('id').single();
 
-    if(!sent.error&&emailPref.checked&&sent.data?.id){
-      await client.rpc('queue_community_message_email',{
-        target_message_id:sent.data.id
-      });
-    }
-
     button.disabled=false;
     button.textContent='Send Message';
 
@@ -174,24 +171,9 @@ form.addEventListener('submit',async e=>{
     }
 
     form.reset();
-    result.textContent=emailPref.checked
-      ? 'Message sent. Email alerts were queued for opted-in members.'
-      : 'Message sent.';
+    result.textContent='Message sent.';
     result.className='member-message show success';
     await loadMessages(true);
-  });
-
-  const pref=await client.from('notification_preferences')
-    .select('community_email_enabled')
-    .eq('user_id',session.user.id).maybeSingle();
-
-  emailPref.checked=Boolean(pref.data?.community_email_enabled);
-  emailPref.addEventListener('change',async()=>{
-    await client.from('notification_preferences').upsert({
-      user_id:session.user.id,
-      community_email_enabled:emailPref.checked,
-      updated_at:new Date().toISOString()
-    });
   });
 
   document.getElementById('chatRefresh').addEventListener('click',()=>loadMessages(true));

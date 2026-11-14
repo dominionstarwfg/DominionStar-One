@@ -117,6 +117,12 @@
       return;
     }
     if(!publish)return;
+    // Browser maxlength is not enough to guarantee the database saves
+    // exactly the content the member typed (e.g. scripted paste/submit).
+    if(text.length>2000){
+      showStatus('Posts can contain up to 2,000 characters. Please shorten your post.','error');
+      return;
+    }
 
     publish.disabled=true;
     publish.textContent='Posting…';
@@ -132,17 +138,20 @@
       }).select('id').single();
       if(insert.error)throw insert.error;
 
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:insert.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error && !['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
+      // The saved community_messages INSERT is the sole notification source.
+      // A reviewed server-side trigger (not a browser-callable privileged RPC)
+      // handles mentions after the coordinated database release.
 
       body.value='';
-      await mountFeed();
+      if(typeof Event==='function' && typeof body.dispatchEvent==='function'){
+        body.dispatchEvent(new Event('input',{bubbles:true}));
+      }
       showStatus('Posted to your Feed.','success');
+      // A failed refresh is NOT a failed insert. Never encourage a duplicate.
+      try{await mountFeed();}
+      catch(_refreshError){
+        showStatus('Posted successfully, but Feed could not refresh. Use Refresh to reload the post.','error');
+      }
     }catch(error){
       showStatus(error?.message||'Your post could not be published.','error');
     }finally{

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Team Groups | DominionStar One</title>
+<link rel="icon" href="/assets/logo.jpeg">
+<link rel="stylesheet" href="/styles.css?v=9.0-executive-3.2-build001">
+<link rel="stylesheet" href="/assets/css/dominionstar-auth-os-v2.css?v=os-stage-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-2">
+<link rel="stylesheet" href="/assets/css/dominionstar-cinematic-os.css?v=cinematic-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-team-groups.css?v=review-20261113">
+<script src="/assets/js/runtime-safety.js?v=9.0-executive-3.0-rc2"></script>
+<script src="/assets/js/platform-core.js?v=9.0-executive-3.0-rc2"></script>
+</head>
+<body class="dsg-body">
+<section id="teamGroupsGate" class="dsg-gate" role="status" aria-live="polite"><strong>Checking your DominionStar membership…</strong><p>Only Founder-approved agents can access private team conversations.</p></section>
+<main id="teamGroupsApp" class="dsg-app member-hidden">
+  <div class="dsg-page">
+    <header class="dsg-page-head">
+      <div><p class="dsg-kicker">DOMINIONSTAR ONE · TEAM COMMUNICATION</p><h1>Team Groups</h1><p>Private spaces to collaborate, train, coordinate, and recognize your team.</p></div>
+      <div class="dsg-page-actions"><a class="dsg-back-link" href="/direct-messages/">Direct Messages</a><button type="button" id="dsgCreateButton" class="dsg-button dsg-primary">＋ Create Group</button></div>
+    </header>
+    <p id="dsgModeNotice" class="dsg-mode-notice" role="status">Loading your private groups…</p>
+    <div class="dsg-workspace">
+      <aside class="dsg-groups-panel" aria-label="Your team groups">
+        <div class="dsg-panel-head"><strong>My Groups</strong><div class="dsg-inbox-count"><span id="dsgUnreadTotal" aria-label="Unread group messages" class="dsg-unread-total" hidden>0</span><span id="dsgGroupCount">0</span></div></div>
+        <div class="dsg-inbox-tools"><button id="dsgRefreshButton" type="button" class="dsg-subtle-button" title="Refresh private group conversations">↻ Refresh</button><button id="dsgSoundToggle" type="button" class="dsg-subtle-button" aria-pressed="false">Sound off</button><button id="dsgSimulateButton" type="button" class="dsg-subtle-button dsg-demo-only" hidden>Simulate message</button></div>
+        <p id="dsgIncomingNotice" class="dsg-incoming-notice" role="status" aria-live="polite" hidden></p>
+        <label class="dsg-screenreader" for="dsgSearch">Search your groups</label>
+        <input id="dsgSearch" type="search" placeholder="Search groups…" autocomplete="off">
+        <div id="dsgGroupList" class="dsg-group-list" role="listbox" aria-label="Choose group"></div>
+        <div class="dsg-sidebar-tip"><strong>Private by default</strong><p>Only approved group members can read its conversations. Invitations require membership approval.</p></div>
+      </aside>
+      <section class="dsg-chat-panel" aria-label="Group conversation">
+        <div class="dsg-chat-head">
+          <span class="dsg-group-avatar" id="dsgActiveIcon">✦</span>
+          <div class="dsg-chat-heading"><strong id="dsgActiveName">Select a group</strong><small id="dsgActiveTopic">Create a private group or choose an existing one.</small><small id="dsgUpdateHint" class="dsg-update-hint">Conversations refresh while this page is open.</small></div>
+          <button id="dsgMembersToggle" class="dsg-icon-button" type="button" aria-label="Show group members" aria-expanded="true" title="Group members">♟ <span id="dsgActiveMembersCount">0</span></button>
+        </div>
+        <div id="dsgMessages" class="dsg-messages" role="log" aria-label="Group messages" aria-live="polite" aria-relevant="additions text"><div class="dsg-chat-empty"><span>✦</span><strong>Your team conversations belong here.</strong><p>Choose a group to see its conversation.</p></div></div>
+        <form id="dsgMessageForm" class="dsg-message-form">
+          <label class="dsg-screenreader" for="dsgMessageInput">Message your group</label>
+          <textarea id="dsgMessageInput" rows="2" maxlength="2000" placeholder="Message your team…" required disabled></textarea>
+          <button id="dsgSendButton" class="dsg-button dsg-primary" type="submit" disabled>Send <span aria-hidden="true">➤</span></button>
+        </form>
+        <p id="dsgActionStatus" class="dsg-action-status" role="status" aria-live="polite"></p>
+      </section>
+      <aside id="dsgMembersPanel" class="dsg-members-panel" aria-label="Group details">
+        <div class="dsg-panel-head"><strong>Group details</strong><div class="dsg-detail-actions"><button type="button" id="dsgEditButton" class="dsg-subtle-button" disabled>Edit</button><button type="button" id="dsgMuteButton" class="dsg-subtle-button" disabled>Mute</button></div></div>
+        <div class="dsg-detail"><small>ACCESS</small><strong><span aria-hidden="true">● </span> Private · Invite only</strong><small>Invited agents cannot read messages until they join.</small></div>
+        <div class="dsg-panel-head dsg-members-title"><strong>Members</strong><span id="dsgMembersCount">0</span></div>
+        <div id="dsgMemberList" class="dsg-member-list"></div>
+        <div class="dsg-member-actions"><button id="dsgInviteButton" type="button" class="dsg-button dsg-secondary" disabled>＋ Invite member</button><button id="dsgLeaveButton" type="button" class="dsg-subtle-button" disabled>Leave group</button></div>
+        <p class="dsg-quiet-note">Owner and admin controls protect membership. No public joining or anonymous access.</p>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<dialog id="dsgCreateDialog" class="dsg-dialog" aria-labelledby="dsgCreateTitle">
+  <form id="dsgCreateForm">
+    <header><h2 id="dsgCreateTitle">Create a team group</h2><button type="button" class="dsg-close" data-close-dialog aria-label="Close">×</button></header>
+    <p>Give your group a clear purpose. You will be its owner and can invite other approved agents.</p>
+    <label for="dsgNewName">Group name</label><input id="dsgNewName" name="name" maxlength="70" placeholder="e.g. North America Leadership" required>
+    <label for="dsgNewTopic">Group topic <span>(optional)</span></label><textarea id="dsgNewTopic" name="topic" rows="2" maxlength="200" placeholder="Training, licensing updates, team goals…"></textarea>
+    <div class="dsg-create-privacy"><strong>🔒 Private group</strong><p>Invitation required. Your team members must already be approved DominionStar agents.</p></div>
+    <footer><button type="button" data-close-dialog class="dsg-button dsg-secondary">Cancel</button><button type="submit" class="dsg-button dsg-primary">Create group</button></footer>
+  </form>
+</dialog>
+
+<dialog id="dsgEditDialog" class="dsg-dialog" aria-labelledby="dsgEditTitle">
+  <form id="dsgEditForm">
+    <header><h2 id="dsgEditTitle">Edit group details</h2><button type="button" class="dsg-close" data-close-dialog aria-label="Close">×</button></header>
+    <p>Only the group owner can edit its name or purpose. Existing members and messages stay unchanged.</p>
+    <label for="dsgEditName">Group name</label><input id="dsgEditName" maxlength="70" required>
+    <label for="dsgEditTopic">Group topic <span>(optional)</span></label><textarea id="dsgEditTopic" rows="2" maxlength="200"></textarea>
+    <footer><button type="button" data-close-dialog class="dsg-button dsg-secondary">Cancel</button><button type="submit" class="dsg-button dsg-primary">Save changes</button></footer>
+  </form>
+</dialog>
+
+<dialog id="dsgInviteDialog" class="dsg-dialog" aria-labelledby="dsgInviteTitle">
+  <form id="dsgInviteForm">
+    <header><h2 id="dsgInviteTitle">Invite team members</h2><button type="button" class="dsg-close" data-close-dialog aria-label="Close">×</button></header>
+    <p>Select an approved, directory-visible member. They must accept the invitation before reading messages.</p>
+    <label for="dsgInviteSearch">Find approved agents</label>
+    <input id="dsgInviteSearch" type="search" placeholder="Search by name…" autocomplete="off">
+    <div id="dsgInviteChoices" class="dsg-invite-choices"></div>
+    <footer><button type="button" data-close-dialog class="dsg-button dsg-secondary">Close</button></footer>
+  </form>
+</dialog>
+
+<script src="/assets/js/supabase-config.js?v=9.0-executive-3.0-rc2"></script>
+<script src="/assets/js/data-layer.js?v=privacy-gate-20261108"></script>
+<script src="/assets/js/member-auth.js?v=9.0-executive-3.0-rc2"></script>
+<script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-2"></script>
+<script defer src="/assets/js/dominionstar-team-groups.js?v=review-20261113"></script>
+</body>
+</html>

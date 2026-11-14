@@ -35,7 +35,10 @@ test('Planned lockdown excludes public roles while preserving processor role',()
 
 test('Existing email processor uses service-role Supabase client after authorization',()=>{
   assert.match(processor,/SUPABASE_SERVICE_ROLE_KEY/);
-  assert.match(processor,/createClient\(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(processor,/clientFactory=createClient/);
+  assert.match(processor,/clientFactory\(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(processor,/export default createEmailOutboxHandler\(\)/);
+  assert.match(processor,/if\(!strictEmailGateEnabled\(env\)\)/);
   assert.match(processor,/rpc\('claim_email_notification_batch',\{batch_size:25\}\)/);
   const guard=processor.indexOf("if(!secretAuthorized)");
   const claim=processor.indexOf("rpc('claim_email_notification_batch'");

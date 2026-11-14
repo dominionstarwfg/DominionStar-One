@@ -1,0 +1,157 @@
+/* DominionStar One — text-only composer preview; no third-party embeds. */
+#feedApp .ds30-composer-preview-controls{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  gap:10px 18px!important;
+  flex-wrap:wrap!important;
+  padding:10px 1px 5px!important;
+}
+#feedApp .ds30-composer-preview-toggle{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:38px!important;
+  padding:9px 14px!important;
+  border:1px solid rgba(137,187,235,.38)!important;
+  border-radius:10px!important;
+  background:rgba(29,83,142,.25)!important;
+  color:#b9d9ff!important;
+  font:800 12px/1.35 system-ui,sans-serif!important;
+  cursor:pointer!important;
+}
+#feedApp .ds30-composer-preview-toggle:hover{
+  border-color:rgba(142,199,253,.7)!important;
+  background:rgba(37,108,185,.25)!important;
+  color:#fff!important;
+}
+#feedApp .ds30-composer-preview-toggle:focus-visible{
+  outline:2px solid #9dccff!important;
+  outline-offset:3px!important;
+}
+#feedApp .ds30-composer-character-count{
+  font:650 11px/1.4 system-ui,sans-serif!important;
+  color:#b3c8dd!important;
+  font-variant-numeric:tabular-nums;
+}
+#feedApp .ds30-composer-character-count.ds30-char-limit{color:#f3c06c!important}
+#feedApp #feedComposerPreview[hidden]{display:none!important}
+#feedApp #feedComposerPreview{
+  display:block!important;
+  min-width:0!important;
+  margin:13px 0 17px!important;
+  padding:17px 18px!important;
+  border:1px solid rgba(141,184,222,.36)!important;
+  border-radius:16px!important;
+  background:linear-gradient(150deg,#142e4e,#0a243f)!important;
+  box-shadow:0 10px 30px rgba(0,0,0,.14)!important;
+}
+#feedApp #feedComposerPreview[data-post-kind="meeting"]{
+  background:linear-gradient(140deg,#123456,#0b203a)!important;
+  border-color:rgba(95,167,241,.46)!important;
+}
+#feedApp #feedComposerPreview[data-post-kind="link"]{
+  background:linear-gradient(140deg,#173b48,#0c2739)!important;
+  border-color:rgba(129,196,200,.44)!important;
+}
+#feedApp .ds30-composer-preview-label{
+  margin:0 0 15px!important;
+  font:800 10px/1.5 system-ui,sans-serif!important;
+  text-transform:uppercase!important;
+  letter-spacing:.12em!important;
+  color:#f0c985!important;
+}
+#feedApp .ds30-composer-preview-authorbar{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin:0 0 15px!important;
+}
+#feedApp .ds30-composer-preview-avatar{
+  position:relative;
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 39px!important;
+  width:39px!important;height:39px!important;
+  overflow:hidden!important;
+  border-radius:50%!important;
+  border:1px solid rgba(233,194,113,.61)!important;
+  background:#173b64!important;
+  color:#f1d28e!important;
+  font:850 12px/1 system-ui,sans-serif!important;
+}
+#feedApp .ds30-composer-preview-avatar img{
+  position:absolute;inset:0;
+  width:100%!important;height:100%!important;
+  object-fit:cover!important;
+}
+#feedApp .ds30-composer-preview-avatar img[hidden],
+#feedApp .ds30-composer-preview-avatar span[hidden]{
+  display:none!important;
+}
+#feedApp .ds30-composer-preview-person{
+  min-width:0;display:grid;gap:3px;
+}
+#feedApp .ds30-composer-preview-person strong{
+  font:800 13px/1.35 system-ui,sans-serif!important;
+  color:#f8fbff!important;
+  overflow-wrap:anywhere!important;
+}
+#feedApp .ds30-composer-preview-person small{
+  font:600 11px/1.4 system-ui,sans-serif!important;
+  color:#b5cbe0!important;
+}
+#feedApp .ds30-composer-preview-copy{
+  display:block!important;
+  min-width:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin:0 0 14px!important;
+  padding:0!important;
+  font:450 14px/1.75 system-ui,sans-serif!important;
+  color:#eef5ff!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+}
+#feedApp .ds30-composer-preview-copy a{
+  display:inline!important;
+  color:#95c9ff!important;
+  text-decoration:underline!important;
+  text-underline-offset:3px!important;
+}
+#feedApp .ds30-composer-preview-copy a.ds30-hashtag{
+  color:#f0cd88!important;
+  font-weight:750!important;
+  text-decoration:none!important;
+}
+#feedApp .ds30-composer-preview-copy a:hover{text-decoration:underline!important}
+#feedApp .ds30-composer-preview-copy.ds30-preview-placeholder{
+  color:#aec2d8!important;
+  font-style:italic!important;
+}
+#feedApp .ds30-composer-preview-footer{
+  margin:0!important;
+  border-top:1px solid rgba(138,174,215,.22)!important;
+  padding:10px 0 0!important;
+  color:#b8cbdc!important;
+  font:600 10.5px/1.55 system-ui,sans-serif!important;
+}
+body.ds-visual-review #feedComposerBody,
+body.ds-visual-review #feedComposerPreviewToggle{
+  pointer-events:auto!important;
+  cursor:text!important;
+}
+body.ds-visual-review #feedComposerPreviewToggle{cursor:pointer!important}
+body.ds-visual-review #feedComposerPublish{
+  pointer-events:none!important;
+  opacity:.58!important;
+  cursor:not-allowed!important;
+}
+@media(max-width:650px){
+  #feedApp #feedComposerPreview{
+    padding:15px!important;
+    margin:12px 0 15px!important;
+  }
+  #feedApp .ds30-composer-preview-copy{font-size:13.5px!important}
+  #feedApp .ds30-composer-preview-controls{gap:7px!important}
+}

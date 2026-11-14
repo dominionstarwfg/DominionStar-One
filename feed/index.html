@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="/assets/css/dominionstar-agent-nav-shell.css?v=review-2">
 <link rel="stylesheet" href="/assets/css/dominionstar-auth-os-v2.css?v=os-stage-1">
 <link rel="stylesheet" href="/assets/css/dominionstar-cinematic-os.css?v=cinematic-1">
+<link rel="stylesheet" href="/assets/css/dominionstar-feed-flow.css?v=natural-flow-20261104">
+<link rel="stylesheet" href="/assets/css/dominionstar-organic-posts.css?v=organic-20261111">
+<link rel="stylesheet" href="/assets/css/dominionstar-inline-comments.css?v=inline-comments-20261111">
+<link rel="stylesheet" href="/assets/css/dominionstar-feed-composer-preview.css?v=composer-preview-20261113">
 <script src="/assets/js/runtime-safety.js"></script>
 <script src="/assets/js/platform-core.js"></script>
 </head>
@@ -52,6 +56,27 @@
           <form id="feedPageComposer">
             <label for="feedComposerBody" class="dsos-screenreader">Share with your network</label>
             <textarea id="feedComposerBody" name="body" rows="3" maxlength="2000" required placeholder="Share an update, insight, win, or question with your DominionStar network…"></textarea>
+
+            <div class="ds30-composer-preview-controls">
+              <button id="feedComposerPreviewToggle" class="ds30-composer-preview-toggle" type="button" aria-controls="feedComposerPreview" aria-expanded="false">Preview post</button>
+              <span id="feedComposerCharacterCount" class="ds30-composer-character-count" aria-live="off">0 / 2000 characters</span>
+            </div>
+
+            <section id="feedComposerPreview" class="ds30-composer-preview" aria-label="Your post preview" data-post-kind="text" hidden>
+              <p class="ds30-composer-preview-label">Post appearance · <span id="feedComposerPreviewKind">Text post</span></p>
+              <div class="ds30-composer-preview-authorbar">
+                <span class="ds30-composer-preview-avatar" aria-hidden="true">
+                  <span id="feedComposerPreviewInitials">DS</span>
+                  <img id="feedComposerPreviewAvatar" alt="" hidden>
+                </span>
+                <span class="ds30-composer-preview-person">
+                  <strong id="feedComposerPreviewAuthor">DominionStar Member</strong>
+                  <small id="feedComposerPreviewRank">Approved member</small>
+                </span>
+              </div>
+              <p id="feedComposerPreviewText" class="ds30-composer-preview-copy ds30-preview-placeholder">Your post will appear here exactly as readers will see it.</p>
+              <p class="ds30-composer-preview-footer">Local preview only · No post, message, or email is sent until you publish.</p>
+            </section>
 
             <section id="feedMediaDraft" class="dsmedia-draft" aria-label="Attach media to a draft post">
               <div class="dsmedia-action-row dsx-feed-media-actions">
@@ -96,10 +121,10 @@
         <section class="dsx-side-card">
           <div class="dsx-side-head"><strong>Quick Links</strong></div>
           <div class="dsx-quick-grid">
-            <a href="/direct-messages/">✉ <span>Messages</span></a>
-            <a href="/member-directory/">◎ <span>Members</span></a>
-            <a href="/recognition/">★ <span>Recognition</span></a>
-            <a href="/notifications/">◉ <span>Alerts</span></a>
+            <a href="/direct-messages/" aria-label="Messages"><svg viewBox="0 0 24 24" class="dsx-feed-quick-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/></svg><span>Messages</span></a>
+            <a href="/member-directory/" aria-label="Members"><svg viewBox="0 0 24 24" class="dsx-feed-quick-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="4"/><path d="M1 21v-2a7 7 0 0 1 14 0v2M16 3a4 4 0 0 1 0 8m2 5a6 6 0 0 1 5 5"/></svg><span>Members</span></a>
+            <a href="/recognition/" aria-label="Recognition"><svg viewBox="0 0 24 24" class="dsx-feed-quick-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 0 4-4M12 14v7M8 21h8"/></svg><span>Recognition</span></a>
+            <a href="/notifications/" aria-label="Alerts"><svg viewBox="0 0 24 24" class="dsx-feed-quick-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>Alerts</span></a>
           </div>
         </section>
       </aside>
@@ -108,11 +133,12 @@
 </main>
 
 <script src="/assets/js/supabase-config.js"></script>
-<script src="/assets/js/data-layer.js"></script>
+<script src="/assets/js/data-layer.js?v=privacy-gate-20261108"></script>
 <script src="/assets/js/member-auth.js"></script>
-<script src="/assets/js/dashboard-social.js?v=os-stage-1"></script>
+<script src="/assets/js/dashboard-social.js?v=organic-20261111"></script>
 <script src="/assets/js/community-media-draft-review.js?v=review-1"></script>
-<script src="/assets/js/feed.js?v=feed-separation-1"></script>
+<script src="/assets/js/dominionstar-feed-composer-preview.js?v=composer-preview-20261113"></script>
+<script src="/assets/js/feed.js?v=source-notifications-20261109"></script>
 <script src="/assets/js/dominionstar-agent-nav-shell.js?v=os-stage-1"></script>
 </body>
 </html>

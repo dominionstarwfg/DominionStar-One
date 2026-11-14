@@ -83,7 +83,8 @@
             <section class="settings-panel" data-settings-panel="notifications">
               <p class="eyebrow">Notifications</p>
               <h2>Choose what reaches you</h2>
-              <p class="settings-panel-note">Push alerts can use a DominionStar sound. Email is reserved for the categories you choose rather than every platform notification.</p>
+              <p class="settings-panel-note">In-app alerts cover all relevant activity. Only selected priority events are eligible for email; ordinary likes, reactions and feed posts stay in-app.</p>
+              <p class="settings-panel-note" role="status">Priority email destination: <strong id="priorityNotificationEmail">Checking verified account email…</strong></p>
               <div id="notificationSwitches"></div>
               <button id="testSound" class="btn btn-outline" type="button">
                 Test notification sound
@@ -116,7 +117,7 @@
                     minlength="8"
                     autocomplete="new-password"
                     required /></label
-                ><button class="btn btn-gold" type="submit">
+                ><button class="btn dsx-action-primary" type="submit">
                   Update Password
                 </button>
               </form>
@@ -175,7 +176,7 @@
       </section>
     </main>
     <script src="/assets/js/supabase-config.js"></script>
-    <script src="/assets/js/data-layer.js"></script>
+    <script src="/assets/js/data-layer.js?v=privacy-gate-20261108"></script>
     <script src="/assets/js/member-auth.js"></script>
     <script src="/assets/js/notification-feature-flags.js?v=review-1"></script>
 <script src="/assets/js/communication-engine.js"></script>

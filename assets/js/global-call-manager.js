@@ -97,11 +97,14 @@
   const initials = name => String(name || 'DS').split(/\s+/).filter(Boolean).slice(0,2).map(part => part[0]).join('').toUpperCase();
 
   const resolveCaller = async callerId => {
-    const result = await state.client
-      .from('member_profiles')
-      .select('id,full_name,preferred_name,avatar_path')
-      .eq('id', callerId)
-      .maybeSingle();
+    // Caller identity is private until the server-approved directory cutover.
+    // Calls may still ring, but no private peer-profile lookup is permitted.
+    const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+    const result=publicDirectoryV2
+      ? await state.client.from('member_public_profiles')
+          .select('id,full_name,preferred_name,avatar_path')
+          .eq('id',callerId).maybeSingle()
+      : {data:null,error:null};
 
     const profile = result.data || {id:callerId, full_name:'DominionStar Member'};
     profile.display_name = profile.preferred_name || profile.full_name || 'DominionStar Member';

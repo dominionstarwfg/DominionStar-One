@@ -5,16 +5,18 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const sql=read('scripts/security/agent-founder-rpc-privilege-hardening.DO-NOT-RUN.review.sql');
 const chat=read('assets/js/community-chat.js');
+const retired=read('scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql');
 
-test('Community email queue is backed by a persisted caller-owned message',()=>{
+test('Historical email RPC verifies caller ownership, but browser chat has retired it',()=>{
   assert.match(sql,/CREATE OR REPLACE FUNCTION public\.queue_community_message_email/);
   assert.match(sql,/WHERE id=target_message_id[\s\S]*AND user_id=auth\.uid\(\)/);
   assert.match(sql,/AND is_deleted=false/);
   assert.match(sql,/dedupe_key/);
   assert.match(sql,/community-chat:/);
   assert.match(chat,/\.select\('id'\)\.single\(\)/);
-  assert.match(chat,/queue_community_message_email/);
-  assert.doesNotMatch(chat,/queue_community_email_notifications/);
+  assert.doesNotMatch(chat,/queue_community_message_email|queue_community_email_notifications/);
+  assert.match(retired,/REVOKE EXECUTE ON FUNCTION public\.queue_community_message_email\(uuid\)/);
+  assert.match(sql,/has_function_privilege\('authenticated',new_community_oid,'EXECUTE'\)/);
 });
 
 test('appointment email queue explicitly requires authentication and dedupes update versions',()=>{

@@ -2485,3 +2485,2387 @@ body.ds-auth-os-page .dsx-feed-page-stream .ds30-post-actions button{
   .dsx-dashboard-social{min-height:0!important}
   .dsx-side-card{min-height:0!important}
 }
+
+
+/* ===== Approved illustration fidelity for secondary Agent OS workspaces ===== */
+
+/* Community */
+body.ds-auth-os-page #communityApp>.member-dashboard-header{
+  min-height:0!important;
+  padding:16px 18px!important;
+  border-radius:17px!important;
+}
+body.ds-auth-os-page #communityApp>.member-dashboard-header h1{
+  font-size:clamp(24px,2.3vw,32px)!important;
+  margin:4px 0 6px!important;
+}
+body.ds-auth-os-page #communityApp>.member-dashboard-header p{
+  font-size:12px!important;
+  line-height:1.5!important;
+}
+body.ds-auth-os-page .community-hub-layout{
+  grid-template-columns:minmax(0,1fr) 285px!important;
+  gap:10px!important;
+  margin-top:11px!important;
+}
+body.ds-auth-os-page .community-main-column{display:grid;gap:10px!important}
+body.ds-auth-os-page .community-composer-card{
+  padding:14px!important;
+  border-radius:14px!important;
+}
+body.ds-auth-os-page .community-composer-heading{margin-bottom:8px!important}
+body.ds-auth-os-page .community-composer-heading h2{font-size:16px!important;margin:2px 0!important}
+body.ds-auth-os-page .dsmedia-composer-top{gap:9px!important}
+body.ds-auth-os-page .dsmedia-author-glyph{width:42px!important;height:42px!important}
+body.ds-auth-os-page .dsmedia-caption textarea{
+  min-height:70px!important;
+  padding:10px 12px!important;
+  border-radius:11px!important;
+  font-size:12px!important;
+}
+body.ds-auth-os-page .dsmedia-post-options{margin-top:8px!important}
+body.ds-auth-os-page .dsmedia-draft{margin-top:8px!important;padding:9px!important;border-radius:10px!important}
+body.ds-auth-os-page .community-composer-actions{margin-top:9px!important}
+body.ds-auth-os-page .community-feed-header{
+  padding:10px 0 7px!important;
+  align-items:end!important;
+}
+body.ds-auth-os-page .community-feed-header h2{font-size:16px!important;margin:2px 0!important}
+body.ds-auth-os-page .community-feed-filters{gap:6px!important}
+body.ds-auth-os-page .community-feed-filters input,
+body.ds-auth-os-page .community-feed-filters select{min-height:34px!important;font-size:11px!important}
+body.ds-auth-os-page .community-feed{display:grid;gap:9px!important}
+body.ds-auth-os-page .community-post{
+  padding:13px 14px!important;
+  border-radius:13px!important;
+}
+body.ds-auth-os-page .community-sidebar{display:grid;gap:9px!important}
+body.ds-auth-os-page .community-sidebar .member-panel{padding:13px!important}
+body.ds-auth-os-page .community-sidebar h2{font-size:15px!important}
+
+/* Profile */
+body.ds-auth-os-page #profileApp>.member-dashboard-header{
+  min-height:0!important;
+  padding:16px 18px!important;
+  border-radius:17px!important;
+}
+body.ds-auth-os-page .profile-stable-layout{
+  grid-template-columns:220px minmax(0,1fr)!important;
+  gap:10px!important;
+  margin-top:11px!important;
+}
+body.ds-auth-os-page .executive-profile-card{
+  padding:16px!important;
+  border-radius:15px!important;
+}
+body.ds-auth-os-page .executive-avatar-wrap{
+  width:86px!important;
+  height:86px!important;
+  margin-bottom:10px!important;
+}
+body.ds-auth-os-page .executive-profile-card h2{font-size:17px!important;margin:5px 0 2px!important}
+body.ds-auth-os-page .executive-rank{font-size:11px!important}
+body.ds-auth-os-page .profile-data-column{display:grid;gap:10px!important}
+body.ds-auth-os-page .profile-section-card{padding:14px!important}
+body.ds-auth-os-page .profile-section-card h2{font-size:16px!important;margin:3px 0 10px!important}
+body.ds-auth-os-page .verified-data-grid{gap:7px!important}
+body.ds-auth-os-page .verified-data-grid>div{padding:9px!important;border-radius:9px!important}
+body.ds-auth-os-page .verified-data-grid span{font-size:9.5px!important}
+body.ds-auth-os-page .verified-data-grid strong{font-size:11.5px!important}
+body.ds-auth-os-page .profile-section-card .member-grid{gap:8px!important}
+body.ds-auth-os-page .profile-section-card label{font-size:10.5px!important}
+body.ds-auth-os-page .profile-section-card input,
+body.ds-auth-os-page .profile-section-card select{min-height:34px!important;padding:7px 9px!important;font-size:11px!important}
+body.ds-auth-os-page .sticky-save-bar{
+  min-height:52px!important;
+  padding:8px 10px!important;
+  border-radius:12px!important;
+}
+
+/* Settings */
+body.ds-auth-os-page .settings-center{max-width:1480px!important}
+body.ds-auth-os-page #settingsApp>.member-dashboard-header{
+  min-height:0!important;
+  padding:16px 18px!important;
+  border-radius:17px!important;
+}
+body.ds-auth-os-page .settings-layout{
+  grid-template-columns:190px minmax(0,1fr)!important;
+  gap:10px!important;
+  margin-top:11px!important;
+}
+body.ds-auth-os-page .settings-nav{
+  align-self:start!important;
+  position:sticky!important;
+  top:12px!important;
+  padding:6px!important;
+  border-radius:13px!important;
+}
+body.ds-auth-os-page .settings-nav button{
+  min-height:34px!important;
+  padding:6px 8px!important;
+  font-size:11px!important;
+  border-radius:8px!important;
+}
+body.ds-auth-os-page .settings-content{min-width:0}
+body.ds-auth-os-page .settings-panel{
+  padding:14px!important;
+  border-radius:14px!important;
+}
+body.ds-auth-os-page .settings-panel h2{font-size:16px!important;margin:3px 0 10px!important}
+body.ds-auth-os-page .settings-field{font-size:10.5px!important}
+body.ds-auth-os-page .settings-field select,
+body.ds-auth-os-page .settings-form input{min-height:34px!important;padding:7px 9px!important;font-size:11px!important}
+body.ds-auth-os-page .settings-switch-row{
+  min-height:50px!important;
+  padding:8px 0!important;
+}
+body.ds-auth-os-page .settings-switch-row strong{font-size:11.5px!important}
+body.ds-auth-os-page .settings-switch-row small{font-size:9.5px!important}
+body.ds-auth-os-page .settings-form{gap:8px!important}
+body.ds-auth-os-page .settings-session-card{padding:11px!important;border-radius:10px!important}
+body.ds-auth-os-page .ds-agent-meet-bridge{
+  margin-top:10px!important;
+  padding:13px!important;
+  border-radius:14px!important;
+  gap:10px!important;
+}
+body.ds-auth-os-page .ds-agent-meet-symbol{width:40px!important;height:40px!important;border-radius:10px!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy h2{font-size:15px!important;margin:2px 0 4px!important}
+body.ds-auth-os-page .ds-agent-meet-bridge-copy p{font-size:10.5px!important;line-height:1.45!important}
+
+/* Messages */
+body.ds-auth-os-page .dm-os.dm-os-three{
+  grid-template-columns:minmax(240px,295px) minmax(420px,1fr) minmax(235px,285px)!important;
+  grid-template-rows:auto minmax(520px,calc(100vh - 120px))!important;
+  gap:9px!important;
+  padding:10px 12px 14px!important;
+}
+body.ds-auth-os-page .dsx-messages-title{
+  min-height:72px!important;
+  padding:13px 16px!important;
+  border-radius:15px!important;
+}
+body.ds-auth-os-page .dsx-messages-title h1{font-size:clamp(23px,2.2vw,31px)!important}
+body.ds-auth-os-page .dsx-messages-title small{font-size:10.5px!important}
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{border-radius:13px!important}
+body.ds-auth-os-page .dm-sidebar-header,
+body.ds-auth-os-page .dm-chat-header{min-height:54px!important;padding-top:8px!important;padding-bottom:8px!important}
+body.ds-auth-os-page .dm-search-wrap{padding:8px!important}
+body.ds-auth-os-page .dm-search-wrap input,
+body.ds-auth-os-page .dm-conversation-search input{min-height:34px!important;font-size:11px!important}
+body.ds-auth-os-page .dm-conversation{padding:8px!important}
+body.ds-auth-os-page .dm-thread{padding:12px!important}
+body.ds-auth-os-page .dm-composer{padding:8px!important}
+body.ds-auth-os-page .dm-member-profile{padding:13px!important}
+body.ds-auth-os-page .dm-member-avatar-large{width:68px!important;height:68px!important}
+body.ds-auth-os-page .dm-member-facts{padding:10px!important}
+body.ds-auth-os-page .dm-member-actions{padding:10px!important;gap:6px!important}
+body.ds-auth-os-page .dm-shared-summary{padding:10px!important}
+
+/* Notifications */
+body.ds-auth-os-page .notification-center{max-width:1480px!important;padding:12px 16px 40px!important}
+body.ds-auth-os-page .notification-center>header{
+  min-height:0!important;
+  padding:16px 18px!important;
+  border-radius:17px!important;
+}
+body.ds-auth-os-page .notification-center>header h1{font-size:clamp(24px,2.3vw,32px)!important}
+body.ds-auth-os-page .notification-center>header p{font-size:11.5px!important}
+body.ds-auth-os-page .notification-header-actions{gap:6px!important}
+body.ds-auth-os-page #notificationFilters{margin:9px 0!important;padding:5px!important}
+body.ds-auth-os-page #notificationFilters button{padding:6px 9px!important;font-size:10.5px!important}
+body.ds-auth-os-page .notification-layout{grid-template-columns:minmax(0,1fr) 250px!important;gap:9px!important}
+body.ds-auth-os-page .notification-list{gap:7px!important}
+body.ds-auth-os-page .notification-item{
+  min-height:64px!important;
+  padding:9px 11px!important;
+  border-radius:11px!important;
+}
+body.ds-auth-os-page .notification-item strong{font-size:11.5px!important}
+body.ds-auth-os-page .notification-item p,
+body.ds-auth-os-page .notification-item small{font-size:9.5px!important}
+body.ds-auth-os-page .notification-item-icon{width:30px!important;height:30px!important;border-radius:9px!important}
+body.ds-auth-os-page .notification-layout aside{gap:8px!important}
+body.ds-auth-os-page .notification-layout aside .member-panel{padding:11px!important;border-radius:12px!important}
+body.ds-auth-os-page .notification-stat{padding:7px 0!important}
+
+/* Keep premium gold limited to premium/status semantics on these pages. */
+body.ds-auth-os-page .btn.btn-gold:not(.founding-member-badge){
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(96,164,255,.44)!important;
+  box-shadow:0 8px 20px rgba(24,119,242,.14)!important;
+}
+
+
+/* ===== Desktop fidelity correction from visual review screenshots ===== */
+@media(max-width:1180px) and (min-width:981px){
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:100%!important;
+    grid-template-columns:minmax(220px,250px) minmax(0,1fr) minmax(210px,240px)!important;
+  }
+  body.ds-auth-os-page .dm-member-panel{display:block!important}
+}
+@media(max-width:980px){
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:100%!important;
+    grid-template-columns:minmax(240px,300px) minmax(0,1fr)!important;
+  }
+  body.ds-auth-os-page .dm-member-panel{display:none!important}
+}
+
+/* Reduce empty-canvas feeling on static or low-activity workspaces. */
+body.ds-auth-os-page .dsx-dashboard-grid{align-items:start!important}
+body.ds-auth-os-page .dsx-dashboard-social{min-height:0!important}
+body.ds-auth-os-page .dsx-dashboard-feed-preview{min-height:180px!important}
+body.ds-auth-os-page .dsx-feed-workspace{align-items:start!important}
+body.ds-auth-os-page .dsx-feed-page-stream{min-height:220px!important}
+body.ds-auth-os-page .dm-thread{min-height:320px!important}
+
+
+/* ===== Illustration geometry lock — second visual-review correction ===== */
+@media(min-width:1181px){
+  .dsos-executive .dsos-main{
+    background:
+      radial-gradient(circle at 74% -6%,rgba(28,92,169,.16),transparent 24%),
+      radial-gradient(circle at 43% 33%,rgba(18,68,130,.08),transparent 30%),
+      linear-gradient(145deg,#04101f 0%,#061225 42%,#081a31 100%)!important;
+  }
+  .dsos-executive .dsos-topbar.dsx-approved-topbar{
+    width:min(1320px,calc(100% - 34px))!important;
+    margin:0 auto!important;
+    min-height:58px!important;
+    max-height:58px!important;
+    padding:7px 12px!important;
+    border:1px solid rgba(126,168,221,.14)!important;
+    border-top:0!important;
+    border-radius:0 0 14px 14px!important;
+    background:linear-gradient(180deg,rgba(5,18,36,.96),rgba(5,17,33,.88))!important;
+    box-shadow:0 14px 30px rgba(0,0,0,.16)!important;
+  }
+  .dsos-executive .dsos-page{
+    width:min(1320px,calc(100% - 34px))!important;
+    max-width:1320px!important;
+    margin:0 auto!important;
+    padding:12px 0 34px!important;
+  }
+  .dsx-global-search{width:min(560px,100%)!important;min-height:36px!important}
+  .dsx-top-action{width:36px!important;height:36px!important;border-radius:10px!important}
+  .dsx-create-action{font-size:21px!important}
+  .dsos-executive .dsos-profile-chip{min-width:176px!important;min-height:38px!important}
+  .dsos-executive .dsos-top-avatar{width:31px!important;height:31px!important;flex-basis:31px!important}
+
+  .dsx-hero{
+    grid-template-columns:minmax(0,1fr) 278px!important;
+    min-height:162px!important;
+    max-height:162px!important;
+    padding:18px 20px!important;
+    border-radius:17px!important;
+    box-shadow:
+      0 18px 42px rgba(0,0,0,.20),
+      inset 0 1px rgba(255,255,255,.035),
+      0 0 0 1px rgba(126,168,221,.06)!important;
+  }
+  .dsx-hero:before{
+    width:470px!important;height:470px!important;
+    right:42px!important;bottom:-392px!important;
+  }
+  .dsx-hero:after{right:24px!important;top:24px!important;width:210px!important}
+  .dsx-greeting{font-size:clamp(29px,2.65vw,39px)!important;line-height:1.02!important}
+  .dsx-welcome{max-width:660px!important;font-size:12px!important;line-height:1.45!important}
+  .dsx-hero-profile{grid-template-columns:50px 1fr!important;padding:11px 12px!important;border-radius:13px!important}
+  .dsx-hero-profile .dsos-feed-avatar{width:50px!important;height:50px!important}
+
+  .dsx-overview{gap:8px!important;margin:8px 0 9px!important}
+  .dsx-stat{
+    min-height:74px!important;
+    max-height:74px!important;
+    padding:9px 10px!important;
+    border-radius:12px!important;
+  }
+  .dsx-stat>.dsx-stat-icon{width:38px!important;height:38px!important;border-radius:10px!important}
+  .dsx-stat>.dsx-stat-icon .ds30-icon{width:20px!important;height:20px!important}
+  .dsx-stat>strong{font-size:21px!important}
+  .dsx-stat>span:not(.dsx-stat-icon){font-size:10px!important}
+  .dsx-stat>small{font-size:9.5px!important}
+
+  .dsx-dashboard-grid{
+    grid-template-columns:minmax(0,1fr) 304px!important;
+    gap:9px!important;
+    align-items:start!important;
+  }
+  .dsx-dashboard-social{
+    border-radius:14px!important;
+    box-shadow:0 18px 38px rgba(0,0,0,.18)!important;
+  }
+  .dsx-dashboard-tabs{padding:6px 8px!important}
+  .dsx-dashboard-tabs a,.dsx-dashboard-tabs span{padding:6px 10px!important;font-size:9.8px!important}
+  .dsx-dashboard-composer{padding:8px!important}
+  .dsx-dashboard-composer-main{padding:8px!important;grid-template-columns:38px minmax(0,1fr)!important}
+  .dsx-dashboard-composer .dsos-feed-avatar{width:38px!important;height:38px!important}
+  .dsx-dashboard-composer textarea{min-height:38px!important;padding:8px 11px!important;font-size:11px!important}
+  .dsx-dashboard-composer-tools{margin-top:6px!important}
+  .dsx-dashboard-composer-tools a{padding:4px 7px!important;font-size:9px!important}
+  .dsx-dashboard-composer-tools button{min-height:30px!important;min-width:78px!important;font-size:10px!important}
+  .dsx-dashboard-feed-preview{padding:0 8px 8px!important;min-height:0!important}
+  .dsx-dashboard-feed-head{padding:4px 2px 6px!important}
+  .dsx-dashboard-feed-head h2{font-size:14px!important}
+  #dashboardSocialPreview .ds-review-post{padding:10px 11px!important}
+  #dashboardSocialPreview .ds-review-post p{margin:7px 0!important;font-size:10.5px!important}
+  #dashboardSocialPreview .ds-review-actions{margin-top:6px!important;padding-top:6px!important}
+
+  .dsx-right-rail{gap:8px!important}
+  .dsx-side-card{padding:11px!important;border-radius:13px!important;box-shadow:0 12px 28px rgba(0,0,0,.14)!important}
+  .dsx-side-head{margin-bottom:6px!important}
+  .dsx-side-head strong{font-size:12px!important}
+  .dsx-upcoming,.dsx-journey-card,.dsx-quick-actions-card,.dsx-announcement{min-height:0!important}
+  .dsx-quick-grid-six{gap:5px!important}
+  .dsx-quick-grid-six a{min-height:52px!important;font-size:8.8px!important;border-radius:9px!important}
+  .dsx-quick-grid-six a span{font-size:8.8px!important}
+  .dsx-announcement .dsos-pinned-update h3{font-size:12.5px!important}
+  .dsx-announcement .dsos-pinned-update p{font-size:9.6px!important}
+
+  body.ds-auth-os-page #feedApp{
+    width:min(1280px,calc(100% - 28px))!important;
+    max-width:1280px!important;
+    margin:0 auto!important;
+    padding:12px 0 32px!important;
+  }
+  body.ds-auth-os-page .dsx-feed-page-header{
+    padding:14px 16px!important;
+    border-radius:16px!important;
+    min-height:112px!important;
+  }
+  body.ds-auth-os-page .dsx-feed-page-header h1{font-size:clamp(25px,2.4vw,34px)!important;line-height:1.02!important}
+  body.ds-auth-os-page .dsx-feed-page-header p{font-size:11.5px!important}
+  .dsx-feed-workspace{
+    grid-template-columns:minmax(0,1fr) 278px!important;
+    gap:9px!important;
+    margin-top:9px!important;
+  }
+  .dsx-feed-page-composer{padding:12px!important;border-radius:13px!important}
+  .dsx-feed-page-composer textarea{min-height:64px!important}
+  .dsx-feed-page-stream{min-height:0!important}
+  .dsx-feed-page-stream .ds-review-post{max-width:none!important}
+  .dsx-feed-aside{gap:8px!important}
+  .dsx-feed-aside .dsx-side-card{padding:11px!important}
+  .dsx-feed-aside .dsx-side-card p{font-size:10.5px!important;line-height:1.45!important}
+
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:min(1280px,calc(100vw - 236px))!important;
+    max-width:1280px!important;
+    margin:0 auto!important;
+    padding:10px 0 14px!important;
+    grid-template-columns:260px minmax(0,1fr) 240px!important;
+    grid-template-rows:auto minmax(500px,calc(100vh - 116px))!important;
+    gap:8px!important;
+  }
+  body.ds-auth-os-page .dsx-messages-title{
+    min-height:64px!important;
+    padding:11px 14px!important;
+    border-radius:14px!important;
+  }
+  body.ds-auth-os-page .dsx-messages-title h1{font-size:clamp(21px,2vw,28px)!important}
+  body.ds-auth-os-page .dm-sidebar,
+  body.ds-auth-os-page .dm-chat,
+  body.ds-auth-os-page .dm-member-panel{border-radius:12px!important}
+  body.ds-auth-os-page .dm-sidebar-header,
+  body.ds-auth-os-page .dm-chat-header{min-height:48px!important}
+  body.ds-auth-os-page .dm-thread{min-height:0!important;padding:10px!important}
+  body.ds-auth-os-page .dm-composer{padding:7px!important}
+  body.ds-auth-os-page .dm-member-profile{padding:10px!important}
+  body.ds-auth-os-page .dm-member-avatar-large{width:60px!important;height:60px!important}
+}
+
+/* stronger premium depth without turning every surface gold */
+.dsx-hero,.dsx-dashboard-social,.dsx-side-card,
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+}
+.dsx-stat-journey{box-shadow:inset 0 0 24px rgba(24,119,242,.035)!important}
+.dsx-stat-network{box-shadow:inset 0 0 24px rgba(45,156,219,.04)!important}
+.dsx-stat-notifications{box-shadow:inset 0 0 24px rgba(255,77,90,.035)!important}
+.dsx-stat-announcements{box-shadow:inset 0 0 24px rgba(240,193,91,.04)!important}
+
+
+/* ===== Spacing + color-balance audit correction — 2026-11-02 ===== */
+@media(min-width:1181px){
+  /* Fill the authenticated workspace instead of floating a narrow centered canvas. */
+  .dsos-executive .dsos-topbar.dsx-approved-topbar,
+  .dsos-executive .dsos-page{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  body.ds-auth-os-page #feedApp{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  body.ds-auth-os-page .dm-os.dm-os-three{
+    width:calc(100% - 18px)!important;
+    max-width:none!important;
+    margin-left:9px!important;
+    margin-right:9px!important;
+  }
+
+  /* More deliberate vertical rhythm. */
+  .dsx-overview{margin:7px 0 8px!important}
+  .dsx-dashboard-grid{gap:8px!important}
+  .dsx-right-rail{gap:7px!important}
+  .dsx-dashboard-tabs{min-height:34px!important}
+  .dsx-dashboard-feed-head{min-height:42px!important}
+  .dsx-feed-workspace{gap:8px!important}
+}
+
+/* Color hierarchy: deeper page, lifted cards, brighter interaction states. */
+.dsos-executive .dsos-main,
+body.ds-auth-os-page{
+  background:
+    radial-gradient(circle at 78% -4%,rgba(31,101,184,.16),transparent 24%),
+    linear-gradient(145deg,#030d1b 0%,#061225 44%,#081a31 100%)!important;
+}
+
+.dsx-dashboard-social,
+.dsx-side-card,
+body.ds-auth-os-page .dsx-feed-page-composer,
+body.ds-auth-os-page .ds30-social-post,
+body.ds-auth-os-page .member-panel,
+body.ds-auth-os-page .dm-sidebar,
+body.ds-auth-os-page .dm-chat,
+body.ds-auth-os-page .dm-member-panel{
+  background:
+    linear-gradient(155deg,rgba(16,42,78,.96),rgba(8,27,53,.98))!important;
+  border-color:rgba(126,168,221,.23)!important;
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.20),
+    inset 0 1px rgba(255,255,255,.025)!important;
+}
+
+.dsx-dashboard-composer-main,
+body.ds-auth-os-page .dsmedia-draft,
+body.ds-auth-os-page .dm-member-facts{
+  background:rgba(5,22,44,.72)!important;
+  border-color:rgba(126,168,221,.18)!important;
+}
+
+.dsx-stat-journey{
+  background:linear-gradient(145deg,rgba(19,49,88,.98),rgba(8,30,59,.98))!important;
+  border-color:rgba(24,119,242,.42)!important;
+}
+.dsx-stat-network{
+  background:linear-gradient(145deg,rgba(17,52,83,.98),rgba(8,31,57,.98))!important;
+  border-color:rgba(45,156,219,.40)!important;
+}
+.dsx-stat-notifications{
+  background:linear-gradient(145deg,rgba(60,35,62,.88),rgba(18,28,55,.98))!important;
+  border-color:rgba(255,77,90,.42)!important;
+}
+.dsx-stat-announcements{
+  background:linear-gradient(145deg,rgba(54,47,38,.72),rgba(14,30,53,.98))!important;
+  border-color:rgba(240,193,91,.43)!important;
+}
+
+.dsx-stat-journey .dsx-stat-icon{box-shadow:0 0 18px rgba(24,119,242,.14)!important}
+.dsx-stat-network .dsx-stat-icon{box-shadow:0 0 18px rgba(45,156,219,.13)!important}
+.dsx-stat-notifications .dsx-stat-icon{box-shadow:0 0 18px rgba(255,77,90,.12)!important}
+.dsx-stat-announcements .dsx-stat-icon{box-shadow:0 0 18px rgba(240,193,91,.13)!important}
+
+.dsx-dashboard-tabs .active{
+  background:linear-gradient(135deg,#f5cf73,#d99f37)!important;
+  color:#241706!important;
+  box-shadow:0 0 20px rgba(240,193,91,.18)!important;
+}
+
+body.ds-auth-os-page .ds-review-actions .like,
+body.ds-auth-os-page .ds30-post-actions button[data-social="like"].is-liked{
+  background:rgba(24,119,242,.14)!important;
+  color:#78afff!important;
+}
+
+.dsx-founder-event .appointment-status.confirmed{
+  background:rgba(53,208,127,.14)!important;
+  border-color:rgba(53,208,127,.34)!important;
+  color:#7beab0!important;
+}
+
+.dsx-announcement{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(240,193,91,.09),transparent 30%),
+    linear-gradient(155deg,rgba(31,43,62,.96),rgba(9,27,51,.98))!important;
+  border-color:rgba(240,193,91,.38)!important;
+}
+
+
+/* ===== Final approved-illustration composition polish ===== */
+@media(min-width:1181px){
+  /* Sidebar handoff: clean, deliberate, no dead band. */
+  .dsos-executive .dsos-shell{grid-template-columns:220px minmax(0,1fr)!important}
+  .dsos-executive .dsos-sidebar{
+    width:220px!important;
+    box-shadow:
+      8px 0 28px rgba(1,9,20,.18),
+      inset -1px 0 rgba(126,168,221,.08)!important;
+  }
+
+  /* Hero reads as one cinematic stage rather than a box with another box on it. */
+  .dsx-hero{
+    background:
+      radial-gradient(circle at 74% 49%,rgba(39,131,226,.34),transparent 18%),
+      radial-gradient(circle at 88% 13%,rgba(240,193,91,.18),transparent 10%),
+      linear-gradient(112deg,#07162b 0%,#0a2850 50%,#0e3e70 100%)!important;
+    border-color:rgba(105,160,223,.28)!important;
+  }
+  .dsx-hero-copy{position:relative;z-index:2}
+  .dsx-hero-profile{
+    position:relative!important;
+    z-index:3!important;
+    align-self:center!important;
+    min-height:94px!important;
+    padding:12px 14px!important;
+    background:
+      linear-gradient(145deg,rgba(21,52,90,.78),rgba(8,28,54,.88))!important;
+    border:1px solid rgba(240,193,91,.46)!important;
+    box-shadow:
+      0 16px 34px rgba(0,0,0,.20),
+      inset 0 1px rgba(255,255,255,.04),
+      0 0 26px rgba(240,193,91,.055)!important;
+  }
+  .dsx-hero-profile strong{font-size:14px!important;letter-spacing:-.01em!important}
+  .dsx-hero-profile small{font-size:10px!important}
+  .dsx-hero-profile .dsos-founding-hero{
+    display:inline-flex!important;
+    width:max-content!important;
+    margin-top:5px!important;
+    padding:4px 8px!important;
+    border-radius:999px!important;
+    background:linear-gradient(135deg,#f5cf73,#d99f37)!important;
+    color:#281a05!important;
+    font-weight:900!important;
+    letter-spacing:.015em!important;
+  }
+
+  /* KPI row: distinct semantic cards with consistent premium depth. */
+  .dsx-overview>a{
+    position:relative!important;
+    overflow:hidden!important;
+  }
+  .dsx-overview>a:before{
+    content:""!important;
+    position:absolute!important;
+    inset:0 auto 0 0!important;
+    width:3px!important;
+    border-radius:999px!important;
+    opacity:.9!important;
+  }
+  .dsx-stat-journey:before{background:#1877f2!important}
+  .dsx-stat-network:before{background:#2d9cdb!important}
+  .dsx-stat-notifications:before{background:#ff4d5a!important}
+  .dsx-stat-announcements:before{background:#f0c15b!important}
+  .dsx-stat{
+    box-shadow:
+      0 12px 24px rgba(0,0,0,.16),
+      inset 0 1px rgba(255,255,255,.025)!important;
+  }
+  .dsx-stat strong{font-family:Georgia,"Times New Roman",serif!important}
+
+  /* Social center: reduce nested-box feeling. */
+  .dsx-dashboard-social{
+    background:
+      linear-gradient(165deg,rgba(13,38,72,.96),rgba(6,24,48,.985))!important;
+    border-color:rgba(126,168,221,.21)!important;
+  }
+  .dsx-dashboard-tabs{
+    background:linear-gradient(180deg,rgba(4,17,35,.54),rgba(4,17,35,.22))!important;
+    border-bottom-color:rgba(126,168,221,.12)!important;
+  }
+  .dsx-dashboard-composer{
+    padding:8px 8px 6px!important;
+    background:transparent!important;
+  }
+  .dsx-dashboard-composer-main{
+    background:rgba(4,20,40,.48)!important;
+    border-color:rgba(126,168,221,.15)!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.02)!important;
+  }
+  .dsx-dashboard-composer textarea{
+    background:rgba(5,23,45,.72)!important;
+    border-color:rgba(126,168,221,.22)!important;
+  }
+  .dsx-dashboard-feed-preview{
+    border-top:1px solid rgba(126,168,221,.10)!important;
+    padding-top:6px!important;
+  }
+  #dashboardSocialPreview{
+    display:grid!important;
+    gap:7px!important;
+  }
+  #dashboardSocialPreview .ds-review-post{
+    background:
+      linear-gradient(155deg,rgba(20,48,84,.76),rgba(7,27,52,.86))!important;
+    border-color:rgba(126,168,221,.15)!important;
+    box-shadow:none!important;
+  }
+  #dashboardSocialPreview .ds-review-post+.ds-review-post{
+    margin-top:0!important;
+  }
+
+  /* Right rail: hierarchy, not four identical boxes. */
+  .dsx-right-rail{
+    display:grid!important;
+    align-content:start!important;
+  }
+  .dsx-upcoming{
+    border-color:rgba(53,208,127,.22)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(53,208,127,.07),transparent 28%),
+      linear-gradient(155deg,rgba(16,43,72,.97),rgba(7,26,49,.98))!important;
+  }
+  .dsx-journey-card{
+    border-color:rgba(242,201,76,.20)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(242,201,76,.06),transparent 30%),
+      linear-gradient(155deg,rgba(18,42,70,.97),rgba(7,25,48,.98))!important;
+  }
+  .dsx-quick-actions-card{
+    border-color:rgba(126,168,221,.20)!important;
+    background:
+      linear-gradient(155deg,rgba(15,39,73,.97),rgba(7,24,47,.98))!important;
+  }
+  .dsx-announcement{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.17),
+      inset 0 1px rgba(255,255,255,.025),
+      0 0 22px rgba(240,193,91,.035)!important;
+  }
+  .dsx-side-head strong:first-child{
+    letter-spacing:-.01em!important;
+  }
+  .dsx-progress-track{
+    height:7px!important;
+    background:rgba(126,168,221,.14)!important;
+  }
+  .dsx-progress-track span{
+    background:linear-gradient(90deg,#1877f2 0%,#f2c94c 72%,#35d07f 100%)!important;
+    box-shadow:0 0 14px rgba(242,201,76,.16)!important;
+  }
+
+  /* Header identity should complement hero, not compete with it. */
+  .dsos-executive .dsos-profile-chip{
+    background:linear-gradient(145deg,rgba(19,43,75,.86),rgba(8,25,48,.94))!important;
+    border-color:rgba(126,168,221,.22)!important;
+    box-shadow:0 8px 18px rgba(0,0,0,.12)!important;
+  }
+  .dsos-executive .dsos-founding-inline{
+    display:inline-flex!important;
+    width:max-content!important;
+    padding:2px 6px!important;
+    border-radius:999px!important;
+    background:rgba(240,193,91,.14)!important;
+    color:#f2c75f!important;
+  }
+}
+
+
+/* ===== Social Feed reaction + readability pass ===== */
+body.ds-auth-os-page .dsx-feed-page-composer,
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(35,95,168,.07),transparent 28%),
+    linear-gradient(155deg,rgba(21,48,84,.985),rgba(10,31,59,.995))!important;
+  border:1px solid rgba(126,168,221,.24)!important;
+  box-shadow:
+    0 15px 32px rgba(0,0,0,.18),
+    inset 0 1px rgba(255,255,255,.028)!important;
+}
+
+body.ds-auth-os-page .ds30-social-post:hover,
+.dsos-executive .ds30-social-post:hover{
+  border-color:rgba(85,150,229,.32)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.21),
+    0 0 24px rgba(24,119,242,.035),
+    inset 0 1px rgba(255,255,255,.032)!important;
+}
+
+body.ds-auth-os-page .ds30-post-authorbar,
+.dsos-executive .ds30-post-authorbar{
+  background:linear-gradient(180deg,rgba(255,255,255,.018),transparent)!important;
+}
+
+body.ds-auth-os-page .ds30-post-author strong,
+.dsos-executive .ds30-post-author strong{
+  color:#f7faff!important;
+  font-weight:850!important;
+}
+
+body.ds-auth-os-page .ds30-post-rank,
+body.ds-auth-os-page .ds30-post-author small,
+.dsos-executive .ds30-post-rank,
+.dsos-executive .ds30-post-author small{
+  color:#a9bbd0!important;
+}
+
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  color:#e6edf7!important;
+  font-size:12.5px!important;
+  line-height:1.65!important;
+  letter-spacing:.002em!important;
+}
+
+body.ds-auth-os-page .ds30-post-copy a,
+.dsos-executive .ds30-post-copy a{
+  color:#7eb5ff!important;
+  text-decoration-color:rgba(126,181,255,.44)!important;
+}
+
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  border-top:1px solid rgba(126,168,221,.10)!important;
+  border-bottom:1px solid rgba(126,168,221,.10)!important;
+  padding-top:8px!important;
+  padding-bottom:8px!important;
+  color:#9eb2ca!important;
+}
+
+.ds30-reaction-summary{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:4px!important;
+}
+
+.ds30-reaction-chip{
+  width:19px!important;
+  height:19px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  margin-right:-4px!important;
+  border:2px solid #0b1f3b!important;
+  border-radius:50%!important;
+  font-size:11px!important;
+  line-height:1!important;
+  box-shadow:0 2px 7px rgba(0,0,0,.18)!important;
+}
+.ds30-reaction-chip:last-of-type{margin-right:3px!important}
+
+.ds30-post-actions{
+  position:relative!important;
+  gap:5px!important;
+  padding:6px 8px 8px!important;
+}
+
+.ds30-post-actions>button,
+.ds30-post-actions>.ds30-react-wrap>.ds30-react-main{
+  min-height:36px!important;
+  border-radius:9px!important;
+  color:#afbed0!important;
+  background:transparent!important;
+  border:1px solid transparent!important;
+}
+
+.ds30-post-actions>button:hover,
+.ds30-post-actions>.ds30-react-wrap>.ds30-react-main:hover{
+  background:rgba(255,255,255,.035)!important;
+  color:#edf4fc!important;
+}
+
+.ds30-react-wrap{
+  position:relative!important;
+  min-width:0!important;
+}
+
+.ds30-react-wrap>.ds30-react-main{
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+
+.ds30-react-main.has-reaction{
+  font-weight:850!important;
+}
+
+.ds30-react-main.reaction-like{color:#66a7ff!important;background:rgba(24,119,242,.095)!important}
+.ds30-react-main.reaction-love{color:#ff7180!important;background:rgba(255,77,90,.09)!important}
+.ds30-react-main.reaction-celebrate{color:#f5ce71!important;background:rgba(242,201,76,.09)!important}
+.ds30-react-main.reaction-support{color:#74e6aa!important;background:rgba(53,208,127,.085)!important}
+.ds30-react-main.reaction-insightful{color:#b9afff!important;background:rgba(155,140,255,.09)!important}
+
+.ds30-reaction-picker{
+  position:absolute!important;
+  left:2px!important;
+  bottom:calc(100% + 8px)!important;
+  z-index:60!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:7px!important;
+  border:1px solid rgba(126,168,221,.26)!important;
+  border-radius:999px!important;
+  background:
+    linear-gradient(180deg,rgba(20,45,78,.99),rgba(8,27,53,.995))!important;
+  box-shadow:
+    0 18px 34px rgba(0,0,0,.35),
+    0 0 24px rgba(24,119,242,.06)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+.ds30-reaction-picker[hidden]{display:none!important}
+
+.ds30-reaction-picker button{
+  min-width:48px!important;
+  min-height:48px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+  padding:4px 5px!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:transparent!important;
+  color:#aebfd2!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+  transition:transform .14s ease,background .14s ease,color .14s ease!important;
+}
+.ds30-reaction-picker button:hover{
+  transform:translateY(-5px) scale(1.08)!important;
+}
+.ds30-reaction-picker .ds30-reaction-emoji{
+  font-size:23px!important;
+  line-height:1!important;
+}
+
+.ds30-reaction-picker .reaction-like:hover{background:rgba(24,119,242,.13)!important;color:#78afff!important}
+.ds30-reaction-picker .reaction-love:hover{background:rgba(255,77,90,.12)!important;color:#ff7d88!important}
+.ds30-reaction-picker .reaction-celebrate:hover{background:rgba(242,201,76,.12)!important;color:#f6d86b!important}
+.ds30-reaction-picker .reaction-support:hover{background:rgba(53,208,127,.11)!important;color:#7beab0!important}
+.ds30-reaction-picker .reaction-insightful:hover{background:rgba(155,140,255,.11)!important;color:#c1b7ff!important}
+
+.ds30-reaction-like{background:linear-gradient(135deg,#3188f7,#126be2)!important}
+.ds30-reaction-love{background:linear-gradient(135deg,#ff6a78,#e82f4b)!important}
+.ds30-reaction-celebrate{background:linear-gradient(135deg,#f6d66d,#dba131)!important}
+.ds30-reaction-support{background:linear-gradient(135deg,#5ddc97,#2ba86c)!important}
+.ds30-reaction-insightful{background:linear-gradient(135deg,#aa9cff,#7e6ce8)!important}
+
+/* Feed composer gets a cleaner, more readable social-media surface. */
+body.ds-auth-os-page .dsx-feed-page-composer{
+  padding:14px!important;
+}
+body.ds-auth-os-page .dsx-feed-page-identity{
+  padding-bottom:10px!important;
+  margin-bottom:9px!important;
+  border-bottom:1px solid rgba(126,168,221,.10)!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea{
+  background:rgba(5,22,44,.78)!important;
+  border-color:rgba(126,168,221,.27)!important;
+  color:#f1f5fb!important;
+  box-shadow:inset 0 1px 10px rgba(0,0,0,.13)!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea::placeholder{
+  color:#8fa5bd!important;
+}
+body.ds-auth-os-page .dsmedia-draft{
+  background:rgba(4,19,38,.58)!important;
+  border-color:rgba(126,168,221,.16)!important;
+}
+body.ds-auth-os-page #feedComposerPublish{
+  background:linear-gradient(135deg,#2583f7,#126be2)!important;
+  color:#fff!important;
+  border-color:rgba(94,161,250,.48)!important;
+  box-shadow:0 9px 20px rgba(24,119,242,.18)!important;
+}
+
+@media(max-width:760px){
+  .ds30-reaction-picker{
+    left:0!important;
+    max-width:min(92vw,360px)!important;
+    gap:2px!important;
+    padding:5px!important;
+  }
+  .ds30-reaction-picker button{
+    min-width:43px!important;
+    min-height:44px!important;
+  }
+  .ds30-reaction-picker .ds30-reaction-emoji{font-size:20px!important}
+}
+
+
+/* ===== Feed realism + cinematic background refinement ===== */
+body.ds-auth-os-page{
+  background:
+    radial-gradient(900px 520px at 47% -6%,rgba(38,105,190,.22),transparent 58%),
+    radial-gradient(520px 300px at 78% 3%,rgba(240,193,91,.055),transparent 62%),
+    radial-gradient(680px 500px at 60% 42%,rgba(17,62,118,.08),transparent 70%),
+    linear-gradient(145deg,#020a15 0%,#04101f 34%,#07172c 67%,#061327 100%)!important;
+  background-attachment:fixed!important;
+}
+
+body.ds-auth-os-page #feedApp{
+  position:relative!important;
+  isolation:isolate!important;
+}
+
+body.ds-auth-os-page #feedApp:before{
+  content:""!important;
+  position:fixed!important;
+  z-index:-1!important;
+  left:220px!important;
+  right:0!important;
+  top:72px!important;
+  height:420px!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse at 48% 0%,rgba(47,128,219,.12),transparent 58%),
+    linear-gradient(180deg,rgba(11,42,80,.08),transparent 84%)!important;
+  filter:blur(2px)!important;
+}
+
+body.ds-auth-os-page .dsx-feed-page-header{
+  position:relative!important;
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 76% 18%,rgba(54,137,231,.23),transparent 22%),
+    radial-gradient(circle at 96% 8%,rgba(240,193,91,.10),transparent 13%),
+    linear-gradient(112deg,rgba(8,25,49,.99),rgba(14,57,99,.96))!important;
+  border-color:rgba(126,168,221,.28)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.20),
+    inset 0 1px rgba(255,255,255,.035)!important;
+}
+
+body.ds-auth-os-page .dsx-feed-page-header:after{
+  content:""!important;
+  position:absolute!important;
+  right:-75px!important;
+  top:-145px!important;
+  width:300px!important;
+  height:300px!important;
+  border:1px solid rgba(240,193,91,.13)!important;
+  border-radius:50%!important;
+  box-shadow:
+    -75px 90px 0 -1px rgba(126,168,221,.075),
+    -138px 170px 0 -1px rgba(126,168,221,.045)!important;
+  pointer-events:none!important;
+}
+
+body.ds-auth-os-page .dsx-feed-workspace{
+  position:relative!important;
+  z-index:1!important;
+}
+
+body.ds-auth-os-page .dsx-feed-main{
+  position:relative!important;
+}
+
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  border-radius:15px!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(41,102,177,.075),transparent 26%),
+    linear-gradient(150deg,rgba(18,46,83,.99),rgba(8,29,57,.995))!important;
+  border:1px solid rgba(126,168,221,.25)!important;
+  box-shadow:
+    0 14px 30px rgba(0,0,0,.21),
+    inset 0 1px rgba(255,255,255,.03),
+    inset 0 -1px rgba(0,0,0,.18)!important;
+}
+
+body.ds-auth-os-page .ds30-social-post:before,
+.dsos-executive .ds30-social-post:before{
+  content:""!important;
+  display:block!important;
+  height:1px!important;
+  margin:0 12px!important;
+  background:linear-gradient(90deg,transparent,rgba(105,169,241,.18),transparent)!important;
+}
+
+body.ds-auth-os-page .ds30-post-authorbar,
+.dsos-executive .ds30-post-authorbar{
+  padding-top:12px!important;
+  padding-bottom:8px!important;
+}
+
+body.ds-auth-os-page .ds30-author-avatar,
+.dsos-executive .ds30-author-avatar{
+  box-shadow:0 0 0 2px rgba(240,193,91,.12),0 7px 18px rgba(0,0,0,.22)!important;
+}
+
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  max-width:92%!important;
+  margin-top:5px!important;
+  margin-bottom:10px!important;
+  color:#e9f0f8!important;
+  font-size:13px!important;
+  line-height:1.62!important;
+}
+
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  min-height:34px!important;
+  padding:7px 2px!important;
+  margin:0 12px!important;
+  border-top:1px solid rgba(126,168,221,.10)!important;
+  border-bottom:1px solid rgba(126,168,221,.10)!important;
+}
+
+body.ds-auth-os-page .ds30-post-actions,
+.dsos-executive .ds30-post-actions{
+  padding:6px 10px 9px!important;
+}
+
+body.ds-auth-os-page .ds30-post-actions>button,
+body.ds-auth-os-page .ds30-react-main,
+.dsos-executive .ds30-post-actions>button,
+.dsos-executive .ds30-react-main{
+  font-size:10.5px!important;
+  font-weight:760!important;
+  letter-spacing:.005em!important;
+}
+
+body.ds-auth-os-page .ds30-post-actions>button:hover,
+body.ds-auth-os-page .ds30-react-main:hover,
+.dsos-executive .ds30-post-actions>button:hover,
+.dsos-executive .ds30-react-main:hover{
+  background:rgba(126,168,221,.07)!important;
+}
+
+body.ds-auth-os-page .dsx-feed-section-head{
+  margin-top:4px!important;
+  padding-left:2px!important;
+  padding-right:2px!important;
+}
+
+body.ds-auth-os-page .dsx-feed-section-head h2{
+  font-size:18px!important;
+  letter-spacing:-.015em!important;
+}
+
+body.ds-auth-os-page .dsx-feed-aside .dsx-side-card{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(32,95,168,.06),transparent 30%),
+    linear-gradient(155deg,rgba(17,42,76,.97),rgba(7,25,49,.99))!important;
+  border-color:rgba(126,168,221,.20)!important;
+}
+
+body.ds-auth-os-page .dsx-feed-aside .dsx-announcement{
+  border-color:rgba(240,193,91,.34)!important;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(240,193,91,.09),transparent 30%),
+    linear-gradient(155deg,rgba(33,43,59,.98),rgba(8,26,49,.99))!important;
+}
+
+body.ds-auth-os-page .dsmedia-founding-badge{
+  border-radius:999px!important;
+  padding:3px 8px!important;
+  background:linear-gradient(135deg,#f3ce75,#d89d32)!important;
+  color:#251805!important;
+  font-weight:900!important;
+}
+
+@media(max-width:900px){
+  body.ds-auth-os-page #feedApp:before{left:0!important}
+}
+
+
+/* ===== Approved illustration signature elements ===== */
+@media(min-width:1181px){
+  /* Hero globe/horizon: much closer to the approved illustration. */
+  .dsx-hero{
+    min-height:188px!important;
+    max-height:188px!important;
+    padding:20px 22px!important;
+    grid-template-columns:minmax(0,1fr) 330px!important;
+    background:
+      radial-gradient(circle at 64% 44%,rgba(57,146,238,.33),transparent 19%),
+      radial-gradient(circle at 82% 11%,rgba(240,193,91,.16),transparent 10%),
+      linear-gradient(110deg,#061226 0%,#0a2850 47%,#0c3c6b 100%)!important;
+  }
+  .dsx-hero:before{
+    width:610px!important;
+    height:610px!important;
+    right:35px!important;
+    bottom:-475px!important;
+    border:1px solid rgba(91,161,238,.52)!important;
+    background:
+      radial-gradient(circle at 50% 38%,rgba(25,99,188,.48),rgba(4,24,49,.18) 52%,transparent 53%)!important;
+    box-shadow:
+      0 0 0 20px rgba(66,139,221,.055),
+      0 0 0 48px rgba(66,139,221,.027),
+      0 -48px 110px rgba(42,129,226,.29),
+      inset 0 0 60px rgba(28,106,201,.20)!important;
+  }
+  .dsx-hero:after{
+    width:330px!important;
+    height:2px!important;
+    right:28px!important;
+    top:24px!important;
+    transform:rotate(-18deg)!important;
+    transform-origin:right center!important;
+    background:linear-gradient(90deg,transparent,#f0c15b 42%,#ffd978 55%,transparent)!important;
+    box-shadow:0 0 22px rgba(240,193,91,.85)!important;
+  }
+  .dsx-greeting{
+    font-size:clamp(38px,3.25vw,52px)!important;
+    max-width:650px!important;
+  }
+  .dsx-greeting strong{
+    color:#f0c15b!important;
+    text-shadow:0 0 18px rgba(240,193,91,.10)!important;
+  }
+  .dsx-welcome{
+    max-width:670px!important;
+    font-size:12.5px!important;
+  }
+
+  /* Profile card becomes a stronger visual anchor like the illustration. */
+  .dsx-hero-profile{
+    grid-template-columns:74px minmax(0,1fr)!important;
+    min-height:112px!important;
+    padding:14px 16px!important;
+    border-radius:16px!important;
+    background:
+      radial-gradient(circle at 0 50%,rgba(47,132,226,.12),transparent 34%),
+      linear-gradient(145deg,rgba(23,55,95,.90),rgba(8,29,56,.95))!important;
+    border:1px solid rgba(240,193,91,.60)!important;
+    box-shadow:
+      0 18px 40px rgba(0,0,0,.25),
+      0 0 28px rgba(240,193,91,.07),
+      inset 0 1px rgba(255,255,255,.045)!important;
+  }
+  .dsx-hero-profile .dsos-feed-avatar{
+    width:74px!important;
+    height:74px!important;
+    border:2px solid rgba(240,193,91,.78)!important;
+    box-shadow:0 0 0 4px rgba(24,119,242,.08),0 10px 24px rgba(0,0,0,.26)!important;
+  }
+  .dsx-hero-profile strong{
+    font-size:16px!important;
+  }
+  .dsx-hero-profile small{
+    font-size:11px!important;
+  }
+  .dsx-hero-profile .dsos-founding-hero{
+    padding:5px 10px!important;
+    font-size:10px!important;
+    box-shadow:0 5px 14px rgba(217,159,55,.18)!important;
+  }
+
+  /* KPI icons become visual anchors instead of small symbols. */
+  .dsx-stat{
+    min-height:84px!important;
+    max-height:84px!important;
+    grid-template-columns:46px 1fr auto!important;
+  }
+  .dsx-stat>.dsx-stat-icon{
+    width:42px!important;
+    height:42px!important;
+  }
+  .dsx-stat>.dsx-stat-icon .ds30-icon{
+    width:24px!important;
+    height:24px!important;
+  }
+  .dsx-stat>strong{
+    font-size:25px!important;
+  }
+
+  /* Right rail receives the stronger light hierarchy in the illustration. */
+  .dsx-upcoming{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(53,208,127,.025)!important;
+  }
+  .dsx-journey-card{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(242,201,76,.022)!important;
+  }
+  .dsx-quick-actions-card{
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.18),
+      inset 0 1px rgba(255,255,255,.03),
+      0 0 20px rgba(24,119,242,.025)!important;
+  }
+  .dsx-quick-grid-six a{
+    min-height:62px!important;
+    font-size:9.3px!important;
+  }
+
+  }
+
+
+/* ===== Device-independent social reaction badges ===== */
+.ds30-reaction-chip{
+  width:20px!important;
+  height:20px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  margin-right:-4px!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.ds30-reaction-chip:last-of-type{margin-right:4px!important}
+
+.ds30-reaction-badge{
+  width:20px!important;
+  height:20px!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  border:2px solid #0b1f3b!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.22)!important;
+}
+.ds30-reaction-badge .ds30-action-icon{
+  width:11px!important;
+  height:11px!important;
+  stroke-width:2.2!important;
+}
+
+.ds30-reaction-like{background:#1877f2!important;color:#fff!important}
+.ds30-reaction-love{background:#ff3b55!important;color:#fff!important}
+.ds30-reaction-celebrate{background:#e8aa28!important;color:#fff!important}
+.ds30-reaction-support{background:#2fbd78!important;color:#fff!important}
+.ds30-reaction-insightful{background:#8068df!important;color:#fff!important}
+
+.ds30-reaction-love .ds30-action-icon,
+.ds30-reaction-celebrate .ds30-action-icon{
+  fill:currentColor!important;
+}
+.ds30-reaction-like .ds30-action-icon{
+  stroke:currentColor!important;
+  fill:rgba(255,255,255,.18)!important;
+}
+
+.ds30-reaction-picker-icon{
+  display:grid!important;
+  place-items:center!important;
+  min-height:24px!important;
+}
+.ds30-reaction-picker-icon .ds30-reaction-badge{
+  width:28px!important;
+  height:28px!important;
+  border-width:2px!important;
+}
+.ds30-reaction-picker-icon .ds30-action-icon{
+  width:15px!important;
+  height:15px!important;
+}
+
+.ds30-react-main.reaction-like .ds30-action-icon{color:#66a7ff!important}
+.ds30-react-main.reaction-love .ds30-action-icon{color:#ff5b70!important;fill:currentColor!important}
+.ds30-react-main.reaction-celebrate .ds30-action-icon{color:#f2c94c!important;fill:currentColor!important}
+.ds30-react-main.reaction-support .ds30-action-icon{color:#58d696!important}
+.ds30-react-main.reaction-insightful .ds30-action-icon{color:#aa9cff!important}
+
+/* Post containers read as unmistakable social posts. */
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  overflow:visible!important;
+}
+body.ds-auth-os-page .ds30-post-authorbar,
+.dsos-executive .ds30-post-authorbar{
+  border-bottom:0!important;
+}
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  padding-left:12px!important;
+  padding-right:12px!important;
+}
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  justify-content:space-between!important;
+}
+
+
+/* ===== Final contrast + polish lock against approved illustration ===== */
+:root{
+  --dsx-surface-page:#031020;
+  --dsx-surface-panel:#0b2444;
+  --dsx-surface-panel-hi:#12355e;
+  --dsx-text-strong:#f7f9fc;
+  --dsx-text-body:#d8e3ef;
+  --dsx-text-muted:#9fb3c9;
+  --dsx-text-faint:#7890aa;
+  --dsx-line:rgba(126,168,221,.24);
+}
+
+/* Never allow page text to disappear into navy surfaces. */
+body.ds-auth-os-page,
+.dsos-executive{
+  color:var(--dsx-text-body)!important;
+}
+body.ds-auth-os-page h1,
+body.ds-auth-os-page h2,
+body.ds-auth-os-page h3,
+body.ds-auth-os-page h4,
+.dsos-executive h1,
+.dsos-executive h2,
+.dsos-executive h3,
+.dsos-executive h4{
+  color:var(--dsx-text-strong)!important;
+}
+
+/* Feed composer: explicit hierarchy and readable helper text. */
+body.ds-auth-os-page .dsx-feed-page-composer{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(38,113,202,.08),transparent 30%),
+    linear-gradient(155deg,#12335a 0%,#0b2547 58%,#081d39 100%)!important;
+  border:1px solid rgba(126,168,221,.30)!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer label,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-caption-label,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-composer-label{
+  color:var(--dsx-text-strong)!important;
+  opacity:1!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer p,
+body.ds-auth-os-page .dsx-feed-page-composer small,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-note,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-status,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-draft-status,
+body.ds-auth-os-page .dsx-feed-page-composer .dsmedia-help{
+  color:#b9cadc!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea{
+  background:#071b35!important;
+  border:1px solid rgba(126,168,221,.34)!important;
+  color:#f3f7fb!important;
+  caret-color:#7db4ff!important;
+}
+body.ds-auth-os-page .dsx-feed-page-composer textarea::placeholder{
+  color:#91a9c2!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsmedia-draft{
+  background:#081d39!important;
+  border-color:rgba(126,168,221,.22)!important;
+}
+body.ds-auth-os-page .dsmedia-draft *{
+  color:#c9d7e6!important;
+}
+body.ds-auth-os-page .dsmedia-draft button,
+body.ds-auth-os-page .dsmedia-draft .btn{
+  color:#9ed6ff!important;
+}
+
+/* Feed posts must read as obvious standalone social posts. */
+body.ds-auth-os-page .ds30-social-post,
+.dsos-executive .ds30-social-post{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(45,116,204,.075),transparent 30%),
+    linear-gradient(150deg,#12345f 0%,#0c284d 52%,#081f3d 100%)!important;
+  border-color:rgba(126,168,221,.31)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.22),
+    inset 0 1px rgba(255,255,255,.035)!important;
+}
+body.ds-auth-os-page .ds30-post-author strong,
+.dsos-executive .ds30-post-author strong{
+  color:#ffffff!important;
+}
+body.ds-auth-os-page .ds30-post-author small,
+body.ds-auth-os-page .ds30-post-rank,
+.dsos-executive .ds30-post-author small,
+.dsos-executive .ds30-post-rank{
+  color:#a9bdd2!important;
+}
+body.ds-auth-os-page .ds30-post-copy,
+.dsos-executive .ds30-post-copy{
+  color:#edf3fa!important;
+}
+body.ds-auth-os-page .ds30-post-engagement,
+.dsos-executive .ds30-post-engagement{
+  color:#a8bbcf!important;
+}
+body.ds-auth-os-page .ds30-post-actions button,
+body.ds-auth-os-page .ds30-react-main,
+.dsos-executive .ds30-post-actions button,
+.dsos-executive .ds30-react-main{
+  color:#c2d0df!important;
+}
+body.ds-auth-os-page .ds30-post-actions button:hover,
+body.ds-auth-os-page .ds30-react-main:hover,
+.dsos-executive .ds30-post-actions button:hover,
+.dsos-executive .ds30-react-main:hover{
+  color:#ffffff!important;
+  background:rgba(24,119,242,.10)!important;
+}
+
+/* Active semantic reactions: unmistakable and not dependent on emoji colors. */
+.ds30-react-main.reaction-like{
+  color:#73b2ff!important;
+  background:rgba(24,119,242,.14)!important;
+  border-color:rgba(24,119,242,.24)!important;
+}
+.ds30-react-main.reaction-love{
+  color:#ff7180!important;
+  background:rgba(255,59,85,.13)!important;
+  border-color:rgba(255,59,85,.24)!important;
+}
+.ds30-react-main.reaction-celebrate{
+  color:#f5d266!important;
+  background:rgba(232,170,40,.13)!important;
+  border-color:rgba(232,170,40,.23)!important;
+}
+.ds30-react-main.reaction-support{
+  color:#72e2a8!important;
+  background:rgba(47,189,120,.12)!important;
+  border-color:rgba(47,189,120,.23)!important;
+}
+.ds30-react-main.reaction-insightful{
+  color:#c2b6ff!important;
+  background:rgba(128,104,223,.13)!important;
+  border-color:rgba(128,104,223,.24)!important;
+}
+
+/* Dashboard composer gets the same readability contract. */
+.dsos-executive .dsx-dashboard-social{
+  background:
+    linear-gradient(165deg,#0f3158 0%,#0a2546 54%,#071d38 100%)!important;
+  border-color:rgba(126,168,221,.30)!important;
+}
+.dsos-executive .dsx-dashboard-composer textarea{
+  background:#071a34!important;
+  color:#f4f8fc!important;
+  border-color:rgba(126,168,221,.34)!important;
+}
+.dsos-executive .dsx-dashboard-composer textarea::placeholder{
+  color:#92abc4!important;
+  opacity:1!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools a,
+.dsos-executive .dsx-dashboard-composer-tools span{
+  color:#b9cadc!important;
+}
+.dsos-executive .dsx-dashboard-feed-head small,
+.dsos-executive .dsx-dashboard-feed-head a{
+  color:#79b5ff!important;
+}
+
+/* Side rail: no low-contrast labels. */
+.dsx-side-card,
+.dsx-side-card p,
+.dsx-side-card small{
+  color:#b9c9da!important;
+}
+.dsx-side-card h2,
+.dsx-side-card h3,
+.dsx-side-card strong{
+  color:#f5f8fc!important;
+}
+.dsx-side-card a:not(.btn):not(.dsx-quick-link){
+  color:#82bdff!important;
+}
+
+/* Review fixture visibility lock. */
+body.ds-visual-review .ds-review-post{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(45,116,204,.07),transparent 28%),
+    linear-gradient(150deg,#12345f,#0b284c 56%,#081f3d)!important;
+  border-color:rgba(126,168,221,.30)!important;
+}
+body.ds-visual-review .ds-review-post p,
+body.ds-visual-review .ds-review-photo-caption{
+  color:#edf3fa!important;
+}
+body.ds-visual-review .ds-review-author strong{
+  color:#fff!important;
+}
+body.ds-visual-review .ds-review-author small,
+body.ds-visual-review .ds-review-engagement{
+  color:#aabdd1!important;
+}
+body.ds-visual-review .ds-review-actions span{
+  color:#c4d1df!important;
+}
+body.ds-visual-review .ds-review-actions .active-like{
+  color:#7ab7ff!important;
+  background:rgba(24,119,242,.14)!important;
+}
+body.ds-visual-review .ds-review-actions .active-love{
+  color:#ff7886!important;
+  background:rgba(255,59,85,.13)!important;
+}
+
+
+/* ===== Featured social post fidelity — single media treatment ===== */
+body.ds-visual-review .ds-review-featured{
+  position:relative!important;
+  overflow:hidden!important;
+  padding:14px 15px 13px!important;
+  background:
+    radial-gradient(circle at 92% 7%,rgba(240,193,91,.075),transparent 24%),
+    linear-gradient(150deg,#12375f 0%,#0d2a4f 52%,#08203d 100%)!important;
+  border:1px solid rgba(126,168,221,.31)!important;
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.23),
+    inset 0 1px rgba(255,255,255,.035)!important;
+}
+body.ds-visual-review .ds-review-featured .ds-review-author{
+  padding-bottom:9px!important;
+  border-bottom:1px solid rgba(126,168,221,.10)!important;
+}
+body.ds-visual-review .ds-review-featured .ds-review-post-title{
+  margin:11px 0 4px!important;
+  color:#fff!important;
+  font-size:14px!important;
+  line-height:1.25!important;
+}
+body.ds-visual-review .ds-review-featured>p{
+  margin:0 0 9px!important;
+  color:#c6d6e6!important;
+  font-size:10.5px!important;
+}
+body.ds-visual-review .ds-review-feature-media{
+  position:relative!important;
+  min-height:118px!important;
+  overflow:hidden!important;
+  margin:9px 0 8px!important;
+  padding:18px 22px!important;
+  border-radius:13px!important;
+  border:1px solid rgba(240,193,91,.35)!important;
+  background:
+    radial-gradient(circle at 78% 52%,rgba(255,196,74,.28),transparent 20%),
+    linear-gradient(118deg,#07182f 0%,#0d3560 44%,#315174 62%,#8b6a26 100%)!important;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.05),
+    0 12px 26px rgba(0,0,0,.18)!important;
+}
+body.ds-visual-review .ds-review-feature-media:before{
+  content:""!important;
+  position:absolute!important;
+  left:-20px!important;
+  bottom:-62px!important;
+  width:320px!important;
+  height:180px!important;
+  border:1px solid rgba(106,169,237,.26)!important;
+  border-radius:50%!important;
+  box-shadow:
+    0 0 0 22px rgba(64,139,220,.04),
+    0 -28px 65px rgba(45,129,219,.14)!important;
+}
+body.ds-visual-review .ds-review-feature-media:after{
+  content:""!important;
+  position:absolute!important;
+  right:15%!important;
+  top:0!important;
+  width:190px!important;
+  height:2px!important;
+  transform:rotate(-22deg)!important;
+  background:linear-gradient(90deg,transparent,#ffd66a 42%,#fff0a0 54%,transparent)!important;
+  box-shadow:0 0 18px rgba(240,193,91,.70)!important;
+}
+body.ds-visual-review .ds-review-feature-media strong,
+body.ds-visual-review .ds-review-feature-media span{
+  position:relative!important;
+  z-index:2!important;
+}
+body.ds-visual-review .ds-review-feature-media strong{
+  font-size:15px!important;
+  color:#f4cf74!important;
+}
+body.ds-visual-review .ds-review-feature-media span{
+  font-size:25px!important;
+  line-height:1.05!important;
+}
+body.ds-visual-review .ds-review-feature-media em{
+  color:#ffd56e!important;
+}
+
+/* Stronger right-rail distinction like the approved reference. */
+@media(min-width:1181px){
+  .dsx-right-rail{gap:9px!important}
+  .dsx-side-card{
+    border-radius:15px!important;
+    border-color:rgba(126,168,221,.24)!important;
+    box-shadow:
+      0 15px 32px rgba(0,0,0,.19),
+      inset 0 1px rgba(255,255,255,.03)!important;
+  }
+  .dsx-upcoming{
+    border-color:rgba(53,208,127,.28)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(53,208,127,.09),transparent 32%),
+      linear-gradient(155deg,#12375d,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-journey-card{
+    border-color:rgba(242,201,76,.24)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(242,201,76,.075),transparent 30%),
+      linear-gradient(155deg,#12365c,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-quick-actions-card{
+    background:
+      radial-gradient(circle at 100% 0%,rgba(24,119,242,.08),transparent 32%),
+      linear-gradient(155deg,#12375e,#0a284b 58%,#081f3d)!important;
+  }
+  .dsx-announcement{
+    border-color:rgba(240,193,91,.44)!important;
+    background:
+      radial-gradient(circle at 100% 0%,rgba(240,193,91,.12),transparent 32%),
+      linear-gradient(155deg,#26374f,#102844 62%,#0a203b)!important;
+  }
+}
+
+
+/* ===== Final hero/profile polish against approved reference ===== */
+@media(min-width:1181px){
+  .dsx-hero{
+    isolation:isolate!important;
+    overflow:hidden!important;
+    padding-left:26px!important;
+    padding-right:26px!important;
+    background:
+      radial-gradient(circle at 69% 51%,rgba(57,146,238,.36),transparent 18%),
+      radial-gradient(circle at 82% 12%,rgba(240,193,91,.18),transparent 10%),
+      linear-gradient(110deg,#061226 0%,#082349 41%,#0d3e70 100%)!important;
+  }
+  .dsx-hero:before{
+    z-index:0!important;
+    width:670px!important;
+    height:670px!important;
+    right:8px!important;
+    bottom:-518px!important;
+    border:1px solid rgba(91,161,238,.58)!important;
+    background:
+      radial-gradient(circle at 42% 36%,rgba(39,126,223,.34) 0 8%,transparent 9%),
+      radial-gradient(circle at 58% 31%,rgba(46,137,231,.23) 0 6%,transparent 7%),
+      radial-gradient(circle at 64% 50%,rgba(21,83,163,.58),rgba(5,29,59,.28) 52%,rgba(2,16,34,.10) 53%,transparent 54%)!important;
+    box-shadow:
+      0 0 0 22px rgba(66,139,221,.06),
+      0 0 0 52px rgba(66,139,221,.028),
+      0 -58px 118px rgba(42,129,226,.32),
+      inset 0 0 78px rgba(28,106,201,.24)!important;
+  }
+  .dsx-hero:after{
+    z-index:1!important;
+    width:390px!important;
+    right:20px!important;
+    top:35px!important;
+    height:2px!important;
+    transform:rotate(-17deg)!important;
+    background:linear-gradient(90deg,transparent,#d99f37 32%,#ffd86f 52%,#fff2b0 56%,transparent 82%)!important;
+    box-shadow:
+      0 0 8px rgba(240,193,91,.75),
+      0 0 24px rgba(240,193,91,.42)!important;
+  }
+  .dsx-hero-copy{
+    z-index:3!important;
+    max-width:690px!important;
+  }
+  .dsx-kicker{
+    color:#f0c15b!important;
+    letter-spacing:.18em!important;
+    font-weight:900!important;
+  }
+  .dsx-greeting{
+    margin-top:6px!important;
+    margin-bottom:8px!important;
+    text-shadow:0 3px 18px rgba(0,0,0,.20)!important;
+  }
+  .dsx-welcome{
+    color:#d5e0ec!important;
+    max-width:620px!important;
+  }
+  .dsx-hero-profile{
+    z-index:4!important;
+    align-self:center!important;
+    justify-self:end!important;
+    width:100%!important;
+    max-width:330px!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+  }
+  .dsx-hero-profile>span:last-child{
+    min-width:0!important;
+  }
+  .dsx-hero-profile strong,
+  .dsx-hero-profile small{
+    display:block!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  .dsx-hero-profile strong{
+    color:#fff!important;
+  }
+  .dsx-hero-profile small:not(.dsos-founding-hero){
+    color:#bed0e2!important;
+    margin-top:2px!important;
+  }
+}
+
+
+/* ===== Social action-row icon-first polish ===== */
+body.ds-auth-os-page .ds30-post-actions,
+.dsos-executive .ds30-post-actions{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:6px!important;
+  align-items:stretch!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button,
+body.ds-auth-os-page .ds30-react-main,
+.dsos-executive .ds30-post-actions>button,
+.dsos-executive .ds30-react-main{
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:8px 10px!important;
+  border-radius:10px!important;
+  font-size:10.5px!important;
+  font-weight:800!important;
+  color:#c9d6e4!important;
+}
+body.ds-auth-os-page .ds30-post-actions .ds30-action-icon,
+body.ds-auth-os-page .ds30-react-main .ds30-action-icon,
+.dsos-executive .ds30-post-actions .ds30-action-icon,
+.dsos-executive .ds30-react-main .ds30-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex:0 0 18px!important;
+  stroke-width:2.15!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="comment"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="comment"] .ds30-action-icon{
+  color:#d7e6f5!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="repost"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="repost"] .ds30-action-icon{
+  color:#67cdfb!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button[data-social="share"] .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button[data-social="share"] .ds30-action-icon{
+  color:#82b9ff!important;
+}
+body.ds-auth-os-page .ds30-react-main.reaction-like .ds30-action-icon,
+.dsos-executive .ds30-react-main.reaction-like .ds30-action-icon{
+  color:#5aa0ff!important;
+}
+body.ds-auth-os-page .ds30-react-main.reaction-love .ds30-action-icon,
+.dsos-executive .ds30-react-main.reaction-love .ds30-action-icon{
+  color:#ff5b70!important;
+  fill:currentColor!important;
+}
+body.ds-auth-os-page .ds30-post-actions>button:hover .ds30-action-icon,
+body.ds-auth-os-page .ds30-react-main:hover .ds30-action-icon,
+.dsos-executive .ds30-post-actions>button:hover .ds30-action-icon,
+.dsos-executive .ds30-react-main:hover .ds30-action-icon{
+  transform:scale(1.08)!important;
+}
+@media(max-width:760px){
+  body.ds-auth-os-page .ds30-post-actions>button,
+  body.ds-auth-os-page .ds30-react-main,
+  .dsos-executive .ds30-post-actions>button,
+  .dsos-executive .ds30-react-main{
+    gap:5px!important;
+    padding:7px 5px!important;
+    font-size:9px!important;
+  }
+  body.ds-auth-os-page .ds30-post-actions .ds30-action-icon,
+  body.ds-auth-os-page .ds30-react-main .ds30-action-icon,
+  .dsos-executive .ds30-post-actions .ds30-action-icon,
+  .dsos-executive .ds30-react-main .ds30-action-icon{
+    width:16px!important;
+    height:16px!important;
+    flex-basis:16px!important;
+  }
+}
+
+
+/* ===== Icon-first OS accessibility: Dashboard, Community, Inbox, Messages ===== */
+.dsx-inline-action-icon,
+.dsx-action-symbol,
+.dsx-notice-symbol{
+  width:20px!important;
+  height:20px!important;
+  flex:0 0 20px!important;
+  display:block!important;
+  stroke:currentColor!important;
+  fill:none!important;
+  stroke-width:2!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+.dsos-executive .dsx-quick-grid-six a{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-height:68px!important;
+  padding:8px 5px!important;
+  text-align:center!important;
+  line-height:1.2!important;
+}
+.dsos-executive .dsx-quick-grid-six .dsx-action-symbol{
+  width:23px!important;
+  height:23px!important;
+  flex-basis:23px!important;
+  filter:drop-shadow(0 0 7px currentColor);
+}
+.dsos-executive .dsx-quick-grid-six a span{
+  font-size:10px!important;
+  font-weight:800!important;
+  color:inherit!important;
+  line-height:1.2!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools a,
+.dsos-executive .dsx-dashboard-composer-tools button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools .dsx-action-symbol{
+  width:17px!important;
+  height:17px!important;
+  flex-basis:17px!important;
+}
+.dsos-executive .dsx-dashboard-composer-tools button .dsx-action-symbol{color:#fff!important}
+
+/* All action controls keep an accessible focus ring, not only a hover color. */
+.dsos-executive .dsx-quick-grid-six a:focus-visible,
+.dsos-executive .dsx-dashboard-composer-tools a:focus-visible,
+body.ds-auth-os-page .dsx-icon-action:focus-visible,
+body.ds-auth-os-page .community-reaction-button:focus-visible,
+body.ds-auth-os-page .dm-hover-actions button:focus-visible,
+body.ds-auth-os-page .dm-composer button:focus-visible{
+  outline:2px solid #9ecaff!important;
+  outline-offset:2px!important;
+}
+body.ds-auth-os-page .dsx-icon-action{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page .dsx-icon-action .dsx-inline-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex-basis:18px!important;
+}
+body.ds-auth-os-page #notificationFilters{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-icon-action{
+  min-height:38px!important;
+  padding:7px 10px!important;
+  color:#c3d3e5!important;
+  border:1px solid rgba(126,168,221,.20)!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-icon-action.active{
+  background:rgba(24,119,242,.22)!important;
+  border-color:rgba(92,160,245,.48)!important;
+  color:#f4f9ff!important;
+}
+body.ds-auth-os-page #notificationFilters .dsx-filter-communications .dsx-inline-action-icon{color:#7cb5ff!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-calls .dsx-inline-action-icon{color:#ff8190!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-meetings .dsx-inline-action-icon{color:#59d5b5!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-journey .dsx-inline-action-icon{color:#75bbff!important}
+body.ds-auth-os-page #notificationFilters .dsx-filter-recognition .dsx-inline-action-icon{color:#f0c15b!important}
+body.ds-auth-os-page .notification-item-icon .dsx-notice-symbol{
+  width:21px!important;
+  height:21px!important;
+  flex-basis:21px!important;
+}
+
+/* Community reaction symbols carry semantic color; text remains supporting context. */
+body.ds-auth-os-page .community-reaction-button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:38px!important;
+  padding:7px 10px!important;
+}
+body.ds-auth-os-page .community-reaction-button .dsx-inline-action-icon{
+  width:20px!important;
+  height:20px!important;
+  flex-basis:20px!important;
+}
+body.ds-auth-os-page .community-reaction-button[data-reaction="like"] .dsx-inline-action-icon{color:#65aaff!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="celebrate"] .dsx-inline-action-icon{color:#f5c94c!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="support"] .dsx-inline-action-icon{color:#65db9b!important}
+body.ds-auth-os-page .community-reaction-button[data-reaction="insightful"] .dsx-inline-action-icon{color:#b4a7ff!important}
+body.ds-auth-os-page .ds-community-social-actions button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:39px!important;
+}
+body.ds-auth-os-page .ds-community-social-actions svg{
+  width:19px!important;
+  height:19px!important;
+  flex-basis:19px!important;
+}
+body.ds-auth-os-page .community-comment-form .dsx-inline-action-icon{
+  color:#8fc0ff!important;
+}
+
+/* Messages: retain distinct icons when sound state and message actions change. */
+body.ds-auth-os-page .dm-header-actions .dsx-inline-action-icon,
+body.ds-auth-os-page .dm-composer .dsx-inline-action-icon,
+body.ds-auth-os-page #dmSoundToggle .dsx-inline-action-icon{
+  width:20px!important;
+  height:20px!important;
+  flex-basis:20px!important;
+}
+body.ds-auth-os-page .dm-hover-actions .dsx-inline-action-icon{
+  width:17px!important;
+  height:17px!important;
+  flex-basis:17px!important;
+}
+body.ds-auth-os-page .dm-hover-actions button{
+  display:inline-grid!important;
+  place-items:center!important;
+  min-width:32px!important;
+  min-height:32px!important;
+}
+body.ds-auth-os-page #dmSendButton .dsx-inline-action-icon{color:#fff!important}
+body.ds-auth-os-page #dmSoundToggle[aria-pressed="false"] .dsx-inline-action-icon{color:#98abc1!important}
+body.ds-auth-os-page #dmSoundToggle[aria-pressed="true"] .dsx-inline-action-icon{color:#79b6ff!important}
+
+@media(max-width:760px){
+  .dsos-executive .dsx-quick-grid-six a{min-height:66px!important}
+  .dsos-executive .dsx-quick-grid-six .dsx-action-symbol{width:21px!important;height:21px!important;flex-basis:21px!important}
+  body.ds-auth-os-page #notificationFilters .dsx-icon-action{min-height:40px!important}
+}
+
+/* Keep the existing primary-button selector intact while displaying its pictogram. */
+body.ds-auth-os-page #markAllNotifications{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page #markAllNotifications .dsx-inline-action-icon{
+  width:18px!important;
+  height:18px!important;
+  flex-basis:18px!important;
+}
+
+/* Shared icon scale for Feed quick links, matching Dashboard semantic glyphs. */
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a .dsx-feed-quick-icon{
+  display:block!important;
+  flex:0 0 20px!important;
+  width:20px!important;
+  height:20px!important;
+  color:#88bdff!important;
+  stroke:currentColor!important;
+}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(3) .dsx-feed-quick-icon{color:#f0c15b!important}
+body.ds-auth-os-page .dsx-feed-aside .dsx-quick-grid a:nth-child(4) .dsx-feed-quick-icon{color:#ff8291!important}
+
+
+/* ===== Approved Agent OS: dark-surface legibility and control consistency ===== */
+/* User-reviewed 2026-11-03: avoid legacy light-page labels on dark cards. */
+body.ds-auth-os-page .settings-panel .settings-field,
+body.ds-auth-os-page .settings-panel label.settings-field,
+body.ds-auth-os-page .settings-panel .settings-form label{
+  color:#dbe7f5!important;
+  font-weight:800!important;
+  font-size:12px!important;
+  letter-spacing:.01em!important;
+}
+body.ds-auth-os-page .settings-panel .settings-field select,
+body.ds-auth-os-page .settings-panel .settings-form input,
+body.ds-auth-os-page .settings-panel .settings-form select{
+  margin-top:6px!important;
+  color:#f5f8fc!important;
+  background:#091d3a!important;
+  border:1px solid rgba(143,180,224,.43)!important;
+  border-radius:9px!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid label,
+body.ds-auth-os-page .profile-section-card form label,
+body.ds-auth-os-page .profile-section-card .member-grid>label{
+  color:#dce8f6!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  font-weight:800!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid input,
+body.ds-auth-os-page .profile-section-card .member-grid select{
+  display:block!important;
+  width:100%!important;
+  margin-top:6px!important;
+  color:#f4f8ff!important;
+  background:#081c38!important;
+  border:1px solid rgba(143,180,224,.43)!important;
+  border-radius:9px!important;
+}
+body.ds-auth-os-page .profile-section-card .member-grid input::placeholder,
+body.ds-auth-os-page .settings-panel input::placeholder{
+  color:#adbed2!important;
+  opacity:1!important;
+}
+body.ds-auth-os-page .dsmedia-caption-label,
+body.ds-auth-os-page .community-composer-card .dsmedia-caption-label{
+  color:#e5eef9!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary,
+body.ds-auth-os-page .community-composer-card .dsmedia-post-options summary{
+  color:#bed7f2!important;
+  font-size:11.5px!important;
+  font-weight:800!important;
+  background:rgba(21,62,109,.32)!important;
+  border:1px solid rgba(143,180,224,.16)!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary span{
+  color:#a8bdd4!important;
+}
+body.ds-auth-os-page .dsmedia-post-options summary svg{
+  width:17px!important;
+  height:17px!important;
+  color:#88bcff!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button,
+body.ds-auth-os-page .community-composer-card .dsmedia-attach-button,
+body.ds-auth-os-page .dsx-feed-media-actions .dsmedia-attach-button{
+  min-height:40px!important;
+  color:#e6f2ff!important;
+  background:linear-gradient(145deg,#123d68,#0b2c50)!important;
+  border:1px solid rgba(87,164,239,.45)!important;
+  border-radius:10px!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05)!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button svg{
+  color:#80c5ff!important;
+}
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button:hover{
+  background:linear-gradient(145deg,#1a5087,#103a68)!important;
+  border-color:#78b9ff!important;
+}
+body.ds-auth-os-page .community-composer-card .dsmedia-note,
+body.ds-auth-os-page .community-composer-card .dsmedia-attach-hint,
+body.ds-auth-os-page .dsx-feed-media-actions .dsmedia-attach-hint{
+  color:#b7c8db!important;
+}
+body.ds-auth-os-page .community-composer-card .dsmedia-draft{
+  border-color:rgba(126,168,221,.27)!important;
+}
+body.ds-auth-os-page .dsmedia-post-options .member-grid label,
+body.ds-auth-os-page .community-post-form .member-grid label{
+  color:#dbe7f5!important;
+  font-weight:750!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  margin-top:10px!important;
+  min-height:38px!important;
+  color:#e8f3ff!important;
+  background:rgba(24,119,242,.16)!important;
+  border:1px solid rgba(115,173,244,.36)!important;
+  border-radius:10px!important;
+  padding:8px 12px!important;
+  font-weight:800!important;
+  text-decoration:none!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link svg{
+  display:block!important;width:18px!important;height:18px!important;flex:0 0 18px!important;
+}
+body.ds-auth-os-page .notification-layout aside .dsx-preferences-link:hover{
+  color:#fff!important;border-color:#83beff!important;background:rgba(24,119,242,.26)!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback{
+  grid-column:1/-1!important;
+  display:grid!important;
+  gap:8px!important;
+  width:100%!important;
+  min-height:90px!important;
+  padding:18px!important;
+  border-radius:14px!important;
+  color:#d9e7f7!important;
+  border:1px solid rgba(143,180,224,.28)!important;
+  background:linear-gradient(145deg,#122c4e,#0a213f)!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback strong{
+  color:#f5f8fc!important;font-size:14px!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback p{
+  color:#b9cbe0!important;margin:0!important;
+}
+body.ds-auth-os-page .member-directory-grid .dsx-directory-feedback button{
+  width:max-content!important;min-height:38px!important;
+  padding:8px 13px!important;border-radius:9px!important;
+  color:#fff!important;background:#1877f2!important;
+  border:1px solid rgba(115,173,244,.38)!important;
+  cursor:pointer!important;
+}
+body.ds-auth-os-page .settings-panel .settings-field:focus-within,
+body.ds-auth-os-page .profile-section-card .member-grid label:focus-within{
+  color:#fff!important;
+}
+body.ds-auth-os-page .settings-panel :is(input,select):focus-visible,
+body.ds-auth-os-page .profile-section-card :is(input,select):focus-visible,
+body.ds-auth-os-page .dsmedia-action-row .dsmedia-attach-button:focus-visible{
+  outline:2px solid #82b9ff!important;
+  outline-offset:2px!important;
+}
+
+
+/* ===== Messages polish: verified visual review, 2026-11-03 =====
+   Preserve three-column workspace while granting member details breathing room.
+   Keep real text entry autosizing on input (do not force a fixed height in production). */
+@media (min-width:1181px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    grid-template-columns:minmax(240px,270px) minmax(0,1fr) minmax(265px,285px)!important;
+    gap:9px!important;
+  }
+}
+@media (min-width:981px) and (max-width:1180px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    grid-template-columns:minmax(210px,240px) minmax(0,1fr) minmax(230px,260px)!important;
+    gap:8px!important;
+  }
+}
+body.ds-auth-os-page .dm-member-panel{
+  padding:14px 12px!important;
+}
+body.ds-auth-os-page .dm-member-facts>div{
+  display:grid!important;
+  grid-template-columns:minmax(85px,1fr) minmax(0,1.15fr)!important;
+  align-items:start!important;
+  gap:10px!important;
+  padding:11px 3px!important;
+}
+body.ds-auth-os-page .dm-member-facts>div span{
+  color:#b0c2d6!important;
+  line-height:1.45!important;
+}
+body.ds-auth-os-page .dm-member-facts>div strong{
+  display:block!important;
+  max-width:none!important;
+  min-width:0!important;
+  color:#f5f8fc!important;
+  line-height:1.45!important;
+  text-align:right!important;
+  overflow-wrap:break-word!important;
+}
+body.ds-auth-os-page .dm-member-actions .btn{
+  min-height:39px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:10px!important;
+  color:#e5f1ff!important;
+  background:rgba(34,81,134,.23)!important;
+  border:1px solid rgba(126,168,221,.26)!important;
+}
+body.ds-auth-os-page .dm-member-actions .btn:hover,
+body.ds-auth-os-page .dm-member-actions .btn:focus-visible{
+  background:rgba(24,119,242,.22)!important;
+  border-color:rgba(120,184,253,.58)!important;
+  color:#fff!important;
+}
+body.ds-auth-os-page #dmAttachmentButton{
+  color:#87baff!important;
+  background:rgba(24,119,242,.12)!important;
+  border:1px solid rgba(101,163,241,.36)!important;
+}
+body.ds-auth-os-page #dmEmojiButton{
+  color:#f0c15b!important;
+  background:rgba(240,193,91,.09)!important;
+  border:1px solid rgba(240,193,91,.28)!important;
+}
+body.ds-auth-os-page .dm-composer{
+  align-items:center!important;
+  gap:7px!important;
+}
+body.ds-auth-os-page .dm-composer textarea{
+  min-height:44px!important;
+  max-height:130px!important;
+  line-height:1.4!important;
+  border-radius:16px!important;
+  padding:11px 14px!important;
+}
+body.ds-auth-os-page .dm-composer>button{
+  flex-shrink:0!important;
+}
+body.ds-auth-os-page .dm-conversation-copy strong,
+body.ds-auth-os-page .dm-active-copy strong{
+  color:#f5f8fc!important;
+}
+body.ds-auth-os-page .dm-conversation-copy small,
+body.ds-auth-os-page .dm-active-copy small{
+  color:#aebfd2!important;
+}
+
+
+/* ===== Responsive / identity readiness: preserve the approved desktop aesthetic ===== */
+@media(max-width:1040px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    width:100%!important;
+    max-width:none!important;
+    height:calc(100dvh - var(--ds-agent-shell-compact-height, 122px))!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:8px!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-sidebar,
+  body.ds-auth-os-page.dm-os-body .dm-chat{
+    min-height:0!important;
+  }
+}
+@media(max-width:680px){
+  body.ds-auth-os-page.dm-os-body .dm-os.dm-os-three{
+    display:block!important;
+    position:relative!important;
+    overflow:hidden!important;
+    grid-template-columns:none!important;
+    grid-template-rows:none!important;
+    border-radius:0!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-sidebar,
+  body.ds-auth-os-page.dm-os-body .dm-chat{
+    position:absolute!important;
+    inset:0!important;
+    height:100%!important;
+    min-height:0!important;
+  }
+  body.ds-auth-os-page.dm-os-body .dm-member-panel{display:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-chat{transform:translateX(100%)!important}
+  body.ds-auth-os-page.dm-os-body .dm-os.conversation-open .dm-chat{transform:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-os.conversation-open .dm-sidebar{visibility:hidden!important}
+  body.ds-auth-os-page.dm-os-body #dmMobileBack{display:block!important}
+}
+
+
+/* ===== Approved-member read-only profile and mobile Messages height correction ===== */
+body.ds-auth-os-page .dsx-member-public-view{
+  max-width:920px!important;
+  margin:14px auto 30px!important;
+}
+body.ds-auth-os-page .dsx-member-public-card{
+  padding:clamp(18px,2.5vw,30px)!important;
+  border:1px solid rgba(126,168,221,.28)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(18,53,95,.97),rgba(8,27,53,.98))!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.22)!important;
+}
+body.ds-auth-os-page .dsx-member-public-identity{
+  display:flex!important;
+  align-items:center!important;
+  gap:20px!important;
+  padding-bottom:20px!important;
+  border-bottom:1px solid rgba(126,168,221,.20)!important;
+}
+body.ds-auth-os-page .dsx-member-public-avatar{
+  position:relative;
+  flex:0 0 94px;
+  width:94px;height:94px;
+  overflow:hidden;
+  display:grid;place-items:center;
+  border-radius:50%;
+  border:2px solid #f0c15b;
+  background:#15375e;
+  color:#f0c15b;
+  font:800 31px/1 system-ui,sans-serif;
+}
+body.ds-auth-os-page .dsx-member-public-avatar img{
+  position:absolute;inset:0;
+  width:100%;height:100%;object-fit:cover;
+}
+body.ds-auth-os-page .dsx-member-public-identity h2{
+  margin:4px 0!important;
+  color:#f5f8fc!important;
+  font:700 clamp(22px,2.5vw,31px)/1.2 Georgia,serif!important;
+}
+body.ds-auth-os-page .dsx-member-public-identity p:not(.eyebrow){
+  color:#bdd0e5!important;font-size:13px!important;margin:6px 0 10px!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;margin:18px 0!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts>div{
+  display:grid!important;gap:5px!important;
+  padding:13px!important;
+  background:rgba(4,18,38,.44)!important;
+  border:1px solid rgba(126,168,221,.19)!important;
+  border-radius:11px!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts span{
+  color:#acc1d9!important;font-size:11px!important;font-weight:650!important;
+}
+body.ds-auth-os-page .dsx-member-public-facts strong{
+  color:#f5f8fc!important;font-size:13px!important;overflow-wrap:anywhere!important;
+}
+body.ds-auth-os-page .dsx-member-public-privacy{
+  color:#b7c6d9!important;
+  font-size:11.5px!important;
+  line-height:1.55!important;
+}
+body.ds-auth-os-page .dsx-member-public-actions{
+  display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:18px!important;
+}
+@media(max-width:680px){
+  body.ds-auth-os-page .dsx-member-public-identity{align-items:flex-start!important;gap:12px!important}
+  body.ds-auth-os-page .dsx-member-public-avatar{flex-basis:66px;width:66px;height:66px;font-size:23px}
+  body.ds-auth-os-page .dsx-member-public-facts{grid-template-columns:1fr!important}
+  body.ds-auth-os-page.dm-os-body .dsx-messages-title{display:none!important}
+  body.ds-auth-os-page.dm-os-body .dm-composer textarea{min-width:0!important}
+}
+
+/* Agent OS Notifications: unobtrusive history pagination under the existing Feed-style list. */
+body.notification-center-page .dsx-notification-pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;padding:14px 0 0;margin-top:14px;
+  border-top:1px solid rgba(156,185,223,.18);
+}
+body.notification-center-page #notificationPageInfo{
+  margin:0;color:#b9cae0;font-size:13px;line-height:1.55;
+}
+body.notification-center-page #notificationLoadMore{
+  min-height:44px;padding:9px 16px;font-size:13px;
+}
+body.notification-center-page #notificationLoadMore[hidden]{
+  display:none!important;
+}
+@media(max-width:540px){
+  body.notification-center-page #notificationLoadMore{width:100%}
+}
