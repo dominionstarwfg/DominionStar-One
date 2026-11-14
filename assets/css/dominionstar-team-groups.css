@@ -165,3 +165,30 @@ body.ds-visual-review .dsg-dialog form{
   html:has(#teamGroupsApp){scroll-padding-top:160px!important}
   .dsg-body{scroll-padding-top:160px!important}
 }
+
+/* Mobile inbox tools added a second row above the horizontal group picker.
+ * The old 252px max-height let the picker overlap the chat header, so chat
+ * intercepted taps. Size the group panel from its actual content. */
+@media(max-width:650px){
+  .dsg-workspace>.dsg-groups-panel{
+    display:flex!important;
+    flex:0 0 auto!important;
+    height:auto!important;
+    max-height:none!important;
+    min-height:0!important;
+    overflow:visible!important;
+    position:relative;
+    z-index:1;
+  }
+  .dsg-groups-panel .dsg-group-list{
+    display:flex!important;
+    flex:0 0 98px!important;
+    height:98px!important;
+    min-height:98px!important;
+    max-height:98px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  .dsg-groups-panel .dsg-group-item{align-self:stretch!important}
+  .dsg-chat-panel{position:relative;z-index:0}
+}
