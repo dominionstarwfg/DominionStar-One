@@ -9,7 +9,10 @@
 - Group owners and authorized admins can invite only approved, directory-visible agents. Invitation creates a pending membership; the invited agent must explicitly accept.
 - Only active members can see messages or send messages. Invitations reveal only enough group metadata for a choice to accept.
 - Members can write multiline chat messages and share safe HTTP(S) links (including Zoom); the group conversation keeps natural-height bubbles.
-- Members may mute group notifications in their own membership settings (no actual group push/email delivery has been enabled).
+- **Unread and refresh:** approved active members have per-group unread counts and private read cursors. The selected conversation refreshes every 20 seconds while the page is visible; an agent can also press Refresh. This is **foreground polling**, not an always-on Realtime transport.
+- **In-app group alerts:** new unread messages in other groups display a small on-page notice. Members may opt in to a short sound; sound is off by default. A muted group still has unread counts but does not produce a toast or sound.
+- **Preview interaction:** the `Simulate message` control creates only a local sample message in another demo group; selecting that group displays and clears the unread badge. No real user, device, or external service is contacted.
+- **No push or email delivery:** Group alerts do not create scheduled worker jobs, push notifications, or email; these remain a future, separately gated feature.
 - Non-owner members can leave; owners cannot accidentally orphan a group.
 - **Owner group editing:** the owner can revise a group's name and purpose; existing membership and messages remain intact.
 - **Moderation:** owners can remove any non-owner member or cancel pending invitations; ordinary admins can remove regular members but **cannot expel another admin or owner**.
@@ -17,7 +20,7 @@
 - Example previews include a separate **pending invitation** for testing both acceptance and refusal.
 - The live backend has NOT been enabled. On Netlify deploy-preview-198, demo group creation, invitations, sending and mute operations are **ephemeral** in that browser session, do not touch Supabase, do not notify anyone, and reset on reload.
 
-**Not yet implemented:** file uploads, voice notes, video calls, invite-by-share-link (unsafe for private member-only groups without a gated accept flow), per-topic subchannels, polls, pinned messages, admin promotion/ownership transfer, group notifications, message reactions, or production Realtime. Do not describe these as existing capabilities. The GroupMe product is a design reference, not a service integration.
+**Not yet implemented:** file uploads, voice notes, video calls, invite-by-share-link (unsafe for private member-only groups without a gated accept flow), per-topic subchannels, polls, pinned messages, admin promotion/ownership transfer, background/push or email notifications, group message reactions, or production Realtime. Do not describe these as existing capabilities. The GroupMe product is a design reference, not a service integration.
 
 ## Existing data boundary
 
@@ -34,6 +37,7 @@
 
 - `.github/workflows/team-groups-isolation-review.yml` uses synthetic roles and a disposable Postgres 16 service. It compiles the exact SQL review draft and tests approved group creation, owner assignment and group edits, invitation/acceptance, member chat permissions, admin-versus-admin removal denial, owner-only admin removal, cancellation and self-decline paths, uninvited and revoked approval denial, anonymous denial, role spoofing rejection, and owner orphan prevention.
 - `tests/team-groups-review.test.mjs` checks fail-closed flags, safe rendering, navigation and review-only build behavior.
+- The disposable SQL suite also verifies member-only unread counts, exclusion of one's own messages, read-position updates, invited/anonymous/revoked denial, and rejection of future-dated cursors. Browser tests exercise sample unread badges, simulated incoming messages, manual read clearing, and opt-in sound controls at desktop and mobile widths.
 - `scripts/review-feed-browser-geometry.mjs` opens the static `/team-groups/` preview, tests pending invite acceptance/decline, owner rename/topic edits, mute, cancellation and re-invitation, creates a sample group, sends a Zoom URL and checks desktop/mobile width and preview asset integrity.
 - CI cannot substitute for **real Supabase Auth**, authenticated PostgREST, invitation notification delivery, connected-agent multi-device trials, or a secured staging deployment.
 
