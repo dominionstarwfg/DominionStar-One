@@ -35,6 +35,7 @@ create table public.agent_group_members(
   status text not null default 'invited' check(status in ('invited','active')),
   invited_by uuid references auth.users(id),
   muted boolean not null default false,
+  last_read_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   primary key(group_id,user_id),
   constraint group_owner_active_check check(role <> 'owner' or status='active')
@@ -145,12 +146,19 @@ begin
     raise exception 'Membership identity and roles are immutable';
   end if;
   if old.status='invited' then
-    if new.status<>'active' or new.muted is distinct from old.muted then
+    if new.status<>'active' or new.muted is distinct from old.muted
+      or new.last_read_at is distinct from old.last_read_at then
       raise exception 'Only invitation acceptance is allowed';
     end if;
+    -- Historical group messages stay readable after joining, but are not
+    -- mistakenly classified as unread notifications from before acceptance.
+    new.last_read_at:=now();
   elsif old.status='active' then
     if new.status<>'active' then
       raise exception 'Active membership cannot be reassigned';
+    end if;
+    if new.last_read_at<old.last_read_at or new.last_read_at>now()+interval '1 second' then
+      raise exception 'Read cursor may only advance to messages already received';
     end if;
   else
     raise exception 'Unknown membership state';
@@ -207,6 +215,31 @@ grant select on public.agent_groups to authenticated;
 grant update(name,topic) on public.agent_groups to authenticated;
 grant select,insert,update(muted,status),delete on public.agent_group_members to authenticated;
 grant select,insert(group_id,author_id,body) on public.agent_group_messages to authenticated;
+-- Non-content, self-scoped unread summary. SECURITY INVOKER uses existing
+-- member and message RLS: never exposes another group's message text or author.
+-- Counts exclude the reader's own messages and messages before membership acceptance.
+create function public.list_agent_group_unread()
+returns table(group_id uuid,unread_count bigint,muted boolean)
+language sql stable security invoker set search_path=''
+as $
+  select member.group_id, count(message.id)::bigint, member.muted
+  from public.agent_group_members member
+  left join public.agent_group_messages message
+    on message.group_id=member.group_id
+    and message.created_at>member.last_read_at
+    and message.author_id<>(select auth.uid())
+  where member.user_id=(select auth.uid())
+    and member.status='active'
+    and exists(select 1 from public.member_profiles profile
+      where profile.id=(select auth.uid()) and profile.verification_status='approved')
+  group by member.group_id,member.muted;
+$;
+revoke all on function public.list_agent_group_unread() from public,anon;
+grant execute on function public.list_agent_group_unread() to authenticated;
+grant update(last_read_at) on public.agent_group_members to authenticated;
+
+-- In-app group unread and refresh only. No email jobs, no push delivery,
+-- no public Realtime publication and no browser service-role grants.
 -- New group messages are not yet added to realtime publication or notifications.
 -- Any future Realtime broadcast must preserve per-group RLS and membership gates.
 commit;
