@@ -162,7 +162,7 @@ test('Creator appoints admins; only owner/admin can add or remove other people',
   assert.match(code,/async function setMemberAdmin/);
   assert.match(code,/const isOwner=g=>/);
   assert.match(code,/const isAdmin=g=>/);
-  assert.match(code,/if\(!isAdmin\(g\)\)/);
+  assert.match(code,/if\(!g\|\|!isAdmin\(g\)\)/);
   assert.match(code,/const canModerate=isAdmin\(g\)/);
   assert.match(code,/m\.role!=='admin'\|\|isOwner\(g\)/);
   assert.match(code,/if\(isOwner\(g\)&&m\.user_id!==state\.uid/);
