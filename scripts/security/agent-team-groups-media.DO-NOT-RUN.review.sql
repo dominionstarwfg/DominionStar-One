@@ -59,7 +59,12 @@ alter table public.agent_group_posts
   add column media_path text,
   add column media_name text,
   add column media_mime text,
-  add column media_size_bytes integer;
+  add column media_size_bytes integer,
+  -- A newly uploaded file is unreadable even to other members until a trusted
+  -- server-side scanner separately approves its actual bytes. No browser
+  -- UPDATE or RPC is allowed to set this status.
+  add column media_review_status text not null default 'pending'
+    check(media_review_status in ('pending','approved','rejected'));
 alter table public.agent_group_posts
   drop constraint if exists agent_group_posts_body_check;
 alter table public.agent_group_posts add constraint agent_group_posts_text_or_media_check
@@ -85,6 +90,9 @@ alter table public.agent_group_posts add constraint agent_group_posts_media_inte
   );
 grant insert(media_path,media_name,media_mime,media_size_bytes)
   on public.agent_group_posts to authenticated;
+-- No client may self-approve a file: media_review_status is neither
+-- insert-granted nor update-granted, and defaults to pending.
+revoke update on public.agent_group_posts from authenticated,anon;
 
 -- Bucket intentionally private; bucket-level MIME and size ceilings reinforce
 -- client-side checks. No public download URLs and no service role in browser.
@@ -98,16 +106,31 @@ values(
 -- GET must be authenticated. No public/object listing from the group bucket.
 -- A user losing group approval/member status immediately loses read access on
 -- subsequent authenticated downloads. Existing browser copies are not revoked.
+-- Fail-closed Storage GET policy: membership alone is NOT enough.
+-- A post must refer to this exact object and must have been marked approved
+-- by a trusted scanner. Fresh uploads remain quarantined for all members.
+-- SELECT on object.delete is separate to permit owner rollback of unpublished
+-- files, without allowing the same owner to download quarantined content.
 create policy ds_agent_group_media_read_authenticated
   on storage.objects for select to authenticated
   using(
     bucket_id='agent-group-media'
-    and storage.allow_any_operation(
-      -- Supabase Storage docs distinguish authenticated GET/info from LIST.
-      -- DELETE stays selectable only to support the original uploader's
-      -- separately RLS-gated rollback of an unpublished object.
-      array['object.get_authenticated','object.get_authenticated_info','object.delete'])
-    and agent_private.media_path_authorized(name,false));
+    and agent_private.media_path_authorized(name,false)
+    and (
+      (
+        storage.allow_any_operation(
+          array['object.get_authenticated','object.get_authenticated_info'])
+        and exists(select 1 from public.agent_group_posts post
+          where post.media_path=name and post.media_review_status='approved')
+      )
+      or
+      (
+        storage.allow_only_operation('object.delete')
+        and owner_id=(select auth.uid())::text
+        and not exists(select 1 from public.agent_group_posts post
+          where post.media_path=name)
+      )
+    ));
 create policy ds_agent_group_media_upload_member
   on storage.objects for insert to authenticated
   with check(
