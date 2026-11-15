@@ -369,7 +369,7 @@ async function pickAttachment(file){
 async function loadPrivatePostMedia(media){
   const g=selected();
   if(!g||!isActive(g)||!mediaFeatureEnabled()||!media?.path||
-     !media.path.startsWith(g.id+'/')) {
+     media.status!=='approved'||!media.path.startsWith(g.id+'/')) {
     throw Error('This private file is not available.');
   }
   const groupId=g.id;
@@ -398,6 +398,14 @@ function renderPostedMedia(media){
   if(!state.preview&&!mediaFeatureEnabled())return null;
   if(media.url&&!state.previewMediaUrls.has(media.url))return null;
   const wrapper=el('div','dsg-post-media');
+  if(!state.preview&&media.status!=='approved'){
+    // Do not offer a file URL or a download button while scanning or rejected.
+    const pending=media.status!=='rejected';
+    wrapper.append(el('p','dsg-media-review-status',
+      pending?'🔒 Flyer awaiting security review. It cannot be opened yet.':
+        '⛔ This file did not pass security review and is unavailable.'));
+    return wrapper;
+  }
   if(!media.url){
     if(!media.path||state.preview)return null;
     const loading=el('button','dsg-remote-media-button',
@@ -592,7 +600,7 @@ async function loadPosts(id){
   const g=state.groups.find(item=>item.id===id);
   if(!g||!isActive(g))return;
   const columns=mediaFeatureEnabled()?
-    'id,group_id,author_id,kind,body,created_at,media_path,media_name,media_mime,media_size_bytes':
+    'id,group_id,author_id,kind,body,created_at,media_path,media_name,media_mime,media_size_bytes,media_review_status':
     'id,group_id,author_id,kind,body,created_at';
   const result=await state.client.from('agent_group_posts')
     .select(columns).eq('group_id',id)
@@ -600,10 +608,18 @@ async function loadPosts(id){
   if(result.error)throw result.error;
   const posts=(result.data||[]).map(post=>{
     const previous=(state.posts.get(id)||[]).find(p=>p.id===post.id);
+    // The server can revoke approval between refreshes. Discard any cached
+    // browser object URL whenever media transitions away from approved.
+    const previousMedia=previous?.attachment;
+    const approved=post.media_review_status==='approved';
+    if(!approved&&previousMedia?.url&&previousMedia?.path===post.media_path){
+      URL.revokeObjectURL(previousMedia.url);
+      state.previewMediaUrls.delete(previousMedia.url);
+    }
     return {...post,attachment:post.media_path?{
       path:post.media_path,name:post.media_name,mime:post.media_mime,
-      size:post.media_size_bytes,
-      url:previous?.attachment?.path===post.media_path?previous.attachment.url:null
+      size:post.media_size_bytes,status:post.media_review_status,
+      url:approved&&previousMedia?.path===post.media_path?previousMedia.url:null
     }:null};
   });
   const map=new Map();
@@ -702,9 +718,9 @@ async function publishGroupPost(kind,body){
   // as "post failed" or the user may duplicate a real, already-saved post.
   try{await loadPosts(g.id);}
   catch{
-    return {saved:true,refreshPending:true};
+    return {saved:true,refreshPending:true,pendingReview:Boolean(attachment)};
   }
-  return {saved:true,refreshPending:false};
+  return {saved:true,refreshPending:false,pendingReview:Boolean(attachment)};
 }
 async function sendPostComment(post,body){
   const g=selected();
@@ -1217,7 +1233,9 @@ function bindEvents(){
       status(state.preview?'Example post shared in this browser only.':
         outcome?.refreshPending?
           'Your post was saved privately, but the feed did not refresh. Use Refresh to see it.':
-          'Posted privately to your group.',Boolean(outcome?.refreshPending));
+          outcome?.pendingReview?
+            'File submitted. It will not be available to the group until security review is approved.':
+            'Posted privately to your group.',Boolean(outcome?.refreshPending));
     }catch(err){status(err?.message||'Unable to publish group post.',true);}
     finally{
       state.busy=false;
