@@ -14,6 +14,18 @@ end $$;
 
 insert into public.agent_group_messages(group_id,author_id,body)
 values(:'group_id','11111111-1111-4111-8111-111111111111','Private meeting: https://zoom.us/j/7443001370');
+insert into public.agent_group_posts(group_id,author_id,kind,body)
+  values(:'group_id','11111111-1111-4111-8111-111111111111','milestone',
+    'Congratulations on completing your producer license!')
+  returning id as post_id \gset
+insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+  values(:'post_id','11111111-1111-4111-8111-111111111111','celebrate');
+do $$ begin
+  if (select count(*) from public.agent_group_posts)<>1 then
+    raise exception 'Group owner cannot read their private recognition post';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>1 then
+    raise exception 'Owner private celebration reaction is missing';end if;
+end $$;
 insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
 values(:'group_id','22222222-2222-4222-8222-222222222222','member','invited','11111111-1111-4111-8111-111111111111');
 
@@ -96,6 +108,15 @@ do $$ begin
   if (select count(*) from public.agent_group_messages)<>0 then
     raise exception 'Invited, not joined agent read private messages';
   end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Invited agent read private recognition posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Invited agent read post reactions';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_posts(group_id,author_id,kind,body)
+        select id,'22222222-2222-4222-8222-222222222222','milestone',
+          'Unauthorized milestone' from public.agent_groups limit 1$q$
+  ) then raise exception 'Invited agent posted before accepting';end if;
   if (select count(*) from public.list_agent_group_unread())<>0 then
     raise exception 'Invited agent obtained private unread metadata';
   end if;
@@ -111,6 +132,10 @@ do $$ begin
   if (select count(*) from public.agent_group_messages)<>1 then
     raise exception 'Joined member could not read historical group message';
   end if;
+  if (select count(*) from public.agent_group_posts)<>1 then
+    raise exception 'Joined member could not see group congratulations';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>1 then
+    raise exception 'Joined member cannot view celebrations';end if;
   if not public.synthetic_assert_denied(
     $q$update public.agent_group_members set role='owner'
        where user_id='22222222-2222-4222-8222-222222222222'$q$
@@ -157,6 +182,47 @@ do $$ begin
       where user_id='22222222-2222-4222-8222-222222222222'$q$
   ) then raise exception 'Future-dated read cursor accepted';end if;
 end $$;
+-- Only group creator may grant or revoke administrative privileges.
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',false);
+do $$ begin
+  if not public.synthetic_assert_denied(
+    $q$select public.set_agent_group_admin(
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',true)$q$
+  ) then raise exception 'Appointed admin delegated their own admin powers';end if;
+end $$;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+select public.set_agent_group_admin(:'group_id',
+  '22222222-2222-4222-8222-222222222222',true);
+do $$ begin
+  if not exists(select 1 from public.agent_group_members
+      where user_id='22222222-2222-4222-8222-222222222222' and role='admin')
+  then raise exception 'Owner could not appoint group admin';end if;
+end $$;
+select public.set_agent_group_admin(:'group_id',
+  '22222222-2222-4222-8222-222222222222',false);
+do $$ begin
+  if not exists(select 1 from public.agent_group_members
+      where user_id='22222222-2222-4222-8222-222222222222' and role='member')
+  then raise exception 'Owner could not revoke group admin';end if;
+end $$;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+insert into public.agent_group_posts(group_id,author_id,kind,body)
+  values(:'group_id','22222222-2222-4222-8222-222222222222','announcement',
+    'Training call reminder for all joined members');
+insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+  values(:'post_id','22222222-2222-4222-8222-222222222222','like');
+do $$ begin
+  if (select count(*) from public.agent_group_posts)<>2 then
+    raise exception 'Joined member cannot publish group post';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>2 then
+    raise exception 'Joined member cannot react to group post';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+      select id,'33333333-3333-4333-8333-333333333333','like'
+      from public.agent_group_posts limit 1$q$
+  ) then raise exception 'Reaction author spoofing was permitted';end if;
+end $$;
 update public.agent_group_members set muted=true
  where user_id='22222222-2222-4222-8222-222222222222';
 insert into public.agent_group_messages(group_id,author_id,body)
@@ -173,6 +239,10 @@ do $$ begin
   if (select count(*) from public.agent_groups)<>0 then raise exception 'Uninvited agent sees group';end if;
   if (select count(*) from public.agent_group_members)<>0 then raise exception 'Uninvited agent sees membership';end if;
   if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Uninvited agent sees chat';end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Uninvited agent sees private group posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Uninvited agent sees private reactions';end if;
   if (select count(*) from public.list_agent_group_unread())<>0 then
     raise exception 'Uninvited agent learned unread metadata';end if;
   if not public.synthetic_assert_denied(
@@ -194,6 +264,10 @@ select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222'
 do $$ begin
   if (select count(*) from public.agent_groups)<>0 then raise exception 'Revoked member sees group';end if;
   if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Revoked member sees messages';end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Revoked member still sees milestone posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Revoked member still sees celebrations';end if;
   if (select count(*) from public.list_agent_group_unread())<>0 then
     raise exception 'Revoked member learned unread metadata';end if;
 end $$;
@@ -211,6 +285,15 @@ set role anon;
 do $$ begin
   if not public.synthetic_assert_denied($q$select * from public.agent_group_messages$q$)
     then raise exception 'Anonymous member read group messages';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_posts$q$)
+    then raise exception 'Anonymous reader saw group milestones';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_post_reactions$q$)
+    then raise exception 'Anonymous reader saw group celebrations';end if;
+  if not public.synthetic_assert_denied(
+    $q$select public.set_agent_group_admin(
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',true)$q$
+  ) then raise exception 'Anonymous user called admin-grant RPC';end if;
   if not public.synthetic_assert_denied($q$select * from public.list_agent_group_unread()$q$)
     then raise exception 'Anonymous member called unread summary';end if;
   if not public.synthetic_assert_denied($q$select public.create_agent_group('Anon Group','')$q$)
