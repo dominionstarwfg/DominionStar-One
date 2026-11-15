@@ -468,6 +468,46 @@ try{
         view.label+' initial groups plus pending invitation missing');
       const initial=await page.locator('#dsgActiveName').innerText();
       assert.equal(initial,'DominionStar Leadership');
+      // Owner alone can appoint an admin and revoke the appointment.
+      const member=page.locator('#dsgMemberList .dsg-member-item').filter({hasText:'Alex Morgan'});
+      await member.locator('.dsg-member-admin').filter({hasText:'Make admin'}).click();
+      assert.match(await member.innerText(),/Make admin|Member/);
+      assert.match(await member.innerText(),/Admin/);
+      await member.locator('.dsg-member-admin').filter({hasText:'Remove admin'}).click();
+      assert.match(await member.innerText(),/Member/);
+
+      // GroupMe-style milestones are complete private posts, not cramped chat.
+      await page.locator('#dsgPostsTab').click();
+      await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
+      assert.match(await page.locator('#dsgPostList').innerText(),
+        /Congratulations to Alex Morgan/);
+      assert.equal(await page.locator('#dsgMessageForm').isVisible(),false);
+      const samplePost=page.locator('#dsgPostList .dsg-post-card')
+        .filter({hasText:'Congratulations to Alex Morgan'});
+      await samplePost.locator('.dsg-post-react').filter({hasText:'Celebrate'}).click();
+      assert.match(await samplePost.locator('.dsg-post-reaction-counts').innerText(),
+        /2 celebrations/);
+      await page.locator('#dsgPostKind').selectOption('milestone');
+      await page.locator('#dsgPostBody').fill(
+        'Congratulations to our newly licensed teammate! Great progress and consistent effort. #DominionStar');
+      await page.locator('#dsgPostSubmit').click();
+      assert.equal(await page.locator('#dsgPostList .dsg-post-card').count(),3);
+      assert.match(await page.locator('#dsgPostList').innerText(),
+        /newly licensed teammate/);
+      const postHeights=await page.evaluate(()=>({
+        cards:[...document.querySelectorAll('#dsgPostList .dsg-post-card')]
+          .map(x=>({height:x.getBoundingClientRect().height,
+            bottom:x.getBoundingClientRect().bottom,
+            copyBottom:x.querySelector('.dsg-post-copy').getBoundingClientRect().bottom})),
+        horizontal:document.documentElement.scrollWidth
+      }));
+      assert.ok(postHeights.cards.every(x=>x.height>110&&x.copyBottom<x.bottom),
+        view.label+' group post content is clipped or squeezed');
+      assert.ok(postHeights.horizontal<=view.width+3,
+        view.label+' posts create horizontal overflow');
+      await page.locator('#dsgChatTab').click();
+      await page.locator('#dsgMessages').waitFor({state:'visible'});
+      assert.equal(await page.locator('#dsgPostsPanel').isVisible(),false);
       assert.equal(await page.locator('#dsgUnreadTotal').innerText(),'2');
       assert.equal(await page.locator('#dsgSimulateButton').isVisible(),true);
       await page.locator('#dsgSimulateButton').click();
@@ -490,6 +530,13 @@ try{
       await page.locator('#dsgGroupList .dsg-group-item')
         .filter({hasText:'Regional Growth Circle'}).click();
       assert.equal(await page.locator('#dsgMessageInput').isDisabled(),true);
+      await page.locator('#dsgPostsTab').click();
+      assert.equal(await page.locator('#dsgPostBody').isDisabled(),true);
+      assert.match(await page.locator('#dsgPostList').innerText(),
+        /Accept the private group invitation/);
+      assert.doesNotMatch(await page.locator('#dsgPostList').innerText(),
+        /Private mentorship milestone/);
+      await page.locator('#dsgChatTab').click();
       assert.match(await page.locator('#dsgMessages').innerText(),/invited to this private group/);
       assert.ok(!(await page.locator('#dsgMessages').innerText()).includes('Welcome to our regional mentorship'));
       // The same synthetic invitation can be accepted or declined depending
