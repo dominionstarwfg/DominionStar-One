@@ -308,6 +308,27 @@ test('Group flyer post keeps files in browser-only preview rather than implicitl
 });
 
 
+test('Attachment bytes must match file type; stale validation and upload cannot publish to another group',()=>{
+  assert.match(code,/async function mediaSignatureMatches\(file,mime\)/);
+  assert.match(code,/file\.slice\(0,16\)\.arrayBuffer\(\)/);
+  assert.match(code,/mime==='image\/png'/);
+  assert.match(code,/mime==='image\/jpeg'/);
+  assert.match(code,/mime==='image\/webp'/);
+  assert.match(code,/mime==='application\/pdf'/);
+  assert.match(code,/state\.attachmentRequest\+=1/);
+  assert.match(code,/const request=\+\+state\.attachmentRequest/);
+  assert.match(code,/request!==state\.attachmentRequest\|\|groupId!==state\.selected/);
+  assert.match(code,/File contents do not match JPG, PNG, WebP or PDF/);
+  assert.match(code,/if\(!await mediaSignatureMatches\(attachment\.file,attachment\.mime\)\)/);
+  assert.match(code,/state\.selected!==g\.id \|\| state\.attachment!==attachment/);
+  assert.match(code,/if\(!state\.busy\)selectGroup\(g\.id\)/);
+  assert.doesNotMatch(code,/if\(state\.busy&&id!==state\.selected\)return/);
+  const browser=read('scripts/review-feed-browser-geometry.mjs');
+  assert.match(browser,/fake-flyer\.png/);
+  assert.match(browser,/File contents do not match/);
+  assert.match(browser,/team-training-flyer\.png/);
+});
+
 test('Real group media stays feature-flagged and private until migration passes',()=>{
   const migration=read('scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql');
   const suite=read('tests/sql/agent-team-groups-media-assertions.sql');
