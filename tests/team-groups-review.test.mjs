@@ -285,7 +285,12 @@ test('Private team group composer offers JPG/PNG/WebP/PDF and natural-height fly
   assert.match(css,/max-height:none!important/);
   assert.match(css,/\.dsg-attachment-preview\[hidden\]/);
   assert.match(css,/\.dsg-pdf-file/);
-  assert.doesNotMatch(code,/\.storage\.from\(|\.upload\(/);
+  assert.match(code,/mediaFeatureEnabled\(\)/);
+  assert.match(code,/window\.DOMINIONSTAR_AGENT_DATA_FEATURES\?\.teamGroupsMediaV1===true/);
+  assert.match(code,/\.storage\.from\(GROUP_MEDIA_BUCKET\)/);
+  assert.match(code,/\.upload\(path,attachment\.file,\{upsert:false/);
+  assert.match(code,/\.download\(media\.path\)/);
+  assert.match(code,/\.remove\(\[path\]\)/);
 });
 
 test('Group flyer post keeps files in browser-only preview rather than implicitly publishing',()=>{
@@ -300,4 +305,42 @@ test('Group flyer post keeps files in browser-only preview rather than implicitl
   assert.match(browser,/leadership-presentation\.pdf/);
   assert.match(browser,/flyerGeometry\.naturalWidth,12/);
   assert.match(browser,/postedFlyer\.count\(\),1/);
+});
+
+
+test('Real group media stays feature-flagged and private until migration passes',()=>{
+  const migration=read('scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql');
+  const suite=read('tests/sql/agent-team-groups-media-assertions.sql');
+  const workflow=read('.github/workflows/team-groups-isolation-review.yml');
+  assert.match(migration,/DO NOT RUN IN PRODUCTION/);
+  assert.match(migration,/id,name,public,file_size_limit,allowed_mime_types/);
+  assert.match(migration,/'agent-group-media','agent-group-media',false,15728640/);
+  assert.match(migration,/media_path_matches\(group_id,author_id,media_path\)/);
+  assert.match(migration,/create policy ds_agent_group_media_read_authenticated/);
+  assert.match(migration,/create policy ds_agent_group_media_upload_member/);
+  assert.match(migration,/create policy ds_agent_group_media_rollback_unpublished/);
+  assert.match(migration,/storage\.allow_any_operation/);
+  assert.match(migration,/agent_private\.media_path_authorized\(name,true\)/);
+  assert.match(migration,/not exists\(select 1 from public\.agent_group_posts post/);
+  assert.doesNotMatch(migration,/public\s*=\s*true/);
+  assert.doesNotMatch(migration,/for update to authenticated/);
+  assert.match(code,/const mediaFeatureEnabled=\(\)=>!state.preview/);
+  assert.match(code,/flags.teamGroupsV1!==true\|\|flags.publicMemberProfilesV2!==true/);
+  assert.match(code,/if\(attachment&&!state.preview&&!mediaFeatureEnabled\(\)\)/);
+  assert.match(code,/crypto.randomUUID\(\)/);
+  assert.match(code,/\\.upload\(path,attachment.file,\{upsert:false/);
+  assert.match(code,/if\(rollback.error\)status\(/);
+  assert.match(code,/function revokePrivatePostMedia/);
+  assert.match(code,/\\.download\(media.path\)/);
+  for(const phrase of ['Uninvited member accessed a private group file',
+    'Revoked agent downloaded a private group file',
+    'Unapproved agent downloaded a private group file',
+    'Joined admin spoofed the group owner upload prefix',
+    'Cross-group post media path was accepted',
+    'Published group media was deleted by user',
+    'ISOLATED_TEAM_GROUP_MEDIA_RLS_PASS']){
+    assert.ok(suite.includes(phrase),phrase);
+  }
+  assert.match(workflow,/agent-team-groups-media-fixture.sql/);
+  assert.match(workflow,/agent-team-groups-media-assertions.sql/);
 });
