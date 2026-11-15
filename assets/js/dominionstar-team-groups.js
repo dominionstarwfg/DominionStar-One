@@ -41,7 +41,7 @@ const nodes={
 const state={preview:false,client:null,uid:null,groups:[],selected:null,
   memberships:new Map(),messages:new Map(),posts:new Map(),postReactions:new Map(),
   postComments:new Map(),expandedPostComments:new Set(),openCommentForms:new Set(),
-  commentDrafts:new Map(),attachment:null,previewMediaUrls:new Set(),
+  commentDrafts:new Map(),attachment:null,attachmentRequest:0,previewMediaUrls:new Set(),
   activeView:'chat',contacts:[],profiles:new Map(),
   muted:new Set(),unread:new Map(),lastRead:new Map(),
   soundEnabled:false,hasUnreadSnapshot:false,polling:false,pollTimer:null,
@@ -262,6 +262,20 @@ const mediaType=(file)=>{
     webp:'image/webp',pdf:'application/pdf'}[ext];
   return extension===t?t:null;
 };
+// Signature sniffing catches renamed/mislabelled attachments before preview/upload.
+ // This is a browser UX guard, NOT malware scanning or a substitute for server
+ // validation of actual bytes before files are distributed to other agents.
+async function mediaSignatureMatches(file,mime){
+  if(!file||file.size<=0)return false;
+  const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer());
+  const match=arr=>arr.every((value,index)=>bytes[index]===value);
+  if(mime==='image/png')return match([137,80,78,71,13,10,26,10]);
+  if(mime==='image/jpeg')return match([255,216,255]);
+  if(mime==='image/webp')return match([82,73,70,70]) &&
+    bytes.length>=12 && [87,69,66,80].every((value,index)=>bytes[index+8]===value);
+  if(mime==='application/pdf')return match([37,80,68,70,45]);
+  return false;
+}
 const mediaBytes=size=>size>=1024*1024?(size/1024/1024).toFixed(1)+' MB':
   Math.max(1,Math.ceil(size/1024))+' KB';
 function setMediaNotice(message,error=false){
@@ -269,6 +283,7 @@ function setMediaNotice(message,error=false){
   nodes.attachmentNotice.dataset.error=String(error);
 }
 function resetAttachment({keepUrl=false}={}){
+  state.attachmentRequest+=1;
   if(state.attachment?.url&&!keepUrl){
     URL.revokeObjectURL(state.attachment.url);
     state.previewMediaUrls.delete(state.attachment.url);
@@ -312,8 +327,10 @@ function renderAttachment(){
       'The file is ready. Publishing will securely upload it to your private group.':
       'Selected locally. Secure media storage is not enabled; do not publish this file yet.'));
 }
-function pickAttachment(file){
-  if(!file)return;
+async function pickAttachment(file){
+  if(!file||state.busy||!isActive(selected()))return;
+  const request=++state.attachmentRequest;
+  const groupId=state.selected;
   const type=mediaType(file);
   if(!type){
     nodes.postFile.value='';
@@ -325,6 +342,18 @@ function pickAttachment(file){
     nodes.postFile.value='';
     setMediaNotice('File size must be greater than 0 and no more than 15 MB.',true);
     status('This file is too large or empty. Maximum: 15 MB.',true);
+    return;
+  }
+  setMediaNotice('Checking the selected file…');
+  let valid=false;
+  try{valid=await mediaSignatureMatches(file,type);}
+  catch{valid=false;}
+  // A second selection, a group change, or Remove cancels stale validation.
+  if(request!==state.attachmentRequest||groupId!==state.selected)return;
+  if(!valid){
+    nodes.postFile.value='';
+    setMediaNotice('File contents do not match JPG, PNG, WebP or PDF format.',true);
+    status('The selected file does not match its extension. Choose another file.',true);
     return;
   }
   resetAttachment();
@@ -636,10 +665,20 @@ async function publishGroupPost(kind,body){
       throw Error('Choose a valid flyer or PDF before publishing.');
     // Collision-resistant object path. No user-supplied filename enters it.
     path=g.id+'/'+state.uid+'/'+crypto.randomUUID()+'.'+mediaExtension(attachment.mime);
+    // Re-check after async signature validation; the user may have chosen
+    // another file, and stale attachments must never be uploaded.
+    if(!await mediaSignatureMatches(attachment.file,attachment.mime))
+      throw Error('The selected file is invalid. Please choose another attachment.');
     const upload=await state.client.storage.from(GROUP_MEDIA_BUCKET)
       .upload(path,attachment.file,{upsert:false,
         cacheControl:'600',contentType:attachment.mime});
     if(upload.error)throw upload.error;
+    if(state.selected!==g.id || state.attachment!==attachment ||
+       !mediaFeatureEnabled() || !isActive(g)){
+      const cleanup=await state.client.storage.from(GROUP_MEDIA_BUCKET).remove([path]);
+      if(cleanup.error)status('Upload interrupted; file cleanup could not be confirmed.',true);
+      throw Error('Group or attachment changed while publishing. Please try again.');
+    }
     postData.media_path=path;
     postData.media_name=attachment.name;
     postData.media_mime=attachment.mime;
@@ -722,6 +761,7 @@ async function setMemberAdmin(g,m,makeAdmin){
   renderMembers(g);
 }
 async function selectGroup(id){
+  if(state.busy&&id!==state.selected)return;
   if(!state.groups.some(g=>g.id===id))return;
   if(state.selected!==id&&!state.preview)revokePrivatePostMedia();
   if(state.selected!==id&&state.attachment)resetAttachment();
@@ -1138,9 +1178,12 @@ function bindEvents(){
     nodes.postFile.click();
   });
   nodes.postFile.addEventListener('change',()=>{
-    pickAttachment(nodes.postFile.files?.[0]);
+    pickAttachment(nodes.postFile.files?.[0]).catch(()=>
+      status('Could not validate the selected file.',true));
   });
-  nodes.removeAttachment.addEventListener('click',()=>resetAttachment());
+  nodes.removeAttachment.addEventListener('click',()=>{
+    if(!state.busy)resetAttachment();
+  });
   window.addEventListener('pagehide',()=>{
     revokePrivatePostMedia();
     for(const url of state.previewMediaUrls)URL.revokeObjectURL(url);
