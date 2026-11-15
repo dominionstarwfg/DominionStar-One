@@ -486,6 +486,22 @@ try{
         buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAwAAAAVCAIAAAD9zpjjAAAAGUlEQVR4nGMUccxkIASYCKoYVTSqaGgrAgCBwQDoTpb6NQAAAABJRU5ErkJggg==','base64')});
       await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
       assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
+      await page.waitForTimeout(600);
+      const flyerDiagnostics=await page.evaluate(()=>{
+        const img=document.querySelector('#dsgAttachmentContent img');
+        const par=img?.parentElement;
+        const outer=par?.parentElement;
+        const r=img?.getBoundingClientRect();
+        const st=img?getComputedStyle(img):null;
+        return {imgExists:!!img,complete:img?.complete,naturalWidth:img?.naturalWidth,
+          naturalHeight:img?.naturalHeight,rect:r?{w:r.width,h:r.height,top:r.top}:null,
+          display:st?.display,visibility:st?.visibility,opacity:st?.opacity,
+          parent:par?.getBoundingClientRect().toJSON(),
+          outer:outer?.getBoundingClientRect().toJSON(),
+          media:document.querySelector('#dsgAttachmentInfo')?.textContent,
+          bodyScrollWidth:document.documentElement.scrollWidth};
+      });
+      process.stdout.write('FLYER_IMAGE_DIAGNOSTIC '+view.label+' '+JSON.stringify(flyerDiagnostics)+'\\n');
       await page.locator('#dsgAttachmentContent img').waitFor({state:'visible'});
       const flyerGeometry=await page.locator('#dsgAttachmentContent img').evaluate(img=>({
         naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,
