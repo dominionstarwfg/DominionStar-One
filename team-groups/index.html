@@ -39,7 +39,30 @@
           <div class="dsg-chat-heading"><strong id="dsgActiveName">Select a group</strong><small id="dsgActiveTopic">Create a private group or choose an existing one.</small><small id="dsgUpdateHint" class="dsg-update-hint">Conversations refresh while this page is open.</small></div>
           <button id="dsgMembersToggle" class="dsg-icon-button" type="button" aria-label="Show group members" aria-expanded="true" title="Group members">♟ <span id="dsgActiveMembersCount">0</span></button>
         </div>
-        <div id="dsgMessages" class="dsg-messages" role="log" aria-label="Group messages" aria-live="polite" aria-relevant="additions text"><div class="dsg-chat-empty"><span>✦</span><strong>Your team conversations belong here.</strong><p>Choose a group to see its conversation.</p></div></div>
+        <div id="dsgViewTabs" class="dsg-view-tabs" role="tablist" aria-label="Team group content">
+          <button type="button" id="dsgChatTab" role="tab" aria-controls="dsgMessages" aria-selected="true" tabindex="0"> <span aria-hidden="true">💬</span> Chat</button>
+          <button type="button" id="dsgPostsTab" role="tab" aria-controls="dsgPostsPanel" aria-selected="false" tabindex="-1"> <span aria-hidden="true">🏆</span> Posts & Milestones</button>
+        </div>
+        <div id="dsgMessages" class="dsg-messages" role="tabpanel" aria-labelledby="dsgChatTab" aria-label="Group messages" aria-live="polite" aria-relevant="additions text"><div class="dsg-chat-empty"><span>✦</span><strong>Your team conversations belong here.</strong><p>Choose a group to see its conversation.</p></div></div>
+        <section id="dsgPostsPanel" class="dsg-posts-panel" role="tabpanel" aria-labelledby="dsgPostsTab" hidden>
+          <form id="dsgPostForm" class="dsg-post-composer" aria-label="Create private group post">
+            <div class="dsg-post-composer-head"><strong>Share with your group</strong><small>Visible to accepted members only</small></div>
+            <div class="dsg-post-kind-options" role="group" aria-label="Post type">
+              <label for="dsgPostKind" class="dsg-screenreader">Post type</label>
+              <select id="dsgPostKind">
+                <option value="update">Team update</option>
+                <option value="milestone">🎉 Milestone or congratulations</option>
+                <option value="announcement">📣 Announcement</option>
+              </select>
+            </div>
+            <label class="dsg-screenreader" for="dsgPostBody">Your group post</label>
+            <textarea id="dsgPostBody" rows="4" maxlength="3000"
+              placeholder="Recognize a new license, promotion, team win, or share an encouraging update…" required disabled></textarea>
+            <div class="dsg-post-footer"><small id="dsgPostCount">0 / 3000</small><button id="dsgPostSubmit" class="dsg-button dsg-primary" type="submit" disabled>Publish to Group</button></div>
+          </form>
+          <div class="dsg-posts-heading"><strong>Group posts</strong><small>Recognition · Leadership · Training</small></div>
+          <div id="dsgPostList" class="dsg-post-list" aria-live="polite"></div>
+        </section>
         <form id="dsgMessageForm" class="dsg-message-form">
           <label class="dsg-screenreader" for="dsgMessageInput">Message your group</label>
           <textarea id="dsgMessageInput" rows="2" maxlength="2000" placeholder="Message your team…" required disabled></textarea>
@@ -49,7 +72,7 @@
       </section>
       <aside id="dsgMembersPanel" class="dsg-members-panel" aria-label="Group details">
         <div class="dsg-panel-head"><strong>Group details</strong><div class="dsg-detail-actions"><button type="button" id="dsgEditButton" class="dsg-subtle-button" disabled>Edit</button><button type="button" id="dsgMuteButton" class="dsg-subtle-button" disabled>Mute</button></div></div>
-        <div class="dsg-detail"><small>ACCESS</small><strong><span aria-hidden="true">● </span> Private · Invite only</strong><small>Invited agents cannot read messages until they join.</small></div>
+        <div class="dsg-detail"><small>ACCESS</small><strong><span aria-hidden="true">● </span> Private · Invite only</strong><small>Invited agents cannot read chat or group posts until they accept.</small></div>
         <div class="dsg-panel-head dsg-members-title"><strong>Members</strong><span id="dsgMembersCount">0</span></div>
         <div id="dsgMemberList" class="dsg-member-list"></div>
         <div class="dsg-member-actions"><button id="dsgInviteButton" type="button" class="dsg-button dsg-secondary" disabled>＋ Invite member</button><button id="dsgLeaveButton" type="button" class="dsg-subtle-button" disabled>Leave group</button></div>
