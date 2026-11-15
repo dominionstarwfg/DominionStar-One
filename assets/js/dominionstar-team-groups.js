@@ -245,6 +245,14 @@ function switchGroupView(view){
 }
 
 const MAX_GROUP_POST_MEDIA=15*1024*1024;
+const GROUP_MEDIA_BUCKET='agent-group-media';
+const mediaFeatureEnabled=()=>!state.preview &&
+  window.DOMINIONSTAR_AGENT_DATA_FEATURES?.teamGroupsMediaV1===true &&
+  window.DOMINIONSTAR_AGENT_DATA_FEATURES?.teamGroupsV1===true &&
+  window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+const mediaExtension=type=>({
+  'image/png':'png','image/jpeg':'jpeg','image/webp':'webp','application/pdf':'pdf'
+})[type]||null;
 const allowedGroupMediaTypes=new Set(['image/png','image/jpeg','image/webp','application/pdf']);
 const mediaType=(file)=>{
   const t=String(file?.type||'').toLowerCase();
@@ -272,7 +280,9 @@ function resetAttachment({keepUrl=false}={}){
   clear(nodes.attachmentContent);
   setMediaNotice(state.preview?
     'Local preview only. Your selected file is not uploaded or saved.':
-    'Media publishing requires secure storage integration. Text posts remain available.');
+    (mediaFeatureEnabled()?
+      'Private file posting is available only to approved members of this group.':
+      'Media publishing requires verified private storage. Text posts remain available.'));
 }
 function renderAttachment(){
   clear(nodes.attachmentContent);
@@ -298,7 +308,9 @@ function renderAttachment(){
   nodes.attachmentInfo.textContent=media.name+' · '+mediaBytes(media.size);
   setMediaNotice(state.preview?
     'Local preview only — this attachment stays in your current browser session.':
-    'Selected locally. Secure media storage is not enabled; do not publish this file yet.');
+    (mediaFeatureEnabled()?
+      'The file is ready. Publishing will securely upload it to your private group.':
+      'Selected locally. Secure media storage is not enabled; do not publish this file yet.'));
 }
 function pickAttachment(file){
   if(!file)return;
@@ -317,13 +329,63 @@ function pickAttachment(file){
   }
   resetAttachment();
   const url=URL.createObjectURL(file);
-  state.attachment={name:file.name.slice(0,140),size:file.size,mime:type,url};
+  state.attachment={name:file.name.slice(0,140),size:file.size,mime:type,url,
+    file};
   state.previewMediaUrls.add(url);
   renderAttachment();
 }
+async function loadPrivatePostMedia(media){
+  const g=selected();
+  if(!g||!isActive(g)||!mediaFeatureEnabled()||!media?.path||
+     !media.path.startsWith(g.id+'/'+state.uid+'/')&&
+      !media.path.startsWith(g.id+'/')) {
+    throw Error('This private file is not available.');
+  }
+  const groupId=g.id;
+  const result=await state.client.storage.from(GROUP_MEDIA_BUCKET).download(media.path);
+  if(result.error)throw result.error;
+  if(!result.data||state.selected!==groupId||!isActive(g))
+    throw Error('Group membership or selection changed. Open the group again.');
+  const url=URL.createObjectURL(result.data);
+  state.previewMediaUrls.add(url);
+  media.url=url;
+  renderPosts(g);
+}
+function revokePrivatePostMedia(){
+  if(state.preview)return;
+  for(const posts of state.posts.values())for(const post of posts){
+    const media=post.attachment;
+    if(media?.path&&media.url){
+      URL.revokeObjectURL(media.url);
+      state.previewMediaUrls.delete(media.url);
+      media.url=null;
+    }
+  }
+}
 function renderPostedMedia(media){
-  if(!state.preview||!media?.url||!state.previewMediaUrls.has(media.url))return null;
+  if(!media)return null;
+  if(!state.preview&&!mediaFeatureEnabled())return null;
+  if(media.url&&!state.previewMediaUrls.has(media.url))return null;
   const wrapper=el('div','dsg-post-media');
+  if(!media.url){
+    if(!media.path||state.preview)return null;
+    const loading=el('button','dsg-remote-media-button',
+      media.mime==='application/pdf'?'📄 Download PDF':'🖼 View flyer / photo');
+    loading.type='button';
+    const description=el('small','dsg-remote-media-description',
+      (media.name||'Group attachment')+' · '+mediaBytes(media.size));
+    loading.addEventListener('click',async()=>{
+      if(state.busy)return;
+      state.busy=true;
+      loading.disabled=true;
+      loading.textContent='Loading private file…';
+      try{await loadPrivatePostMedia(media);}
+      catch(err){status('Private attachment unavailable. Verify membership and try again.',true);}
+      finally{state.busy=false;loading.disabled=false;}
+    });
+    wrapper.append(loading,description);
+    return wrapper;
+  }
   if(media.mime.startsWith('image/')){
     const img=el('img','dsg-post-media-image');
     img.alt=media.name||'Attached group flyer';
@@ -335,8 +397,16 @@ function renderPostedMedia(media){
     pdf.append(el('span','dsg-pdf-icon','PDF'));
     const copy=el('span','dsg-pdf-details');
     copy.append(el('strong',null,media.name),
-      el('small',null,mediaBytes(media.size)+' · Sample file (not uploaded)'));
+      el('small',null,mediaBytes(media.size)+
+        (state.preview?' · Sample file (not uploaded)':' · Private group PDF')));
     pdf.append(copy);
+    if(!state.preview){
+      const link=el('a','dsg-private-file-download','Download PDF');
+      link.href=media.url;
+      link.download=media.name||'group-document.pdf';
+      link.rel='noopener noreferrer';
+      pdf.append(link);
+    }
     wrapper.append(pdf);
   }
   return wrapper;
@@ -490,11 +560,21 @@ async function loadPosts(id){
   if(state.preview)return;
   const g=state.groups.find(item=>item.id===id);
   if(!g||!isActive(g))return;
+  const columns=mediaFeatureEnabled()?
+    'id,group_id,author_id,kind,body,created_at,media_path,media_name,media_mime,media_size_bytes':
+    'id,group_id,author_id,kind,body,created_at';
   const result=await state.client.from('agent_group_posts')
-    .select('id,group_id,author_id,kind,body,created_at')
-    .eq('group_id',id).order('created_at',{ascending:false}).limit(80);
+    .select(columns).eq('group_id',id)
+    .order('created_at',{ascending:false}).limit(80);
   if(result.error)throw result.error;
-  const posts=result.data||[];
+  const posts=(result.data||[]).map(post=>{
+    const previous=(state.posts.get(id)||[]).find(p=>p.id===post.id);
+    return {...post,attachment:post.media_path?{
+      path:post.media_path,name:post.media_name,mime:post.media_mime,
+      size:post.media_size_bytes,
+      url:previous?.attachment?.path===post.media_path?previous.attachment.url:null
+    }:null};
+  });
   const map=new Map();
   if(posts.length){
     const reactionResult=await state.client.from('agent_group_post_reactions')
@@ -534,9 +614,9 @@ async function publishGroupPost(kind,body){
   const attachment=state.attachment;
   if(!['update','milestone','announcement'].includes(kind)||
     (!body.trim()&&!attachment)||body.trim().length>3000)throw Error('Invalid post.');
-  // Never silently discard an uploaded-looking file in authenticated mode.
-  // The real private storage bucket, RLS and post-media schema are NOT ready.
-  if(attachment&&!state.preview)
+  // Feature flag is never an authorization boundary: Storage and Postgres
+  // independently check group approval, membership, prefix and uploader.
+  if(attachment&&!state.preview&&!mediaFeatureEnabled())
     throw Error('Flyer uploads are not yet enabled for real groups. Remove the file to publish a text post.');
   if(state.preview){
     const id='sample-post-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
@@ -550,10 +630,33 @@ async function publishGroupPost(kind,body){
     renderPosts(g);
     return;
   }
+  let path=null;
+  const postData={group_id:g.id,author_id:state.uid,kind,body};
+  if(attachment){
+    if(!attachment.file||!mediaExtension(attachment.mime))
+      throw Error('Choose a valid flyer or PDF before publishing.');
+    // Collision-resistant object path. No user-supplied filename enters it.
+    path=g.id+'/'+state.uid+'/'+crypto.randomUUID()+'.'+mediaExtension(attachment.mime);
+    const upload=await state.client.storage.from(GROUP_MEDIA_BUCKET)
+      .upload(path,attachment.file,{upsert:false,
+        cacheControl:'600',contentType:attachment.mime});
+    if(upload.error)throw upload.error;
+    postData.media_path=path;
+    postData.media_name=attachment.name;
+    postData.media_mime=attachment.mime;
+    postData.media_size_bytes=attachment.size;
+  }
   const result=await state.client.from('agent_group_posts')
-    .insert({group_id:g.id,author_id:state.uid,kind,body})
-    .select('id').single();
-  if(result.error)throw result.error;
+    .insert(postData).select('id').single();
+  if(result.error){
+    if(path){
+      // Only an unpublished upload owned by the user can be removed by RLS.
+      const rollback=await state.client.storage.from(GROUP_MEDIA_BUCKET).remove([path]);
+      if(rollback.error)status('Post failed; file cleanup could not be confirmed.',true);
+    }
+    throw result.error;
+  }
+  if(attachment)resetAttachment();
   await loadPosts(g.id);
 }
 async function sendPostComment(post,body){
@@ -621,6 +724,7 @@ async function setMemberAdmin(g,m,makeAdmin){
 }
 async function selectGroup(id){
   if(!state.groups.some(g=>g.id===id))return;
+  if(state.selected!==id&&!state.preview)revokePrivatePostMedia();
   if(state.selected!==id&&state.attachment)resetAttachment();
   state.selected=id;const g=selected();
   nodes.name.textContent=g.name;
@@ -1039,6 +1143,7 @@ function bindEvents(){
   });
   nodes.removeAttachment.addEventListener('click',()=>resetAttachment());
   window.addEventListener('pagehide',()=>{
+    revokePrivatePostMedia();
     for(const url of state.previewMediaUrls)URL.revokeObjectURL(url);
     state.previewMediaUrls.clear();
   },{once:true});
@@ -1241,7 +1346,9 @@ async function authenticated(){
   state.client=client;state.uid=session.user.id;
   state.profiles.set(state.uid,{full_name:res.data.full_name||'You',rank:res.data.rank});
   nodes.mode.textContent='Private · Approved members only · Invitations require acceptance';
-  setMediaNotice('Flyer preview is available, but real file posting requires secure storage and is not yet enabled.');
+  setMediaNotice(mediaFeatureEnabled()?
+    'Private file uploads are enabled for approved group members.':
+    'Flyer preview is available, but real file posting requires secure storage and is not yet enabled.');
   show();bindEvents();
   try{
     await loadGroups();
