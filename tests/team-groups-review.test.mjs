@@ -400,6 +400,7 @@ test('A media post cannot become downloadable until a trusted scanner approves i
     'Fresh unscanned group file was immediately downloadable',
     'Unscanned group file metadata was accessible',
     'Browser member could self-approve uploaded file',
+    'Browser member inserted a pre-approved media post',
     'Scanner-approved group file was not readable',
     'Rejected group file remained downloadable',
     'Group files were enumerable via Storage list'
