@@ -483,7 +483,7 @@ try{
       const filePicker=await flyerChooser;
       await filePicker.setFiles({name:'team-training-flyer.png',
         mimeType:'image/png',
-        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAADSCAIAAAAOgZMNAAABdklEQVR42u3cvQ1AQBiAYeRKrYlEZw6N3hBGMIfOWjeACcTPReLneVs0T75818jlVd1nur8CAWjQAg0atEB/qbD1YO4inWu1U2mirQ7QundH7y4dnTrSTLTVAVqgQYNGABq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNAC/ZVCysfL8Lsf1JsxmmirQ6BBgxZo0AINGrRAgxZo0KAFGjRoBKBBCzRo0AINWqBBgxZo0AINGrRAgxZo0KAFGrRAgwYt0KAFGjRogQYt0KBBCzRonSjp3rvLl8CZaIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgQQs0aIEGDVqgQQs0aNAC/abCkZfmLpIy0aAF+kE7up1KOiYatECDBi3Qr2sFuBEQNt3a4FMAAAAASUVORK5CYII=','base64')});
+        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAwAAAAVCAIAAAD9zpjjAAAAGUlEQVR4nGMUccxkIASYCKoYVTSqaGgrAgCBwQDoTpb6NQAAAABJRU5ErkJggg==','base64')});
       await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
       assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
       await page.locator('#dsgAttachmentContent img').waitFor({state:'visible'});
@@ -494,17 +494,17 @@ try{
         fit:getComputedStyle(img).objectFit,
         maxHeight:getComputedStyle(img).maxHeight
       }));
-      assert.equal(flyerGeometry.naturalWidth,120);
-      assert.equal(flyerGeometry.naturalHeight,210);
+      assert.equal(flyerGeometry.naturalWidth,12);
+      assert.equal(flyerGeometry.naturalHeight,21);
       assert.equal(flyerGeometry.fit,'contain');
       assert.equal(flyerGeometry.maxHeight,'none');
-      assert.ok(Math.abs(flyerGeometry.width/flyerGeometry.height-(120/210))<0.02,
+      assert.ok(Math.abs(flyerGeometry.width/flyerGeometry.height-(12/21))<0.02,
         view.label+' distorted or cropped the flyer aspect ratio');
       await page.locator('#dsgRemoveAttachment').click();
       assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),false);
       await page.locator('#dsgPostFile').setInputFiles({
         name:'team-training-flyer.png',mimeType:'image/png',
-        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAADSCAIAAAAOgZMNAAABdklEQVR42u3cvQ1AQBiAYeRKrYlEZw6N3hBGMIfOWjeACcTPReLneVs0T75818jlVd1nur8CAWjQAg0atEB/qbD1YO4inWu1U2mirQ7QundH7y4dnTrSTLTVAVqgQYNGABq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNAC/ZVCysfL8Lsf1JsxmmirQ6BBgxZo0AINGrRAgxZo0KAFGjRoBKBBCzRo0AINWqBBgxZo0AINGrRAgxZo0KAFGrRAgwYt0KAFGjRogQYt0KBBCzRonSjp3rvLl8CZaIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgQQs0aIEGDVqgQQs0aNAC/abCkZfmLpIy0aAF+kE7up1KOiYatECDBi3Qr2sFuBEQNt3a4FMAAAAASUVORK5CYII=','base64')
+        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAwAAAAVCAIAAAD9zpjjAAAAGUlEQVR4nGMUccxkIASYCKoYVTSqaGgrAgCBwQDoTpb6NQAAAABJRU5ErkJggg==','base64')
       });
       assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
       assert.match(await page.locator('#dsgAttachmentInfo').innerText(),/team-training-flyer.png/);
