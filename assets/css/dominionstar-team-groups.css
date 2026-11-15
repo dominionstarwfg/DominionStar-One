@@ -278,3 +278,81 @@ body.ds-visual-review .dsg-dialog form{
  .dsg-post-footer .dsg-button{flex:0 1 auto}
  .dsg-member-item .dsg-member-admin{white-space:normal}
 }
+
+/* Private recognition-post replies — natural height, not message-card columns.
+   A reply belongs to its parent post; author and text remain visible together. */
+.dsg-post-comments{
+  display:block!important;width:100%!important;height:auto!important;
+  min-width:0!important;max-height:none!important;
+  padding:13px 0 0!important;margin:13px 0 0!important;
+  border-top:1px solid rgba(139,179,222,.22);
+}
+.dsg-post-comment-head{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap;margin:0 0 13px;
+}
+.dsg-post-comment-count{color:#afc7df;font:680 11px/1.4 system-ui,sans-serif}
+.dsg-post-comment-toggle,.dsg-post-comment-more{
+  appearance:none;display:inline-flex;align-items:center;
+  min-height:34px;padding:7px 10px;cursor:pointer;
+  border:1px solid rgba(138,185,227,.3);
+  border-radius:9px;background:rgba(22,68,110,.37);
+  color:#d6eaff;font:780 11px/1.4 system-ui,sans-serif;
+}
+.dsg-post-comment-toggle:hover,.dsg-post-comment-more:hover{
+  background:rgba(31,91,149,.5);color:#fff;
+}
+.dsg-post-comment-toggle:focus-visible,.dsg-post-comment-more:focus-visible{
+  outline:2px solid #98c9ff;outline-offset:2px;
+}
+.dsg-post-comment-thread{display:grid;gap:12px;margin:0 0 10px}
+.dsg-post-comment-row{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.dsg-post-comment-row>.dsg-member-badge{flex:0 0 32px;width:32px;height:32px}
+.dsg-post-comment-bubble{
+  display:block!important;min-width:0!important;
+  max-width:min(100% - 42px,700px)!important;
+  height:auto!important;max-height:none!important;
+  border-radius:14px;padding:10px 13px;
+  background:rgba(9,33,60,.86);
+  border:1px solid rgba(143,180,218,.22);
+}
+.dsg-post-comment-meta{display:flex;gap:9px;align-items:baseline;
+  flex-wrap:wrap;line-height:1.4}
+.dsg-post-comment-meta strong{color:#f5faff;font-size:11.5px;font-weight:820}
+.dsg-post-comment-meta small{color:#adc6df;font-size:10px}
+.dsg-post-comment-text{
+  display:block!important;margin:6px 0 0!important;padding:0!important;
+  color:#e7f1fb!important;
+  height:auto!important;max-height:none!important;
+  white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+  font:450 12.5px/1.65 system-ui,sans-serif!important;
+}
+.dsg-post-comment-text a{color:#95ceff;text-decoration:underline;
+  overflow-wrap:anywhere}
+.dsg-post-no-replies{margin:4px 0 12px!important;color:#9ebad6;
+  font-size:11.5px;line-height:1.6}
+.dsg-post-comment-more{background:transparent;border-color:transparent;
+  padding:7px 5px;margin:0 0 4px}
+.dsg-post-reply-form{
+  display:flex;align-items:flex-end;flex-wrap:wrap;
+  gap:9px;min-width:0;margin:12px 0 0;padding:13px;
+  border:1px solid rgba(132,176,213,.26);border-radius:13px;
+  background:rgba(8,31,55,.52);
+}
+.dsg-post-reply-form[hidden]{display:none!important}
+.dsg-post-reply-input{
+  flex:1 1 250px;box-sizing:border-box;min-width:0;
+  min-height:61px;max-height:240px;
+  resize:vertical;border:1px solid rgba(132,183,230,.4);
+  border-radius:10px;padding:10px 12px;
+  background:#071e37;color:#eff8ff;
+  font:450 12.5px/1.65 system-ui,sans-serif;
+}
+.dsg-post-reply-input::placeholder{color:#9eb5ce}
+.dsg-post-reply-form .dsg-button{flex:0 0 auto;min-height:40px}
+@media(max-width:650px){
+ .dsg-post-comment-bubble{padding:10px 11px}
+ .dsg-post-comment-row{gap:7px}
+ .dsg-post-reply-form{padding:10px}
+ .dsg-post-reply-form .dsg-button{width:100%}
+}
