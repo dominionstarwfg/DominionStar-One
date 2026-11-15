@@ -330,7 +330,8 @@ function renderAttachment(){
       'Selected locally. Secure media storage is not enabled; do not publish this file yet.'));
 }
 async function pickAttachment(file){
-  if(!file||state.busy||!isActive(selected()))return;
+  const currentGroup=selected();
+  if(!file||state.busy||!currentGroup||!isActive(currentGroup))return;
   const request=++state.attachmentRequest;
   const groupId=state.selected;
   const type=mediaType(file);
