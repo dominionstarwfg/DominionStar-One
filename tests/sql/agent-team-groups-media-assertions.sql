@@ -28,9 +28,13 @@ begin
       where media_path=current_setting('test.media_path'))<>1 then
     raise exception 'An authorized member could not create a file-only post';
   end if;
-  if (select count(*) from storage.objects where bucket_id='agent-group-media')<>1 then
-    raise exception 'Owner cannot download their own private group file';
+  if (select count(*) from storage.objects where bucket_id='agent-group-media')<>0 then
+    raise exception 'Fresh unscanned group file was immediately downloadable';
   end if;
+  if not public.synthetic_assert_denied(
+    format($q$update public.agent_group_posts set media_review_status='approved'
+      where media_path=%L$q$,current_setting('test.media_path'))
+  ) then raise exception 'Browser member could self-approve uploaded file';end if;
   if not public.synthetic_assert_denied(
     format($q$insert into public.agent_group_posts(
       group_id,author_id,kind,body,media_path,media_name,media_mime,media_size_bytes)
@@ -56,6 +60,27 @@ begin
 end
 $$;
 
+-- Even its uploader cannot read object metadata before server approval.
+select set_config('request.storage.operation','object.get_authenticated_info',false);
+do $$
+begin
+  if (select count(*) from storage.objects where bucket_id='agent-group-media')<>0
+    then raise exception 'Unscanned group file metadata was accessible';end if;
+end
+$$;
+-- Emulate a separate trusted scanner AFTER verification of the file bytes.
+-- A browser has no permission to change media_review_status.
+reset role;
+update public.agent_group_posts set media_review_status='approved'
+  where media_path=:'media_path';
+set role authenticated;
+select set_config('request.storage.operation','object.get_authenticated',false);
+do $$
+begin
+  if (select count(*) from storage.objects where bucket_id='agent-group-media')<>1
+    then raise exception 'Scanner-approved group file was not readable';end if;
+end
+$$;
 -- Authenticated object-info reads are also scoped; LIST is denied.
 select set_config('request.storage.operation','object.get_authenticated_info',false);
 do $$
@@ -156,6 +181,20 @@ begin
 end
 $$;
 
+-- Rejection by trusted scanner immediately revokes subsequent downloads.
+reset role;
+update public.agent_group_posts set media_review_status='rejected'
+  where media_path=:'media_path';
+set role authenticated;
+select set_config('request.jwt.claim.sub',
+  '11111111-1111-4111-8111-111111111111',false);
+select set_config('request.storage.operation','object.get_authenticated',false);
+do $$
+begin
+  if (select count(*) from storage.objects where name=current_setting('test.media_path'))<>0
+    then raise exception 'Rejected group file remained downloadable';end if;
+end
+$$;
 -- Anonymous user lacks access even with a guessed exact object path.
 reset role;
 set role anon;
