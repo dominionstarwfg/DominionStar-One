@@ -698,7 +698,13 @@ async function publishGroupPost(kind,body){
     throw result.error;
   }
   if(attachment)resetAttachment();
-  await loadPosts(g.id);
+  // The INSERT has succeeded. A transient refresh error MUST NOT be reported
+  // as "post failed" or the user may duplicate a real, already-saved post.
+  try{await loadPosts(g.id);}
+  catch{
+    return {saved:true,refreshPending:true};
+  }
+  return {saved:true,refreshPending:false};
 }
 async function sendPostComment(post,body){
   const g=selected();
@@ -1201,13 +1207,23 @@ function bindEvents(){
     if((!body&&!state.attachment)||body.length>3000)return;
     state.busy=true;
     nodes.postSubmit.disabled=true;
+    const buttonLabel=nodes.postSubmit.textContent;
+    nodes.postSubmit.textContent=state.preview?'Publishing sample…':
+      (state.attachment?'Uploading private file…':'Publishing…');
     try{
-      await publishGroupPost(nodes.postKind.value,body);
+      const outcome=await publishGroupPost(nodes.postKind.value,body);
       nodes.postBody.value='';
       nodes.postCount.textContent='0 / 3000';
-      status(state.preview?'Example post shared in this browser only.':'Posted privately to your group.');
+      status(state.preview?'Example post shared in this browser only.':
+        outcome?.refreshPending?
+          'Your post was saved privately, but the feed did not refresh. Use Refresh to see it.':
+          'Posted privately to your group.',Boolean(outcome?.refreshPending));
     }catch(err){status(err?.message||'Unable to publish group post.',true);}
-    finally{state.busy=false;nodes.postSubmit.disabled=!selected()||!isActive(selected());}
+    finally{
+      state.busy=false;
+      nodes.postSubmit.textContent=buttonLabel;
+      nodes.postSubmit.disabled=!selected()||!isActive(selected());
+    }
   });
   nodes.edit.addEventListener('click',()=>{
     const g=selected();
