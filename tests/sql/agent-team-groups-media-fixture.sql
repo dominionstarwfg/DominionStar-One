@@ -27,3 +27,11 @@ as $$
   select coalesce(current_setting('request.storage.operation',true)=any(ops),false);
 $$;
 grant execute on function storage.allow_any_operation(text[]) to authenticated;
+-- Match the Storage operation-aware helper used by the quarantine rollback
+-- policy; exact comparison prevents listing/download access under delete.
+create function storage.allow_only_operation(op text)
+returns boolean language sql stable set search_path=''
+as $$
+  select coalesce(current_setting('request.storage.operation',true)=op,false);
+$$;
+grant execute on function storage.allow_only_operation(text) to authenticated;
