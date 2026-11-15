@@ -328,10 +328,10 @@ test('Real group media stays feature-flagged and private until migration passes'
   assert.match(code,/flags.teamGroupsV1!==true\|\|flags.publicMemberProfilesV2!==true/);
   assert.match(code,/if\(attachment&&!state.preview&&!mediaFeatureEnabled\(\)\)/);
   assert.match(code,/crypto.randomUUID\(\)/);
-  assert.match(code,/\\.upload\(path,attachment.file,\{upsert:false/);
+  assert.match(code,/\.upload\(path,attachment.file,\{upsert:false/);
   assert.match(code,/if\(rollback.error\)status\(/);
   assert.match(code,/function revokePrivatePostMedia/);
-  assert.match(code,/\\.download\(media.path\)/);
+  assert.match(code,/\.download\(media.path\)/);
   for(const phrase of ['Uninvited member accessed a private group file',
     'Revoked agent downloaded a private group file',
     'Unapproved agent downloaded a private group file',
