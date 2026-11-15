@@ -470,9 +470,10 @@ try{
       assert.equal(initial,'DominionStar Leadership');
       // Owner alone can appoint an admin and revoke the appointment.
       const member=page.locator('#dsgMemberList .dsg-member-item').filter({hasText:'Alex Morgan'});
+      page.once('dialog',dialog=>dialog.accept());
       await member.locator('.dsg-member-admin').filter({hasText:'Make admin'}).click();
-      assert.match(await member.innerText(),/Make admin|Member/);
       assert.match(await member.innerText(),/Admin/);
+      page.once('dialog',dialog=>dialog.accept());
       await member.locator('.dsg-member-admin').filter({hasText:'Remove admin'}).click();
       assert.match(await member.innerText(),/Member/);
 
