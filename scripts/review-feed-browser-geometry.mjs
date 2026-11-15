@@ -488,6 +488,32 @@ try{
       await samplePost.locator('.dsg-post-react').filter({hasText:'Celebrate'}).click();
       assert.match(await samplePost.locator('.dsg-post-reaction-counts').innerText(),
         /2 celebrations/);
+      // A recognition post keeps its discussion under the same card.
+      assert.match(await samplePost.innerText(),/3 replies/);
+      assert.equal(await samplePost.locator('.dsg-post-comment-row').count(),2);
+      await samplePost.locator('.dsg-post-comment-more').click();
+      assert.equal(await samplePost.locator('.dsg-post-comment-row').count(),3);
+      await samplePost.locator('.dsg-post-comment-toggle').click();
+      await samplePost.locator('.dsg-post-reply-input').fill(
+        'Congratulations on your license! Proud of this team. #Leadership');
+      await samplePost.locator('.dsg-post-reply-form button[type="submit"]').click();
+      assert.match(await samplePost.innerText(),/4 replies/);
+      assert.match(await samplePost.innerText(),/Proud of this team/);
+      assert.equal(await samplePost.locator('.dsg-post-comment-row').count(),4);
+      const replyLayout=await samplePost.evaluate(card=>{
+        const reply=card.querySelector('.dsg-post-comment-text');
+        const box=reply.getBoundingClientRect();
+        return {display:getComputedStyle(reply).display,
+          whiteSpace:getComputedStyle(reply).whiteSpace,
+          width:box.width,scrollWidth:reply.scrollWidth,
+          commentCount:card.querySelectorAll('.dsg-post-comment-row').length};
+      });
+      assert.equal(replyLayout.display,'block');
+      assert.equal(replyLayout.whiteSpace,'pre-wrap');
+      assert.ok(replyLayout.width>80);
+      assert.ok(replyLayout.scrollWidth<=replyLayout.width+3,
+        view.label+' recognition replies overflow horizontally');
+
       await page.locator('#dsgPostKind').selectOption('milestone');
       await page.locator('#dsgPostBody').fill(
         'Congratulations to our newly licensed teammate! Great progress and consistent effort. #DominionStar');
@@ -537,6 +563,9 @@ try{
         /Accept the private group invitation/);
       assert.doesNotMatch(await page.locator('#dsgPostList').innerText(),
         /Private mentorship milestone/);
+      assert.equal(await page.locator('#dsgPostList .dsg-post-comment-row').count(),0,
+        view.label+' pending invited member saw private replies');
+
       await page.locator('#dsgChatTab').click();
       assert.match(await page.locator('#dsgMessages').innerText(),/invited to this private group/);
       assert.ok(!(await page.locator('#dsgMessages').innerText()).includes('Welcome to our regional mentorship'));
