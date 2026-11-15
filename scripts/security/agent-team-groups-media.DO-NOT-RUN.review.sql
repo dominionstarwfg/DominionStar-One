@@ -103,7 +103,10 @@ create policy ds_agent_group_media_read_authenticated
   using(
     bucket_id='agent-group-media'
     and storage.allow_any_operation(
-      array['object.get_authenticated','object.delete'])
+      -- Supabase Storage docs distinguish authenticated GET/info from LIST.
+      -- DELETE stays selectable only to support the original uploader's
+      -- separately RLS-gated rollback of an unpublished object.
+      array['object.get_authenticated','object.get_authenticated_info','object.delete'])
     and agent_private.media_path_authorized(name,false));
 create policy ds_agent_group_media_upload_member
   on storage.objects for insert to authenticated
