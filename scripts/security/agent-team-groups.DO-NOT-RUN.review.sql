@@ -64,6 +64,18 @@ create table public.agent_group_post_reactions(
   created_at timestamptz not null default now(),
   primary key(post_id,user_id)
 );
+-- Group-post replies belong to a post, not a public or cross-team thread.
+-- No exposed client may assign somebody else's identity.
+create table public.agent_group_post_comments(
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.agent_group_posts(id) on delete cascade,
+  author_id uuid not null references auth.users(id),
+  body text not null check(length(btrim(body)) between 1 and 1200),
+  created_at timestamptz not null default now()
+);
+create index agent_group_post_comments_timeline_idx
+  on public.agent_group_post_comments(post_id,created_at desc,id);
+
 create index agent_group_posts_timeline_idx
   on public.agent_group_posts(group_id,created_at desc,id);
 create index agent_group_post_reactions_post_idx
@@ -78,6 +90,7 @@ alter table public.agent_group_members enable row level security;
 alter table public.agent_group_messages enable row level security;
 alter table public.agent_group_posts enable row level security;
 alter table public.agent_group_post_reactions enable row level security;
+alter table public.agent_group_post_comments enable row level security;
 
 -- SECURITY DEFINER used only for membership authorization lookups that would
 -- otherwise recurse through RLS on agent_group_members. Private schema is
@@ -250,6 +263,19 @@ create policy agent_group_post_reactions_delete_own
     select 1 from public.agent_group_posts post
     where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
 
+-- Replies are visible only where the parent group post is readable.
+-- Approved ACTIVE members may comment as themselves; mere invitation, account
+-- revocation, or possession of a post UUID never authorizes comment access.
+create policy agent_group_post_comments_read_active
+  on public.agent_group_post_comments for select to authenticated
+  using(exists(select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+create policy agent_group_post_comments_insert_active
+  on public.agent_group_post_comments for insert to authenticated
+  with check(author_id=(select auth.uid()) and exists(
+    select 1 from public.agent_group_posts post
+      where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+
 -- One atomic, authenticated operation to create group + owner membership.
 -- The public function is an intentional RPC with a narrow EXECUTE grant.
 create function public.create_agent_group(p_name text,p_topic text default '')
@@ -316,7 +342,8 @@ grant execute on function public.set_agent_group_admin(uuid,uuid,boolean)
   to authenticated;
 
 revoke all on public.agent_groups,public.agent_group_members,public.agent_group_messages,
-  public.agent_group_posts,public.agent_group_post_reactions from public, anon;
+  public.agent_group_posts,public.agent_group_post_reactions,
+  public.agent_group_post_comments from public, anon;
 grant select on public.agent_groups to authenticated;
 grant update(name,topic) on public.agent_groups to authenticated;
 grant select,insert,update(muted,status),delete on public.agent_group_members to authenticated;
@@ -324,6 +351,10 @@ grant select,insert(group_id,author_id,body) on public.agent_group_messages to a
 grant select,insert(group_id,author_id,kind,body) on public.agent_group_posts to authenticated;
 grant select,insert(post_id,user_id,reaction),update(reaction),delete
   on public.agent_group_post_reactions to authenticated;
+grant select,insert(post_id,author_id,body)
+  on public.agent_group_post_comments to authenticated;
+-- No edit/delete of other members' replies; moderation is separate from
+-- roster permissions and requires a separately reviewed workflow.
 -- Non-content, self-scoped unread summary. SECURITY INVOKER uses existing
 -- member and message RLS: never exposes another group's message text or author.
 -- Counts exclude the reader's own messages and messages before membership acceptance.
