@@ -35,6 +35,8 @@ const nodes={
 };
 const state={preview:false,client:null,uid:null,groups:[],selected:null,
   memberships:new Map(),messages:new Map(),posts:new Map(),postReactions:new Map(),
+  postComments:new Map(),expandedPostComments:new Set(),openCommentForms:new Set(),
+  commentDrafts:new Map(),
   activeView:'chat',contacts:[],profiles:new Map(),
   muted:new Set(),unread:new Map(),lastRead:new Map(),
   soundEnabled:false,hasUnreadSnapshot:false,polling:false,pollTimer:null,
@@ -286,6 +288,91 @@ function renderPosts(g){
       footer.append(button);
     }
     card.append(label,head,copy,footer);
+    const section=el('section','dsg-post-comments');
+    section.setAttribute('aria-label','Replies to '+groupPostTitle(post.kind));
+    const comments=state.postComments.get(post.id)||[];
+    const count=el('span','dsg-post-comment-count',
+      comments.length+' '+(comments.length===1?'reply':'replies'));
+    const action=el('button','dsg-post-comment-toggle','💬 Comment');
+    action.type='button';
+    action.setAttribute('aria-expanded',String(state.openCommentForms.has(post.id)));
+    action.addEventListener('click',()=>{
+      if(state.openCommentForms.has(post.id))state.openCommentForms.delete(post.id);
+      else state.openCommentForms.add(post.id);
+      renderPosts(g);
+      if(state.openCommentForms.has(post.id))
+        nodes.postList.querySelector('[data-post-reply-id="'+post.id+'"] textarea')?.focus();
+    });
+    const heading=el('div','dsg-post-comment-head');
+    heading.append(count,action);
+    section.append(heading);
+    if(comments.length){
+      const visible=state.expandedPostComments.has(post.id)?comments:comments.slice(-2);
+      const thread=el('div','dsg-post-comment-thread');
+      for(const comment of visible){
+        const row=el('div','dsg-post-comment-row');
+        row.append(el('span','dsg-member-badge',glyph(displayName(comment.author_id))));
+        const bubble=el('div','dsg-post-comment-bubble');
+        const meta=el('div','dsg-post-comment-meta');
+        meta.append(el('strong',null,comment.author_id===state.uid?
+          'You':displayName(comment.author_id)),
+          el('small',null,relativeTime(comment.created_at)));
+        const text=el('p','dsg-post-comment-text');
+        safeLinkify(text,comment.body);
+        bubble.append(meta,text);
+        row.append(bubble);
+        thread.append(row);
+      }
+      section.append(thread);
+      if(comments.length>2){
+        const more=state.expandedPostComments.has(post.id);
+        const toggle=el('button','dsg-post-comment-more',
+          more?'Show fewer replies':'View more replies');
+        toggle.type='button';
+        toggle.setAttribute('aria-expanded',String(more));
+        toggle.addEventListener('click',()=>{
+          if(more)state.expandedPostComments.delete(post.id);
+          else state.expandedPostComments.add(post.id);
+          renderPosts(g);
+        });
+        section.append(toggle);
+      }
+    }else section.append(el('p','dsg-post-no-replies',
+      'No replies yet. Congratulate your teammate or share your thoughts.'));
+    const reply=el('form','dsg-post-reply-form');
+    reply.dataset.postReplyId=post.id;
+    reply.hidden=!state.openCommentForms.has(post.id);
+    const replyLabel=el('label','dsg-screenreader','Write a reply');
+    const input=el('textarea','dsg-post-reply-input');
+    input.maxLength=1200;
+    input.required=true;
+    input.rows=2;
+    input.placeholder='Write a reply to this team post…';
+    input.value=state.commentDrafts.get(post.id)||'';
+    const inputId='dsg-reply-'+post.id;
+    input.id=inputId;
+    replyLabel.htmlFor=inputId;
+    input.addEventListener('input',()=>state.commentDrafts.set(post.id,input.value));
+    const submit=el('button','dsg-button dsg-primary','Post reply');
+    submit.type='submit';
+    reply.addEventListener('submit',async event=>{
+      event.preventDefault();
+      if(state.busy)return;
+      const text=input.value.trim();
+      if(!text||text.length>1200)return;
+      state.busy=true;submit.disabled=true;
+      try{
+        await sendPostComment(post,text);
+        state.commentDrafts.delete(post.id);
+        state.openCommentForms.add(post.id);
+        renderPosts(g);
+        status(state.preview?'Sample reply added in this browser only.':'Reply posted privately.');
+      }catch(err){status(err?.message||'Could not post this reply.',true);}
+      finally{state.busy=false;submit.disabled=false;}
+    });
+    reply.append(replyLabel,input,submit);
+    section.append(reply);
+    card.append(section);
     nodes.postList.append(card);
   }
 }
@@ -308,8 +395,27 @@ async function loadPosts(id){
       map.get(reaction.post_id).push(reaction);
     }
   }
+  const commentMap=new Map();
+  if(posts.length){
+    // Fetch only the newest 1,000 replies across this page of group posts.
+    // No public thread data: RLS checks membership on each parent post.
+    const commentResult=await state.client.from('agent_group_post_comments')
+      .select('id,post_id,author_id,body,created_at')
+      .in('post_id',posts.map(p=>p.id))
+      .order('created_at',{ascending:false}).limit(1000);
+    if(commentResult.error)throw commentResult.error;
+    for(const reply of commentResult.data||[]){
+      if(!commentMap.has(reply.post_id))commentMap.set(reply.post_id,[]);
+      commentMap.get(reply.post_id).push(reply);
+    }
+    for(const thread of commentMap.values())
+      thread.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  }
   state.posts.set(id,posts);
-  for(const p of posts)state.postReactions.set(p.id,map.get(p.id)||[]);
+  for(const p of posts){
+    state.postReactions.set(p.id,map.get(p.id)||[]);
+    state.postComments.set(p.id,commentMap.get(p.id)||[]);
+  }
   if(state.selected===id&&state.activeView==='posts')renderPosts(g);
 }
 async function publishGroupPost(kind,body){
@@ -323,6 +429,7 @@ async function publishGroupPost(kind,body){
       created_at:new Date().toISOString()};
     state.posts.set(g.id,[post,...(state.posts.get(g.id)||[])]);
     state.postReactions.set(id,[]);
+    state.postComments.set(id,[]);
     renderPosts(g);
     return;
   }
@@ -330,6 +437,28 @@ async function publishGroupPost(kind,body){
     .insert({group_id:g.id,author_id:state.uid,kind,body})
     .select('id').single();
   if(result.error)throw result.error;
+  await loadPosts(g.id);
+}
+async function sendPostComment(post,body){
+  const g=selected();
+  if(!g||!isActive(g)||post.group_id!==g.id)
+    throw Error('Join this private group to reply to posts.');
+  if(!body.trim()||body.trim().length>1200)throw Error('Invalid reply.');
+  if(state.preview){
+    const list=state.postComments.get(post.id)||[];
+    list.push({id:'local-comment-'+Math.random().toString(36).slice(2),
+      post_id:post.id,author_id:state.uid,body,
+      created_at:new Date().toISOString()});
+    state.postComments.set(post.id,list);
+    state.expandedPostComments.add(post.id);
+    renderPosts(g);
+    return;
+  }
+  const result=await state.client.from('agent_group_post_comments')
+    .insert({post_id:post.id,author_id:state.uid,body})
+    .select('id').single();
+  if(result.error)throw result.error;
+  state.expandedPostComments.add(post.id);
   await loadPosts(g.id);
 }
 async function reactToPost(post,reaction){
@@ -924,6 +1053,24 @@ function localDemo(){
   state.postReactions.set('demo-recognition-1',[
     {post_id:'demo-recognition-1',user_id:'demo-b',reaction:'celebrate'},
     {post_id:'demo-recognition-1',user_id:'demo-c',reaction:'like'}
+  ]);
+  state.postComments.set('demo-recognition-1',[
+    {id:'sample-reply-a',post_id:'demo-recognition-1',author_id:'demo-c',
+      body:'Congratulations, Alex! Hard work pays off. 🎉',
+      created_at:'2026-11-13T14:36:00Z'},
+    {id:'sample-reply-b',post_id:'demo-recognition-1',author_id:'demo-b',
+      body:'Thanks for the encouragement, team. Ready for the next milestone!',
+      created_at:'2026-11-13T14:39:00Z'},
+    {id:'sample-reply-c',post_id:'demo-recognition-1',author_id:'demo-a',
+      body:'We are proud of you. Keep growing and serving! #DominionStar',
+      created_at:'2026-11-13T14:42:00Z'}
+  ]);
+  state.postComments.set('demo-announcement-1',[]);
+  state.postComments.set('demo-training-1',[]);
+  state.postComments.set('demo-pending-1',[
+    {id:'sample-pending-private',post_id:'demo-pending-1',author_id:'demo-c',
+      body:'Only joined members can read this private reply.',
+      created_at:'2026-11-12T09:01:00Z'}
   ]);
   state.unread.set('demo-training',2);
   nodes.simulate.hidden=false;
