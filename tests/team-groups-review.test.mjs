@@ -213,3 +213,48 @@ test('Group posts are full-height milestone and announcement cards with private 
     assert.ok(assertions.includes(claim),claim);
   }
 });
+
+
+test('Group milestone comments stay attached to the original post and use safe text rendering',()=>{
+  assert.match(code,/postComments:new Map\(\)/);
+  assert.match(code,/function renderPosts\(g\)/);
+  assert.match(code,/dsg-post-comment-thread/);
+  assert.match(code,/dsg-post-comment-row/);
+  assert.match(code,/dsg-post-reply-form/);
+  assert.match(code,/async function sendPostComment\(post,body\)/);
+  assert.match(code,/safeLinkify\(text,comment\.body\)/);
+  assert.match(code,/const visible=state\.expandedPostComments\.has\(post\.id\)\?comments:comments\.slice\(-2\)/);
+  assert.match(code,/\.insert\(\{post_id:post\.id,author_id:state\.uid,body\}\)/);
+  assert.match(code,/state\.commentDrafts\.set\(post\.id,input\.value\)/);
+  assert.match(code,/Congratulations, Alex!/);
+  assert.match(code,/No replies yet/);
+  assert.match(css,/\.dsg-post-comment-bubble/);
+  assert.match(css,/\.dsg-post-comment-text/);
+  assert.match(css,/white-space:pre-wrap!important/);
+  assert.match(css,/\.dsg-post-reply-form\[hidden\]\{display:none!important\}/);
+  assert.doesNotMatch(code,/innerHTML\s*=/);
+});
+
+test('Private post replies have explicit member-only RLS, narrow table grants and negative isolation tests',()=>{
+  assert.match(sql,/create table public\.agent_group_post_comments/);
+  assert.match(sql,/alter table public\.agent_group_post_comments enable row level security/);
+  assert.match(sql,/agent_group_post_comments_read_active/);
+  assert.match(sql,/agent_group_post_comments_insert_active/);
+  assert.match(sql,/agent_private\.is_group_member\(post\.group_id,false\)/);
+  assert.match(sql,/author_id=\(select auth\.uid\(\)\)/);
+  assert.match(sql,/grant select,insert\(post_id,author_id,body\)/);
+  assert.doesNotMatch(sql,/grant (?:delete|update) on public\.agent_group_post_comments to authenticated/i);
+  const tests=read('tests/sql/agent-team-groups-assertions.sql');
+  for(const c of [
+    'Group owner could not read the private milestone reply',
+    'Invited agent read private post replies',
+    'Invited agent replied before accepting',
+    'Joined member cannot read existing milestone replies',
+    'Joined member could not post a milestone reply',
+    'Post reply author spoofing was permitted',
+    'Uninvited agent sees private milestone replies',
+    'Uninvited agent wrote a private reply',
+    'Revoked member still sees private post replies',
+    'Anonymous reader saw private milestone replies'
+  ])assert.ok(tests.includes(c),c);
+});
