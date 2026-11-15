@@ -477,8 +477,58 @@ try{
       await member.locator('.dsg-member-admin').filter({hasText:'Remove admin'}).click();
       assert.match(await member.innerText(),/Member/);
 
+      // Share Flyer shortcut is visible on Chat, even before opening Posts.
+      const flyerChooser=page.waitForEvent('filechooser');
+      await page.locator('#dsgChatShareFlyer').click();
+      const filePicker=await flyerChooser;
+      await filePicker.setFiles({name:'team-training-flyer.png',
+        mimeType:'image/png',
+        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAADSCAIAAAAOgZMNAAABdklEQVR42u3cvQ1AQBiAYeRKrYlEZw6N3hBGMIfOWjeACcTPReLneVs0T75818jlVd1nur8CAWjQAg0atEB/qbD1YO4inWu1U2mirQ7QundH7y4dnTrSTLTVAVqgQYNGABq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNAC/ZVCysfL8Lsf1JsxmmirQ6BBgxZo0AINGrRAgxZo0KAFGjRoBKBBCzRo0AINWqBBgxZo0AINGrRAgxZo0KAFGrRAgwYt0KAFGjRogQYt0KBBCzRonSjp3rvLl8CZaIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgQQs0aIEGDVqgQQs0aNAC/abCkZfmLpIy0aAF+kE7up1KOiYatECDBi3Qr2sFuBEQNt3a4FMAAAAASUVORK5CYII=','base64')});
+      await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
+      await page.locator('#dsgAttachmentContent img').waitFor({state:'visible'});
+      const flyerGeometry=await page.locator('#dsgAttachmentContent img').evaluate(img=>({
+        naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,
+        width:img.getBoundingClientRect().width,
+        height:img.getBoundingClientRect().height,
+        fit:getComputedStyle(img).objectFit,
+        maxHeight:getComputedStyle(img).maxHeight
+      }));
+      assert.equal(flyerGeometry.naturalWidth,120);
+      assert.equal(flyerGeometry.naturalHeight,210);
+      assert.equal(flyerGeometry.fit,'contain');
+      assert.equal(flyerGeometry.maxHeight,'none');
+      assert.ok(Math.abs(flyerGeometry.width/flyerGeometry.height-(120/210))<0.02,
+        view.label+' distorted or cropped the flyer aspect ratio');
+      await page.locator('#dsgRemoveAttachment').click();
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),false);
+      await page.locator('#dsgPostFile').setInputFiles({
+        name:'team-training-flyer.png',mimeType:'image/png',
+        buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAADSCAIAAAAOgZMNAAABdklEQVR42u3cvQ1AQBiAYeRKrYlEZw6N3hBGMIfOWjeACcTPReLneVs0T75818jlVd1nur8CAWjQAg0atEB/qbD1YO4inWu1U2mirQ7QundH7y4dnTrSTLTVAVqgQYNGABq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNAC/ZVCysfL8Lsf1JsxmmirQ6BBgxZo0AINGrRAgxZo0KAFGjRoBKBBCzRo0AINWqBBgxZo0AINGrRAgxZo0KAFGrRAgwYt0KAFGjRogQYt0KBBCzRonSjp3rvLl8CZaIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgBRo0aIEGLdCgQQs0aIEGDVqgQQs0aNACDVqgQYMWaNACDRq0QIMWaNCgBRq0QIMGLdCgQQs0aIEGDVqgQQs0aNAC/abCkZfmLpIy0aAF+kE7up1KOiYatECDBi3Qr2sFuBEQNt3a4FMAAAAASUVORK5CYII=','base64')
+      });
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
+      assert.match(await page.locator('#dsgAttachmentInfo').innerText(),/team-training-flyer.png/);
+      assert.match(await page.locator('#dsgAttachmentNotice').innerText(),/browser session/);
+      assert.equal(await page.locator('#dsgPostBody').inputValue(),'');
+      await page.locator('#dsgPostSubmit').click();
+      assert.equal(await page.locator('#dsgPostList .dsg-post-card').count(),3);
+      const postedFlyer=page.locator('#dsgPostList .dsg-post-media-image');
+      assert.equal(await postedFlyer.count(),1);
+      assert.match(await postedFlyer.first().getAttribute('alt'),/team-training-flyer.png/);
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),false);
+      assert.match(await page.locator('#dsgActionStatus').innerText(),/browser only/);
+      // The PDF is represented safely as a file card, never an embedded script.
+      await page.locator('#dsgPostFile').setInputFiles({
+        name:'leadership-presentation.pdf',mimeType:'application/pdf',
+        buffer:Buffer.from('%PDF-1.4\\n1 0 obj\\n<< /Type /Catalog >>\\nendobj\\n%%EOF\\n')
+      });
+      assert.match(await page.locator('#dsgAttachmentContent').innerText(),
+        /leadership-presentation.pdf/);
+      assert.equal(await page.locator('#dsgAttachmentContent iframe').count(),0);
+      await page.locator('#dsgRemoveAttachment').click();
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),false);
       // GroupMe-style milestones are complete private posts, not cramped chat.
-      await page.locator('#dsgPostsTab').click();
+
       await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
       assert.match(await page.locator('#dsgPostList').innerText(),
         /Congratulations to Alex Morgan/);
@@ -518,7 +568,7 @@ try{
       await page.locator('#dsgPostBody').fill(
         'Congratulations to our newly licensed teammate! Great progress and consistent effort. #DominionStar');
       await page.locator('#dsgPostSubmit').click();
-      assert.equal(await page.locator('#dsgPostList .dsg-post-card').count(),3);
+      assert.equal(await page.locator('#dsgPostList .dsg-post-card').count(),4);
       assert.match(await page.locator('#dsgPostList').innerText(),
         /newly licensed teammate/);
       const postHeights=await page.evaluate(()=>({
