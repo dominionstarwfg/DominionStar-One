@@ -356,3 +356,113 @@ body.ds-visual-review .dsg-dialog form{
  .dsg-post-reply-form{padding:10px}
  .dsg-post-reply-form .dsg-button{width:100%}
 }
+
+/* Flyer and file posting: preserve natural height and image aspect ratio.
+   Never stretch, center-crop, or put a max-height on a tall event flyer. */
+.dsg-chat-share-row[hidden],
+.dsg-attachment-preview[hidden]{display:none!important}
+.dsg-chat-share-row{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:10px 16px 0;background:#0b243e;flex-wrap:wrap;
+}
+.dsg-chat-share-row>span{
+ color:#a7c1dd;font:600 10.5px/1.4 system-ui,sans-serif;
+}
+.dsg-chat-share-button,.dsg-attach-button{
+ display:inline-flex;align-items:center;gap:8px;
+ padding:10px 13px;min-height:39px;border-radius:10px;
+ border:1px solid rgba(238,191,104,.47);
+ background:linear-gradient(140deg,rgba(28,81,133,.54),rgba(19,60,99,.56));
+ color:#f5d89b;font:790 12px/1.4 system-ui,sans-serif;
+ cursor:pointer;text-align:left;
+}
+.dsg-chat-share-button:hover:not(:disabled),
+.dsg-attach-button:hover:not(:disabled){
+ border-color:#edca84;background:#1b527f;color:#fff3d6;
+}
+.dsg-chat-share-button:disabled,.dsg-attach-button:disabled{
+ opacity:.5;cursor:not-allowed;
+}
+.dsg-post-media-controls{
+ display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0;
+}
+.dsg-post-media-controls>span{
+ color:#a9c4df;font:570 10.5px/1.5 system-ui,sans-serif;
+}
+.dsg-file-input{
+ position:absolute!important;width:1px!important;height:1px!important;
+ opacity:0!important;overflow:hidden!important;clip-path:inset(50%);
+}
+.dsg-attachment-preview{
+ display:block!important;min-width:0;max-width:100%;overflow:visible;
+ padding:14px;border:1px solid rgba(132,180,225,.38);
+ border-radius:13px;background:linear-gradient(145deg,#102a45,#0b2340);
+}
+.dsg-attachment-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:8px;flex-wrap:wrap;margin:0 0 10px;
+}
+.dsg-attachment-heading strong{color:#f1f7ff;font-size:12px}
+.dsg-remove-attachment{
+ cursor:pointer;min-height:32px;padding:6px 10px;border-radius:8px;
+ border:1px solid rgba(225,163,161,.4);color:#f4bbb7;
+ background:rgba(93,39,48,.23);font:760 10.5px/1.3 system-ui,sans-serif;
+}
+.dsg-attachment-content,.dsg-post-media{
+ display:block!important;width:100%!important;min-width:0!important;
+ max-width:100%!important;height:auto!important;max-height:none!important;
+ overflow:visible!important;
+}
+.dsg-flyer-preview,.dsg-post-media-image{
+ display:block!important;width:100%!important;max-width:100%!important;
+ height:auto!important;max-height:none!important;min-height:0!important;
+ object-fit:contain!important;object-position:center center!important;
+ border-radius:10px;
+}
+.dsg-attachment-content img,.dsg-post-media img{
+ image-orientation:from-image;
+}
+.dsg-post-media{
+ margin:0 0 16px;padding:0;border-radius:12px;
+ border:1px solid rgba(122,170,221,.34);
+ background:#091a2e;
+}
+.dsg-post-media-image{
+ border-radius:11px;
+}
+.dsg-attachment-info{display:block;margin-top:10px;
+ color:#c0d5ea;font:630 10.5px/1.6 system-ui,sans-serif;
+ overflow-wrap:anywhere;
+}
+.dsg-attachment-notice{margin:0!important;padding:0!important;
+ color:#a7c7e5!important;font:590 11px/1.55 system-ui,sans-serif!important;
+}
+.dsg-attachment-notice[data-error="true"]{color:#ffb6a7!important}
+.dsg-pdf-file{
+ display:flex;align-items:center;gap:12px;min-width:0;
+ border-radius:11px;padding:16px;
+ border:1px solid rgba(155,188,218,.31);
+ background:rgba(9,33,57,.86);
+}
+.dsg-pdf-icon{
+ display:grid;place-items:center;flex:0 0 47px;width:47px;height:54px;
+ border-radius:9px;border:1px solid #e6b6a5;
+ background:rgba(148,48,59,.3);color:#ffe2d4;
+ font:850 11px/1 system-ui,sans-serif;
+}
+.dsg-pdf-details{display:grid;gap:5px;min-width:0}
+.dsg-pdf-details strong{font-size:12px;color:#eff8ff;overflow-wrap:anywhere}
+.dsg-pdf-details small{font-size:10.5px;color:#aecbe6;overflow-wrap:anywhere}
+.dsg-post-card>.dsg-post-copy:empty{display:none!important}
+body.ds-visual-review .dsg-attach-button,
+body.ds-visual-review .dsg-chat-share-button{
+ pointer-events:auto!important;
+}
+@media(max-width:650px){
+ .dsg-attachment-preview{padding:10px}
+ .dsg-chat-share-row{gap:4px;padding:9px 10px 0}
+ .dsg-post-media-controls .dsg-attach-button{width:100%;justify-content:center}
+ .dsg-post-media-controls>span{width:100%;text-align:center}
+ .dsg-chat-share-button{width:100%;justify-content:center}
+ .dsg-chat-share-row>span{font-size:10px}
+}
