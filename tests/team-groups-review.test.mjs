@@ -330,8 +330,8 @@ test('Attachment bytes must match file type; stale validation and upload cannot 
 });
 
 test('A saved private post is not reported as failed when the feed refresh needs retry',()=>{
-  assert.match(code,/return \{saved:true,refreshPending:true\}/);
-  assert.match(code,/return \{saved:true,refreshPending:false\}/);
+  assert.match(code,/return \{saved:true,refreshPending:true,pendingReview:Boolean\(attachment\)\}/);
+  assert.match(code,/return \{saved:true,refreshPending:false,pendingReview:Boolean\(attachment\)\}/);
   assert.match(code,/Your post was saved privately, but the feed did not refresh/);
   assert.match(code,/Uploading private file…/);
   assert.match(code,/nodes\.postSubmit\.textContent=buttonLabel/);
@@ -379,4 +379,29 @@ test('Real group media stays feature-flagged and private until migration passes'
   }
   assert.match(workflow,/agent-team-groups-media-fixture.sql/);
   assert.match(workflow,/agent-team-groups-media-assertions.sql/);
+});
+
+test('A media post cannot become downloadable until a trusted scanner approves it',()=>{
+  const migration=read('scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql');
+  const assertions=read('tests/sql/agent-team-groups-media-assertions.sql');
+  assert.match(migration,/media_review_status text not null default 'pending'/);
+  assert.match(migration,/media_review_status in \('pending','approved','rejected'\)/);
+  assert.match(migration,/revoke update on public\.agent_group_posts from authenticated,anon/);
+  assert.match(migration,/post\.media_review_status='approved'/);
+  assert.match(migration,/storage\.allow_only_operation\('object\.delete'\)/);
+  assert.match(migration,/not exists\(select 1 from public\.agent_group_posts post/);
+  assert.match(code,/media\.status!=='approved'/);
+  assert.match(code,/File submitted\. It will not be available to the group until security review is approved/);
+  assert.match(code,/File did not pass|file did not pass|This file did not pass security review/);
+  assert.match(code,/URL\.revokeObjectURL\(previousMedia\.url\)/);
+  assert.match(code,/media_review_status'/);
+  assert.match(code,/pendingReview:Boolean\(attachment\)/);
+  for(const label of [
+    'Fresh unscanned group file was immediately downloadable',
+    'Unscanned group file metadata was accessible',
+    'Browser member could self-approve uploaded file',
+    'Scanner-approved group file was not readable',
+    'Rejected group file remained downloadable',
+    'Group files were enumerable via Storage list'
+  ])assert.ok(assertions.includes(label),label);
 });
