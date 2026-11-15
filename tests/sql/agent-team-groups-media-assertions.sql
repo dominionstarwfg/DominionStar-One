@@ -37,6 +37,14 @@ begin
   ) then raise exception 'Browser member could self-approve uploaded file';end if;
   if not public.synthetic_assert_denied(
     format($q$insert into public.agent_group_posts(
+      group_id,author_id,kind,body,media_path,media_name,media_mime,
+      media_size_bytes,media_review_status)
+      values(%L,'11111111-1111-4111-8111-111111111111','update','',
+        %L,'Forged approved file','image/png',1024,'approved')$q$,
+      current_setting('test.group_id'),current_setting('test.media_path'))
+  ) then raise exception 'Browser member inserted a pre-approved media post';end if;
+  if not public.synthetic_assert_denied(
+    format($q$insert into public.agent_group_posts(
       group_id,author_id,kind,body,media_path,media_name,media_mime,media_size_bytes)
       values(%L,'11111111-1111-4111-8111-111111111111','update','',
         %L,'Wrong MIME','application/pdf',1024)$q$,
