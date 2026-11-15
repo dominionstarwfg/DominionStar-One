@@ -8,6 +8,7 @@ on:
       - 'assets/js/dominionstar-team-groups.js'
       - 'assets/css/dominionstar-team-groups.css'
       - 'scripts/security/agent-team-groups.DO-NOT-RUN.review.sql'
+      - 'scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql'
       - 'tests/sql/agent-team-groups-*.sql'
       - 'tests/team-groups-review.test.mjs'
       - 'scripts/build-public-netlify.sh'
@@ -72,6 +73,15 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 -f tests/sql/agent-team-groups-assertions.sql | tee /tmp/agent-groups-review.txt
           grep -Fq 'ISOLATED_TEAM_GROUP_RLS_PASS' /tmp/agent-groups-review.txt
+      - name: Prepare synthetic Storage system and compile private media migration
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/agent-team-groups-media-fixture.sql
+          grep -Fq 'DO NOT RUN IN PRODUCTION' scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql
+      - name: Reject cross-team uploads, downloads, deleted-post media and anonymous file access
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/agent-team-groups-media-assertions.sql | tee /tmp/agent-group-media-review.txt
+          grep -Fq 'ISOLATED_TEAM_GROUP_MEDIA_RLS_PASS' /tmp/agent-group-media-review.txt
       - name: Verify group UI is backend-disabled by default
         run: |
           node --check assets/js/dominionstar-team-groups.js
