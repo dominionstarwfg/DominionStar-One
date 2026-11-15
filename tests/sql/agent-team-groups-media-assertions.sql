@@ -168,15 +168,18 @@ select set_config('request.storage.operation','object.delete',false);
 delete from storage.objects
  where name=:'group_id'||'/11111111-1111-4111-8111-111111111111/88888888-8888-4888-8888-888888888888.jpeg';
 do $$
+declare deleted_count integer;
 begin
   if exists(select 1 from storage.objects where name=
       current_setting('test.group_id')||
         '/11111111-1111-4111-8111-111111111111/88888888-8888-4888-8888-888888888888.jpeg') then
     raise exception 'Uploader could not roll back unpublished attachment';end if;
-  -- A published flyer cannot be deleted by its uploader: avoid broken posts.
+  -- A published flyer must not be deleted. The delete operation itself is
+  -- intentionally NOT authorized to read published rows, so inspect the
+  -- DELETE row count rather than relying on a SELECT under object.delete.
   delete from storage.objects where name=current_setting('test.media_path');
-  if not exists(select 1 from storage.objects
-      where name=current_setting('test.media_path')) then
+  get diagnostics deleted_count = row_count;
+  if deleted_count<>0 then
     raise exception 'Published group media was deleted by user';end if;
 end
 $$;
