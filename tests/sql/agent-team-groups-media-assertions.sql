@@ -58,12 +58,12 @@ $$;
 
 -- Authenticated object-info reads are also scoped; LIST is denied.
 select set_config('request.storage.operation','object.get_authenticated_info',false);
-do $
+do $$
 begin
   if (select count(*) from storage.objects where bucket_id='agent-group-media')<>1
   then raise exception 'Authorized group member could not get private attachment metadata';end if;
 end
-$;
+$$;
 -- No listing of filenames, even for group members. Read operation is scoped.
 select set_config('request.storage.operation','object.list',false);
 do $$
