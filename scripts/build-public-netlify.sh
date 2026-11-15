@@ -109,7 +109,9 @@ body.ds-visual-review .dm-member-panel{display:block!important}
 }
 body.ds-visual-review .dm-member-panel .dm-member-facts strong{word-break:normal!important}
 
-body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/founder-blue.jpeg"]){display:none!important}
+/* Isolated group flyer previews use browser-created blob: URLs. Permit ONLY
+   those two local-image elements, not arbitrary network images or embeds. */
+body.ds-visual-review img:not([src="/assets/logo.jpeg"]):not([src="/assets/founder-blue.jpeg"]):not(.dsg-flyer-preview[src^="blob:"]):not(.dsg-post-media-image[src^="blob:"]){display:none!important}
 body.ds-visual-review video,body.ds-visual-review iframe,body.ds-visual-review object,body.ds-visual-review embed{display:none!important}
 body.ds-visual-review .dm-welcome{display:none!important}
 .ds-directory-review-note,.dsx-directory-review-note{grid-column:1/-1;color:#b9cbe0;font:750 11px/1.4 system-ui,sans-serif;letter-spacing:.06em;padding:6px 0}
