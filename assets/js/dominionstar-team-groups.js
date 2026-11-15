@@ -337,8 +337,7 @@ function pickAttachment(file){
 async function loadPrivatePostMedia(media){
   const g=selected();
   if(!g||!isActive(g)||!mediaFeatureEnabled()||!media?.path||
-     !media.path.startsWith(g.id+'/'+state.uid+'/')&&
-      !media.path.startsWith(g.id+'/')) {
+     !media.path.startsWith(g.id+'/')) {
     throw Error('This private file is not available.');
   }
   const groupId=g.id;
