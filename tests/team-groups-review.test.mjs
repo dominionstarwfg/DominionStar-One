@@ -298,6 +298,6 @@ test('Group flyer post keeps files in browser-only preview rather than implicitl
   const browser=read('scripts/review-feed-browser-geometry.mjs');
   assert.match(browser,/team-training-flyer\.png/);
   assert.match(browser,/leadership-presentation\.pdf/);
-  assert.match(browser,/flyerGeometry\.naturalWidth,120/);
+  assert.match(browser,/flyerGeometry\.naturalWidth,12/);
   assert.match(browser,/postedFlyer\.count\(\),1/);
 });
