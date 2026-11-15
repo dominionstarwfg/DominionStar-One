@@ -156,3 +156,60 @@ test('Unread metadata cannot be enumerated by pending, revoked or anonymous memb
   assert.match(sql,/new\.last_read_at<old\.last_read_at/);
   assert.match(sql,/new\.last_read_at>now\(\)\+interval '1 second'/);
 });
+
+
+test('Creator appoints admins; only owner/admin can add or remove other people',()=>{
+  assert.match(code,/async function setMemberAdmin/);
+  assert.match(code,/const isOwner=g=>/);
+  assert.match(code,/const isAdmin=g=>/);
+  assert.match(code,/if\(!isAdmin\(g\)\)/);
+  assert.match(code,/const canModerate=isAdmin\(g\)/);
+  assert.match(code,/m\.role!=='admin'\|\|isOwner\(g\)/);
+  assert.match(code,/if\(isOwner\(g\)&&m\.user_id!==state\.uid/);
+  assert.match(code,/state\.client\.rpc\('set_agent_group_admin'/);
+  assert.match(sql,/create function public\.set_agent_group_admin\(/);
+  assert.match(sql,/Only the group owner can appoint or remove admins/);
+  assert.match(sql,/agent_private\.is_group_admin\(group_id\)/);
+  assert.match(sql,/grant execute on function public\.set_agent_group_admin\(uuid,uuid,boolean\)/);
+  assert.doesNotMatch(sql,/grant update\([^)]*role[^)]*\) on public\.agent_group_members to authenticated/i);
+  const assertions=read('tests/sql/agent-team-groups-assertions.sql');
+  assert.match(assertions,/Appointed admin delegated their own admin powers/);
+  assert.match(assertions,/Owner could not appoint group admin/);
+  assert.match(assertions,/Owner could not revoke group admin/);
+  assert.match(assertions,/Ordinary member could invite/);
+  assert.match(assertions,/Admin could remove another admin/);
+});
+
+test('Group posts are full-height milestone and announcement cards with private member-only reactions',()=>{
+  for(const id of ['dsgViewTabs','dsgChatTab','dsgPostsTab',
+    'dsgPostsPanel','dsgPostForm','dsgPostKind','dsgPostBody',
+    'dsgPostSubmit','dsgPostList']){
+    assert.match(html,new RegExp('id="'+id+'"'));
+  }
+  assert.match(code,/function renderPosts/);
+  assert.match(code,/async function publishGroupPost/);
+  assert.match(code,/async function reactToPost/);
+  assert.match(code,/switchGroupView\('posts'\)/);
+  assert.match(code,/Congratulations to Alex Morgan/);
+  assert.match(code,/Only joined group members can publish/);
+  assert.match(code,/safeLinkify\(copy,post\.body\)/);
+  assert.match(code,/const active=isActive\(g\)/);
+  assert.match(css,/dsg-post-copy/);
+  assert.match(css,/white-space:pre-wrap!important/);
+  assert.match(css,/dsg-kind-milestone/);
+  for(const table of ['agent_group_posts','agent_group_post_reactions']){
+    assert.match(sql,new RegExp('create table public\\.'+table));
+    assert.match(sql,new RegExp('alter table public\\.'+table+' enable row level security'));
+  }
+  assert.match(sql,/agent_group_posts_insert_active/);
+  assert.match(sql,/agent_group_post_reactions_add_active/);
+  assert.match(sql,/user_id=\(select auth\.uid\(\)\)/);
+  const assertions=read('tests/sql/agent-team-groups-assertions.sql');
+  for(const claim of ['Invited agent read private recognition posts',
+    'Invited agent posted before accepting','Joined member could not see group congratulations',
+    'Joined member cannot publish group post','Reaction author spoofing was permitted',
+    'Uninvited agent sees private group posts',
+    'Revoked member still sees milestone posts','Anonymous reader saw group milestones']){
+    assert.ok(assertions.includes(claim),claim);
+  }
+});
