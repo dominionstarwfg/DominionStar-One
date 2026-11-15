@@ -31,12 +31,17 @@ const nodes={
   incoming:$('dsgIncomingNotice'),simulate:$('dsgSimulateButton'),hint:$('dsgUpdateHint'),
   chatTab:$('dsgChatTab'),postsTab:$('dsgPostsTab'),postsPanel:$('dsgPostsPanel'),
   postForm:$('dsgPostForm'),postKind:$('dsgPostKind'),postBody:$('dsgPostBody'),
-  postCount:$('dsgPostCount'),postSubmit:$('dsgPostSubmit'),postList:$('dsgPostList')
+  postCount:$('dsgPostCount'),postSubmit:$('dsgPostSubmit'),postList:$('dsgPostList'),
+  postAttachButton:$('dsgPostAttachButton'),postFile:$('dsgPostFile'),
+  attachmentPreview:$('dsgAttachmentPreview'),attachmentContent:$('dsgAttachmentContent'),
+  attachmentInfo:$('dsgAttachmentInfo'),attachmentNotice:$('dsgAttachmentNotice'),
+  removeAttachment:$('dsgRemoveAttachment'),chatShareRow:$('dsgChatShareRow'),
+  chatShareFlyer:$('dsgChatShareFlyer')
 };
 const state={preview:false,client:null,uid:null,groups:[],selected:null,
   memberships:new Map(),messages:new Map(),posts:new Map(),postReactions:new Map(),
   postComments:new Map(),expandedPostComments:new Set(),openCommentForms:new Set(),
-  commentDrafts:new Map(),
+  commentDrafts:new Map(),attachment:null,previewMediaUrls:new Set(),
   activeView:'chat',contacts:[],profiles:new Map(),
   muted:new Set(),unread:new Map(),lastRead:new Map(),
   soundEnabled:false,hasUnreadSnapshot:false,polling:false,pollTimer:null,
@@ -234,8 +239,107 @@ function switchGroupView(view){
   nodes.postsTab.tabIndex=posts?0:-1;
   nodes.messages.hidden=posts;
   nodes.form.hidden=posts;
+  nodes.chatShareRow.hidden=posts;
   nodes.postsPanel.hidden=!posts;
   if(posts){const g=selected();if(g)renderPosts(g);}
+}
+
+const MAX_GROUP_POST_MEDIA=15*1024*1024;
+const allowedGroupMediaTypes=new Set(['image/png','image/jpeg','image/webp','application/pdf']);
+const mediaType=(file)=>{
+  const t=String(file?.type||'').toLowerCase();
+  if(!allowedGroupMediaTypes.has(t))return null;
+  const ext=String(file?.name||'').toLowerCase().split('.').pop();
+  const extension={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',
+    webp:'image/webp',pdf:'application/pdf'}[ext];
+  return extension===t?t:null;
+};
+const mediaBytes=size=>size>=1024*1024?(size/1024/1024).toFixed(1)+' MB':
+  Math.max(1,Math.ceil(size/1024))+' KB';
+function setMediaNotice(message,error=false){
+  nodes.attachmentNotice.textContent=message;
+  nodes.attachmentNotice.dataset.error=String(error);
+}
+function resetAttachment({keepUrl=false}={}){
+  if(state.attachment?.url&&!keepUrl){
+    URL.revokeObjectURL(state.attachment.url);
+    state.previewMediaUrls.delete(state.attachment.url);
+  }
+  state.attachment=null;
+  nodes.postFile.value='';
+  nodes.attachmentPreview.hidden=true;
+  nodes.attachmentInfo.textContent='';
+  clear(nodes.attachmentContent);
+  setMediaNotice(state.preview?
+    'Local preview only. Your selected file is not uploaded or saved.':
+    'Media publishing requires secure storage integration. Text posts remain available.');
+}
+function renderAttachment(){
+  clear(nodes.attachmentContent);
+  const media=state.attachment;
+  nodes.attachmentPreview.hidden=!media;
+  if(!media)return;
+  if(media.mime.startsWith('image/')){
+    const img=el('img','dsg-flyer-preview');
+    img.alt='Full flyer or photo preview: '+media.name;
+    img.src=media.url;
+    img.loading='eager';
+    img.decoding='async';
+    nodes.attachmentContent.append(img);
+  }else{
+    const pdf=el('div','dsg-pdf-file');
+    pdf.append(el('span','dsg-pdf-icon','PDF'));
+    const details=el('span','dsg-pdf-details');
+    details.append(el('strong',null,media.name),
+      el('small',null,'Document attached · PDF contents are not embedded'));
+    pdf.append(details);
+    nodes.attachmentContent.append(pdf);
+  }
+  nodes.attachmentInfo.textContent=media.name+' · '+mediaBytes(media.size);
+  setMediaNotice(state.preview?
+    'Local preview only — this attachment stays in your current browser session.':
+    'Selected locally. Secure media storage is not enabled; do not publish this file yet.');
+}
+function pickAttachment(file){
+  if(!file)return;
+  const type=mediaType(file);
+  if(!type){
+    nodes.postFile.value='';
+    setMediaNotice('Choose a JPG, PNG, WebP or PDF file. Other formats are not supported.',true);
+    status('Unsupported file format. Choose a flyer image or PDF.',true);
+    return;
+  }
+  if(file.size<=0||file.size>MAX_GROUP_POST_MEDIA){
+    nodes.postFile.value='';
+    setMediaNotice('File size must be greater than 0 and no more than 15 MB.',true);
+    status('This file is too large or empty. Maximum: 15 MB.',true);
+    return;
+  }
+  resetAttachment();
+  const url=URL.createObjectURL(file);
+  state.attachment={name:file.name.slice(0,140),size:file.size,mime:type,url};
+  state.previewMediaUrls.add(url);
+  renderAttachment();
+}
+function renderPostedMedia(media){
+  if(!state.preview||!media?.url||!state.previewMediaUrls.has(media.url))return null;
+  const wrapper=el('div','dsg-post-media');
+  if(media.mime.startsWith('image/')){
+    const img=el('img','dsg-post-media-image');
+    img.alt=media.name||'Attached group flyer';
+    img.src=media.url;
+    img.loading='lazy';
+    wrapper.append(img);
+  }else if(media.mime==='application/pdf'){
+    const pdf=el('div','dsg-pdf-file');
+    pdf.append(el('span','dsg-pdf-icon','PDF'));
+    const copy=el('span','dsg-pdf-details');
+    copy.append(el('strong',null,media.name),
+      el('small',null,mediaBytes(media.size)+' · Sample file (not uploaded)'));
+    pdf.append(copy);
+    wrapper.append(pdf);
+  }
+  return wrapper;
 }
 const groupPostTitle=kind=>kind==='milestone'?'🎉 Milestone & Recognition':
   kind==='announcement'?'📣 Team Announcement':'Team Update';
@@ -245,6 +349,9 @@ function renderPosts(g){
   nodes.postBody.disabled=!active;
   nodes.postSubmit.disabled=!active;
   nodes.postKind.disabled=!active;
+  nodes.postAttachButton.disabled=!active;
+  nodes.postFile.disabled=!active;
+  nodes.chatShareFlyer.disabled=!active;
   if(!active){
     nodes.postList.append(el('p','dsg-post-empty',
       'Accept the private group invitation to view posts and celebrate milestones.'));
@@ -267,6 +374,8 @@ function renderPosts(g){
     head.append(by);
     const copy=el('p','dsg-post-copy');
     safeLinkify(copy,post.body);
+    const imageOrFile=renderPostedMedia(post.attachment);
+    if(imageOrFile)card.append(label,head,copy,imageOrFile);
     const reactions=state.postReactions.get(post.id)||[];
     const footer=el('div','dsg-post-reactions');
     const counts=el('span','dsg-post-reaction-counts',
@@ -287,7 +396,8 @@ function renderPosts(g){
       });
       footer.append(button);
     }
-    card.append(label,head,copy,footer);
+    if(!imageOrFile)card.append(label,head,copy);
+    card.append(footer);
     const section=el('section','dsg-post-comments');
     section.setAttribute('aria-label','Replies to '+groupPostTitle(post.kind));
     const comments=state.postComments.get(post.id)||[];
@@ -421,15 +531,22 @@ async function loadPosts(id){
 async function publishGroupPost(kind,body){
   const g=selected();
   if(!g||!isActive(g))throw Error('Only joined group members can publish.');
+  const attachment=state.attachment;
   if(!['update','milestone','announcement'].includes(kind)||
-    !body.trim()||body.trim().length>3000)throw Error('Invalid post.');
+    (!body.trim()&&!attachment)||body.trim().length>3000)throw Error('Invalid post.');
+  // Never silently discard an uploaded-looking file in authenticated mode.
+  // The real private storage bucket, RLS and post-media schema are NOT ready.
+  if(attachment&&!state.preview)
+    throw Error('Flyer uploads are not yet enabled for real groups. Remove the file to publish a text post.');
   if(state.preview){
     const id='sample-post-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
-    const post={id,group_id:g.id,author_id:state.uid,kind,body,
+    const post={id,group_id:g.id,author_id:state.uid,kind,body,attachment:attachment?
+      {name:attachment.name,mime:attachment.mime,size:attachment.size,url:attachment.url}:null,
       created_at:new Date().toISOString()};
     state.posts.set(g.id,[post,...(state.posts.get(g.id)||[])]);
     state.postReactions.set(id,[]);
     state.postComments.set(id,[]);
+    resetAttachment({keepUrl:Boolean(attachment)});
     renderPosts(g);
     return;
   }
@@ -504,6 +621,7 @@ async function setMemberAdmin(g,m,makeAdmin){
 }
 async function selectGroup(id){
   if(!state.groups.some(g=>g.id===id))return;
+  if(state.selected!==id&&state.attachment)resetAttachment();
   state.selected=id;const g=selected();
   nodes.name.textContent=g.name;
   nodes.topic.textContent=g.topic||'Private team discussion';
@@ -519,6 +637,9 @@ async function selectGroup(id){
   nodes.postBody.disabled=!isActive(g);
   nodes.postSubmit.disabled=!isActive(g);
   nodes.postKind.disabled=!isActive(g);
+  nodes.postAttachButton.disabled=!isActive(g);
+  nodes.postFile.disabled=!isActive(g);
+  nodes.chatShareFlyer.disabled=!isActive(g);
   renderPosts(g);
   if(!state.preview&&isActive(g)){
     try{
@@ -607,8 +728,10 @@ function resetEmptyGroup(){
   nodes.count.textContent=String(state.groups.length);
   nodes.memberCount.textContent='0';
   nodes.activeCount.textContent='0';
+  if(state.attachment)resetAttachment();
   for(const name of ['input','send','invite','leave','mute','edit',
-    'postBody','postSubmit','postKind'])nodes[name].disabled=true;
+    'postBody','postSubmit','postKind','postAttachButton',
+    'postFile','chatShareFlyer'])nodes[name].disabled=true;
 }
 const soundPulse=()=>{
   if(!state.soundEnabled)return;
@@ -900,6 +1023,25 @@ function bindEvents(){
       try{await loadPosts(selected().id);}catch{status('Could not load group posts.',true);}
     }
   });
+
+  nodes.postAttachButton.addEventListener('click',()=>{
+    if(!selected()||!isActive(selected()))return;
+    nodes.postFile.click();
+  });
+  nodes.chatShareFlyer.addEventListener('click',()=>{
+    if(!selected()||!isActive(selected()))return;
+    switchGroupView('posts');
+    nodes.postAttachButton.focus();
+    nodes.postFile.click();
+  });
+  nodes.postFile.addEventListener('change',()=>{
+    pickAttachment(nodes.postFile.files?.[0]);
+  });
+  nodes.removeAttachment.addEventListener('click',()=>resetAttachment());
+  window.addEventListener('pagehide',()=>{
+    for(const url of state.previewMediaUrls)URL.revokeObjectURL(url);
+    state.previewMediaUrls.clear();
+  },{once:true});
   nodes.postBody.addEventListener('input',()=>{
     nodes.postCount.textContent=nodes.postBody.value.length+' / 3000';
   });
@@ -907,7 +1049,7 @@ function bindEvents(){
     event.preventDefault();
     if(state.busy)return;
     const body=nodes.postBody.value.trim();
-    if(!body||body.length>3000)return;
+    if((!body&&!state.attachment)||body.length>3000)return;
     state.busy=true;
     nodes.postSubmit.disabled=true;
     try{
@@ -1075,7 +1217,8 @@ function localDemo(){
   state.unread.set('demo-training',2);
   nodes.simulate.hidden=false;
   nodes.hint.textContent='Sample updates · Use Simulate message to test unread alerts.';
-  nodes.mode.textContent='INTERACTIVE VISUAL PREVIEW · These groups, invitations, and messages exist only in this browser session. Nothing is sent or saved.';
+  nodes.mode.textContent='INTERACTIVE VISUAL PREVIEW · These groups, invitations, posts and attached files exist only in this browser session. Nothing is sent or saved.';
+  setMediaNotice('Try Add Photo / Flyer / PDF. The file is shown locally and never uploaded.');
   show();bindEvents();renderGroups();selectGroup('demo-leadership');
 }
 async function authenticated(){
@@ -1098,6 +1241,7 @@ async function authenticated(){
   state.client=client;state.uid=session.user.id;
   state.profiles.set(state.uid,{full_name:res.data.full_name||'You',rank:res.data.rank});
   nodes.mode.textContent='Private · Approved members only · Invitations require acceptance';
+  setMediaNotice('Flyer preview is available, but real file posting requires secure storage and is not yet enabled.');
   show();bindEvents();
   try{
     await loadGroups();
