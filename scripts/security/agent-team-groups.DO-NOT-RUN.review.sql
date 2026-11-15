@@ -47,6 +47,28 @@ create table public.agent_group_messages(
   body text not null check(length(btrim(body)) between 1 and 2000),
   created_at timestamptz not null default now()
 );
+-- Private, member-only posts coexist with chat. They are a persistent space for
+-- congratulations, license milestones, team training and announcements.
+create table public.agent_group_posts(
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references public.agent_groups(id) on delete cascade,
+  author_id uuid not null references auth.users(id),
+  kind text not null default 'update' check(kind in ('update','milestone','announcement')),
+  body text not null check(length(btrim(body)) between 1 and 3000),
+  created_at timestamptz not null default now()
+);
+create table public.agent_group_post_reactions(
+  post_id uuid not null references public.agent_group_posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id),
+  reaction text not null check(reaction in ('like','celebrate')),
+  created_at timestamptz not null default now(),
+  primary key(post_id,user_id)
+);
+create index agent_group_posts_timeline_idx
+  on public.agent_group_posts(group_id,created_at desc,id);
+create index agent_group_post_reactions_post_idx
+  on public.agent_group_post_reactions(post_id);
+
 create index agent_groups_owner_idx on public.agent_groups(owner_id);
 create index agent_group_members_user_idx on public.agent_group_members(user_id,status);
 create index agent_group_messages_timeline_idx on public.agent_group_messages(group_id,created_at,id);
@@ -54,6 +76,8 @@ create index agent_group_messages_timeline_idx on public.agent_group_messages(gr
 alter table public.agent_groups enable row level security;
 alter table public.agent_group_members enable row level security;
 alter table public.agent_group_messages enable row level security;
+alter table public.agent_group_posts enable row level security;
+alter table public.agent_group_post_reactions enable row level security;
 
 -- SECURITY DEFINER used only for membership authorization lookups that would
 -- otherwise recurse through RLS on agent_group_members. Private schema is
@@ -140,10 +164,23 @@ create function agent_private.guard_group_member_update()
 returns trigger language plpgsql security invoker set search_path=''
 as $$
 begin
-  if (old.group_id,old.user_id,old.role,old.invited_by,old.created_at)
+  if (old.group_id,old.user_id,old.invited_by,old.created_at)
      is distinct from
-     (new.group_id,new.user_id,new.role,new.invited_by,new.created_at) then
-    raise exception 'Membership identity and roles are immutable';
+     (new.group_id,new.user_id,new.invited_by,new.created_at) then
+    raise exception 'Membership identity is immutable';
+  end if;
+  if old.role is distinct from new.role then
+    -- A browser has no UPDATE(role) grant. Only the tightly scoped
+    -- owner-verified SECURITY DEFINER RPC running as the table owner may
+    -- promote/demote a member; ordinary admins cannot appoint admins.
+    if current_user<>(select pg_catalog.pg_get_userbyid(relowner)
+                      from pg_catalog.pg_class
+                      where oid='public.agent_group_members'::pg_catalog.regclass)
+      or old.status<>'active' or new.status<>'active'
+      or old.role not in ('member','admin')
+      or new.role not in ('member','admin') then
+      raise exception 'Only a verified owner may change admin role';
+    end if;
   end if;
   if old.status='invited' then
     if new.status<>'active' or new.muted is distinct from old.muted
@@ -180,6 +217,39 @@ create policy agent_messages_send_members_only on public.agent_group_messages
   with check(author_id=(select auth.uid())
     and agent_private.is_group_member(group_id,false));
 
+-- All approved, active members may publish a milestone or an ordinary
+-- update in the private group; invitees and outsiders cannot read either.
+create policy agent_group_posts_read_active on public.agent_group_posts
+  for select to authenticated using(agent_private.is_group_member(group_id,false));
+create policy agent_group_posts_insert_active on public.agent_group_posts
+  for insert to authenticated with check(
+    author_id=(select auth.uid())
+    and agent_private.is_group_member(group_id,false));
+-- A member may react to visible posts only as themselves. Reactions remain
+-- within the group, are unique per person/post and never expose private posts.
+create policy agent_group_post_reactions_read_active
+  on public.agent_group_post_reactions for select to authenticated
+  using(exists(select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+create policy agent_group_post_reactions_add_active
+  on public.agent_group_post_reactions for insert to authenticated
+  with check(user_id=(select auth.uid()) and exists(
+    select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+create policy agent_group_post_reactions_update_own
+  on public.agent_group_post_reactions for update to authenticated
+  using(user_id=(select auth.uid()) and exists(
+    select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)))
+  with check(user_id=(select auth.uid()) and exists(
+    select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+create policy agent_group_post_reactions_delete_own
+  on public.agent_group_post_reactions for delete to authenticated
+  using(user_id=(select auth.uid()) and exists(
+    select 1 from public.agent_group_posts post
+    where post.id=post_id and agent_private.is_group_member(post.group_id,false)));
+
 -- One atomic, authenticated operation to create group + owner membership.
 -- The public function is an intentional RPC with a narrow EXECUTE grant.
 create function public.create_agent_group(p_name text,p_topic text default '')
@@ -210,11 +280,50 @@ $$;
 revoke all on function public.create_agent_group(text,text) from public, anon;
 grant execute on function public.create_agent_group(text,text) to authenticated;
 
-revoke all on public.agent_groups,public.agent_group_members,public.agent_group_messages from public, anon;
+-- The owner alone appoints/revokes admins. Appointed admins can invite/remove
+-- ordinary members but cannot appoint admins, remove other admins or the owner.
+-- SECURITY DEFINER is narrowly exposed and checks the approved Auth identity
+-- and the group owner against trusted tables; never user_metadata.
+create function public.set_agent_group_admin(p_group uuid,p_member uuid,p_make_admin boolean)
+returns text language plpgsql security definer set search_path=''
+as $$
+declare v_owner uuid;v_target public.agent_group_members%rowtype;
+begin
+  v_owner:=(select auth.uid());
+  if v_owner is null or not exists(select 1 from public.member_profiles
+    where id=v_owner and verification_status='approved') then
+    raise exception 'Founder approval required';
+  end if;
+  if not exists(select 1 from public.agent_groups
+      where id=p_group and owner_id=v_owner) then
+    raise exception 'Only the group owner can appoint or remove admins';
+  end if;
+  select * into v_target from public.agent_group_members
+    where group_id=p_group and user_id=p_member for update;
+  if not found or v_target.status<>'active' or v_target.role='owner'
+      or p_member=v_owner or p_make_admin is null then
+    raise exception 'Select an active, non-owner group member';
+  end if;
+  update public.agent_group_members
+    set role=case when p_make_admin then 'admin' else 'member' end
+    where group_id=p_group and user_id=p_member;
+  return case when p_make_admin then 'admin' else 'member' end;
+end;
+$$;
+revoke all on function public.set_agent_group_admin(uuid,uuid,boolean)
+  from public,anon;
+grant execute on function public.set_agent_group_admin(uuid,uuid,boolean)
+  to authenticated;
+
+revoke all on public.agent_groups,public.agent_group_members,public.agent_group_messages,
+  public.agent_group_posts,public.agent_group_post_reactions from public, anon;
 grant select on public.agent_groups to authenticated;
 grant update(name,topic) on public.agent_groups to authenticated;
 grant select,insert,update(muted,status),delete on public.agent_group_members to authenticated;
 grant select,insert(group_id,author_id,body) on public.agent_group_messages to authenticated;
+grant select,insert(group_id,author_id,kind,body) on public.agent_group_posts to authenticated;
+grant select,insert(post_id,user_id,reaction),update(reaction),delete
+  on public.agent_group_post_reactions to authenticated;
 -- Non-content, self-scoped unread summary. SECURITY INVOKER uses existing
 -- member and message RLS: never exposes another group's message text or author.
 -- Counts exclude the reader's own messages and messages before membership acceptance.
