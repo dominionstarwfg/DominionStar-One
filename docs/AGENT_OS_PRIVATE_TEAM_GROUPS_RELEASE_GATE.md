@@ -15,12 +15,14 @@
 - **No push or email delivery:** Group alerts do not create scheduled worker jobs, push notifications, or email; these remain a future, separately gated feature.
 - Non-owner members can leave; owners cannot accidentally orphan a group.
 - **Owner group editing:** the owner can revise a group's name and purpose; existing membership and messages remain intact.
-- **Moderation:** owners can remove any non-owner member or cancel pending invitations; ordinary admins can remove regular members but **cannot expel another admin or owner**.
+- **Admin-only roster management:** Every creator is the group owner. The owner alone may appoint or revoke **group admins**. Only an owner or an appointed admin can invite or remove *other* members; ordinary members cannot add or expel anyone. Appointed admins may remove regular members but **cannot remove the owner or another admin, or appoint more admins**. Every member may still voluntarily leave their own group, and invitees can accept or decline their own invitations.
+- **Private posts alongside chat:** any joined, approved member may publish a full-height Team Update, Announcement, or Milestone & Recognition post within their group. Colleagues can Like or Celebrate once per post; all post content and reactions are RLS-scoped to active group members. An invited, unapproved, revoked, anonymous or uninvited user sees none of this content.
+- **Milestone example:** the preview recognizes a team member's state producer license exam accomplishment, with a standalone congratulations card, author identity, hashtags, and reaction controls. The group Chat tab remains separate and available. The sample celebrations are entirely fictional and browser-local.
 - **Invitation decisions:** invited agents can accept or decline. Before accepting, they cannot see previous messages or the active member roster.
 - Example previews include a separate **pending invitation** for testing both acceptance and refusal.
 - The live backend has NOT been enabled. On Netlify deploy-preview-198, demo group creation, invitations, sending and mute operations are **ephemeral** in that browser session, do not touch Supabase, do not notify anyone, and reset on reload.
 
-**Not yet implemented:** file uploads, voice notes, video calls, invite-by-share-link (unsafe for private member-only groups without a gated accept flow), per-topic subchannels, polls, pinned messages, admin promotion/ownership transfer, background/push or email notifications, group message reactions, or production Realtime. Do not describe these as existing capabilities. The GroupMe product is a design reference, not a service integration.
+**Not yet implemented:** real photo/file uploads to group posts, group post comments, voice notes, video calls, invite-by-share-link (unsafe for private member-only groups without a gated accept flow), per-topic subchannels, polls, pinned messages, admin promotion/ownership transfer, background/push or email notifications, group message reactions, or production Realtime. Do not describe these as existing capabilities. The GroupMe product is a design reference, not a service integration.
 
 ## Existing data boundary
 
@@ -37,6 +39,8 @@
 
 - `.github/workflows/team-groups-isolation-review.yml` uses synthetic roles and a disposable Postgres 16 service. It compiles the exact SQL review draft and tests approved group creation, owner assignment and group edits, invitation/acceptance, member chat permissions, admin-versus-admin removal denial, owner-only admin removal, cancellation and self-decline paths, uninvited and revoked approval denial, anonymous denial, role spoofing rejection, and owner orphan prevention.
 - `tests/team-groups-review.test.mjs` checks fail-closed flags, safe rendering, navigation and review-only build behavior.
+- The disposable SQL suite also checks the owner-only `set_agent_group_admin` RPC, denial of non-owner admin delegation, denial of unauthorized roster actions, posts and reactions before group invitation acceptance, post/reaction visibility after acceptance, author spoofing, and denial for anonymous/uninvited/revoked users.
+- Browser review verifies member admin promotion/demotion and private milestone/announcement posts, celebration reactions, switching between Chat and Posts, and no clipped content at desktop or mobile widths.
 - The disposable SQL suite also verifies member-only unread counts, exclusion of one's own messages, read-position updates, invited/anonymous/revoked denial, and rejection of future-dated cursors. Browser tests exercise sample unread badges, simulated incoming messages, manual read clearing, and opt-in sound controls at desktop and mobile widths.
 - `scripts/review-feed-browser-geometry.mjs` opens the static `/team-groups/` preview, tests pending invite acceptance/decline, owner rename/topic edits, mute, cancellation and re-invitation, creates a sample group, sends a Zoom URL and checks desktop/mobile width and preview asset integrity.
 - CI cannot substitute for **real Supabase Auth**, authenticated PostgREST, invitation notification delivery, connected-agent multi-device trials, or a secured staging deployment.
