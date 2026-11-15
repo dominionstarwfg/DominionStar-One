@@ -329,6 +329,21 @@ test('Attachment bytes must match file type; stale validation and upload cannot 
   assert.match(browser,/team-training-flyer\.png/);
 });
 
+test('A saved private post is not reported as failed when the feed refresh needs retry',()=>{
+  assert.match(code,/return \{saved:true,refreshPending:true\}/);
+  assert.match(code,/return \{saved:true,refreshPending:false\}/);
+  assert.match(code,/Your post was saved privately, but the feed did not refresh/);
+  assert.match(code,/Uploading private file…/);
+  assert.match(code,/nodes\.postSubmit\.textContent=buttonLabel/);
+  assert.match(code,/if\(!state\.busy\)resetAttachment\(\)/);
+  assert.match(code,/function resetAttachment/);
+  const mediaSql=read('scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql');
+  const probes=read('tests/sql/agent-team-groups-media-assertions.sql');
+  assert.match(mediaSql,/object\.get_authenticated_info/);
+  assert.match(probes,/Authorized group member could not get private attachment metadata/);
+  assert.match(probes,/Group files were enumerable via Storage list/);
+});
+
 test('Real group media stays feature-flagged and private until migration passes',()=>{
   const migration=read('scripts/security/agent-team-groups-media.DO-NOT-RUN.review.sql');
   const suite=read('tests/sql/agent-team-groups-media-assertions.sql');
