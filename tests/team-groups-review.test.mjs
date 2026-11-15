@@ -258,3 +258,46 @@ test('Private post replies have explicit member-only RLS, narrow table grants an
     'Anonymous reader saw private milestone replies'
   ])assert.ok(tests.includes(c),c);
 });
+
+
+test('Private team group composer offers JPG/PNG/WebP/PDF and natural-height flyer preview',()=>{
+  for(const id of ['dsgChatShareFlyer','dsgChatShareRow','dsgPostAttachButton',
+    'dsgPostFile','dsgAttachmentPreview','dsgAttachmentContent',
+    'dsgAttachmentInfo','dsgAttachmentNotice','dsgRemoveAttachment']){
+    assert.match(html,new RegExp('id="'+id+'"'));
+  }
+  assert.match(html,/accept="image\/jpeg,image\/png,image\/webp,application\/pdf/);
+  assert.match(code,/MAX_GROUP_POST_MEDIA=15\*1024\*1024/);
+  assert.match(code,/allowedGroupMediaTypes=new Set/);
+  assert.match(code,/URL\.createObjectURL\(file\)/);
+  assert.match(code,/URL\.revokeObjectURL\(/);
+  assert.match(code,/state\.previewMediaUrls\.add\(url\)/);
+  assert.match(code,/function pickAttachment\(file\)/);
+  assert.match(code,/function renderPostedMedia\(media\)/);
+  assert.match(code,/switchGroupView\('posts'\)/);
+  assert.match(code,/async function publishGroupPost\(kind,body\)/);
+  assert.match(code,/if\(attachment&&!state\.preview\)/);
+  assert.match(code,/Flyer uploads are not yet enabled for real groups/);
+  assert.match(code,/state\.attachment\)resetAttachment\(\)/);
+  assert.match(css,/\.dsg-flyer-preview/);
+  assert.match(css,/\.dsg-post-media-image/);
+  assert.match(css,/object-fit:contain!important/);
+  assert.match(css,/max-height:none!important/);
+  assert.match(css,/\.dsg-attachment-preview\[hidden\]/);
+  assert.match(css,/\.dsg-pdf-file/);
+  assert.doesNotMatch(code,/\.storage\.from\(|\.upload\(/);
+});
+
+test('Group flyer post keeps files in browser-only preview rather than implicitly publishing',()=>{
+  assert.match(code,/resetAttachment\(\{keepUrl:Boolean\(attachment\)\}\)/);
+  assert.match(code,/Local preview only/);
+  assert.match(code,/state\.previewMediaUrls\.has\(media\.url\)/);
+  assert.match(code,/nodes\.postFile\.addEventListener\('change'/);
+  assert.match(code,/nodes\.chatShareFlyer\.addEventListener\('click'/);
+  assert.match(code,/nodes\.postSubmit\.disabled=!selected\(\)\|\|!isActive\(selected\(\)\)/);
+  const browser=read('scripts/review-feed-browser-geometry.mjs');
+  assert.match(browser,/team-training-flyer\.png/);
+  assert.match(browser,/leadership-presentation\.pdf/);
+  assert.match(browser,/flyerGeometry\.naturalWidth,120/);
+  assert.match(browser,/postedFlyer\.count\(\),1/);
+});
