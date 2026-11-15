@@ -494,3 +494,16 @@ body.ds-visual-review .dsg-chat-share-button{
  .dsg-pdf-file{flex-wrap:wrap}
  .dsg-private-file-download{width:100%}
 }
+
+/* Quarantined group media is text-only until trusted server-side approval.
+   Never show a download link or embedded preview for pending/rejected bytes. */
+.dsg-media-review-status{
+  display:block!important;
+  margin:0!important;padding:17px 16px!important;
+  background:rgba(16,45,70,.88);
+  border:1px dashed rgba(183,193,206,.42);
+  border-radius:11px;
+  color:#dbe8f5!important;
+  font:690 12px/1.65 system-ui,sans-serif!important;
+  overflow-wrap:anywhere;
+}
