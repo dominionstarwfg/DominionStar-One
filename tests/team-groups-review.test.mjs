@@ -276,7 +276,7 @@ test('Private team group composer offers JPG/PNG/WebP/PDF and natural-height fly
   assert.match(code,/function renderPostedMedia\(media\)/);
   assert.match(code,/switchGroupView\('posts'\)/);
   assert.match(code,/async function publishGroupPost\(kind,body\)/);
-  assert.match(code,/if\(attachment&&!state\.preview\)/);
+  assert.match(code,/if\(attachment&&!state\.preview&&!mediaFeatureEnabled\(\)\)/);
   assert.match(code,/Flyer uploads are not yet enabled for real groups/);
   assert.match(code,/state\.attachment\)resetAttachment\(\)/);
   assert.match(css,/\.dsg-flyer-preview/);
