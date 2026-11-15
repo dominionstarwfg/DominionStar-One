@@ -111,7 +111,9 @@ const groupRow=g=>{
       b.append(badge);
     }
   }
-  b.addEventListener('click',()=>selectGroup(g.id));
+  b.addEventListener('click',()=>{
+    if(!state.busy)selectGroup(g.id);
+  });
   return b;
 };
 function renderGroups(){
@@ -761,7 +763,6 @@ async function setMemberAdmin(g,m,makeAdmin){
   renderMembers(g);
 }
 async function selectGroup(id){
-  if(state.busy&&id!==state.selected)return;
   if(!state.groups.some(g=>g.id===id))return;
   if(state.selected!==id&&!state.preview)revokePrivatePostMedia();
   if(state.selected!==id&&state.attachment)resetAttachment();
