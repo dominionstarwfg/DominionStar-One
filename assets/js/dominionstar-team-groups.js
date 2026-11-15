@@ -28,10 +28,14 @@ const nodes={
   createDialog:$('dsgCreateDialog'),createForm:$('dsgCreateForm'),
   inviteDialog:$('dsgInviteDialog'),inviteList:$('dsgInviteChoices'),inviteSearch:$('dsgInviteSearch'),
   unreadTotal:$('dsgUnreadTotal'),refresh:$('dsgRefreshButton'),sound:$('dsgSoundToggle'),
-  incoming:$('dsgIncomingNotice'),simulate:$('dsgSimulateButton'),hint:$('dsgUpdateHint')
+  incoming:$('dsgIncomingNotice'),simulate:$('dsgSimulateButton'),hint:$('dsgUpdateHint'),
+  chatTab:$('dsgChatTab'),postsTab:$('dsgPostsTab'),postsPanel:$('dsgPostsPanel'),
+  postForm:$('dsgPostForm'),postKind:$('dsgPostKind'),postBody:$('dsgPostBody'),
+  postCount:$('dsgPostCount'),postSubmit:$('dsgPostSubmit'),postList:$('dsgPostList')
 };
 const state={preview:false,client:null,uid:null,groups:[],selected:null,
-  memberships:new Map(),messages:new Map(),contacts:[],profiles:new Map(),
+  memberships:new Map(),messages:new Map(),posts:new Map(),postReactions:new Map(),
+  activeView:'chat',contacts:[],profiles:new Map(),
   muted:new Set(),unread:new Map(),lastRead:new Map(),
   soundEnabled:false,hasUnreadSnapshot:false,polling:false,pollTimer:null,
   busy:false,version:0};
@@ -155,6 +159,25 @@ function renderMembers(g){
       });
       line.append(button);
     }
+    if(isOwner(g)&&m.user_id!==state.uid&&m.status==='active'
+        &&(m.role==='member'||m.role==='admin')){
+      const nextAdmin=m.role!=='admin';
+      const label=nextAdmin?'Make admin':'Remove admin';
+      const adminButton=el('button','dsg-member-admin',label);
+      adminButton.type='button';
+      adminButton.setAttribute('aria-label',label+' for '+displayName(m.user_id));
+      adminButton.addEventListener('click',async()=>{
+        if(state.busy)return;
+        if(!confirm(label+' for '+displayName(m.user_id)+'?'))return;
+        state.busy=true;adminButton.disabled=true;
+        try{
+          await setMemberAdmin(g,m,nextAdmin);
+          status(displayName(m.user_id)+(nextAdmin?' can now manage members.':' no longer has admin privileges.'));
+        }catch(err){status(err?.message||'Unable to update admin rights.',true);}
+        finally{state.busy=false;adminButton.disabled=false;}
+      });
+      line.append(adminButton);
+    }
     nodes.members.append(line);
   }
 }
@@ -199,6 +222,157 @@ function renderMessages(g){
   }
   nodes.messages.scrollTop=nodes.messages.scrollHeight;
 }
+
+function switchGroupView(view){
+  state.activeView=view==='posts'?'posts':'chat';
+  const posts=state.activeView==='posts';
+  nodes.chatTab.setAttribute('aria-selected',String(!posts));
+  nodes.postsTab.setAttribute('aria-selected',String(posts));
+  nodes.chatTab.tabIndex=posts?-1:0;
+  nodes.postsTab.tabIndex=posts?0:-1;
+  nodes.messages.hidden=posts;
+  nodes.form.hidden=posts;
+  nodes.postsPanel.hidden=!posts;
+  if(posts){const g=selected();if(g)renderPosts(g);}
+}
+const groupPostTitle=kind=>kind==='milestone'?'🎉 Milestone & Recognition':
+  kind==='announcement'?'📣 Team Announcement':'Team Update';
+function renderPosts(g){
+  clear(nodes.postList);
+  const active=isActive(g);
+  nodes.postBody.disabled=!active;
+  nodes.postSubmit.disabled=!active;
+  nodes.postKind.disabled=!active;
+  if(!active){
+    nodes.postList.append(el('p','dsg-post-empty',
+      'Accept the private group invitation to view posts and celebrate milestones.'));
+    return;
+  }
+  const posts=state.posts.get(g.id)||[];
+  if(!posts.length){
+    nodes.postList.append(el('p','dsg-post-empty',
+      'No team posts yet. Share a milestone, training update or an announcement.'));
+    return;
+  }
+  for(const post of posts){
+    const card=el('article','dsg-post-card dsg-kind-'+post.kind);
+    const label=el('span','dsg-post-label',groupPostTitle(post.kind));
+    const head=el('div','dsg-post-byline');
+    head.append(el('span','dsg-member-badge',glyph(displayName(post.author_id))));
+    const by=el('span');
+    by.append(el('strong',null,post.author_id===state.uid?'You':displayName(post.author_id)),
+      el('small',null,relativeTime(post.created_at)));
+    head.append(by);
+    const copy=el('p','dsg-post-copy');
+    safeLinkify(copy,post.body);
+    const reactions=state.postReactions.get(post.id)||[];
+    const footer=el('div','dsg-post-reactions');
+    const counts=el('span','dsg-post-reaction-counts',
+      (reactions.filter(r=>r.reaction==='like').length)+' likes · '+
+      (reactions.filter(r=>r.reaction==='celebrate').length)+' celebrations');
+    footer.append(counts);
+    const own=reactions.find(r=>r.user_id===state.uid)?.reaction;
+    for(const [type,text] of [['like','👍 Like'],['celebrate','🎉 Celebrate']]){
+      const button=el('button','dsg-post-react',text);
+      button.type='button';
+      button.setAttribute('aria-pressed',String(own===type));
+      button.addEventListener('click',async()=>{
+        if(state.busy)return;
+        state.busy=true;button.disabled=true;
+        try{await reactToPost(post,type);}
+        catch(err){status(err?.message||'Unable to update reaction.',true);}
+        finally{state.busy=false;}
+      });
+      footer.append(button);
+    }
+    card.append(label,head,copy,footer);
+    nodes.postList.append(card);
+  }
+}
+async function loadPosts(id){
+  if(state.preview)return;
+  const g=state.groups.find(item=>item.id===id);
+  if(!g||!isActive(g))return;
+  const result=await state.client.from('agent_group_posts')
+    .select('id,group_id,author_id,kind,body,created_at')
+    .eq('group_id',id).order('created_at',{ascending:false}).limit(80);
+  if(result.error)throw result.error;
+  const posts=result.data||[];
+  const map=new Map();
+  if(posts.length){
+    const reactionResult=await state.client.from('agent_group_post_reactions')
+      .select('post_id,user_id,reaction').in('post_id',posts.map(p=>p.id)).limit(1000);
+    if(reactionResult.error)throw reactionResult.error;
+    for(const reaction of reactionResult.data||[]){
+      if(!map.has(reaction.post_id))map.set(reaction.post_id,[]);
+      map.get(reaction.post_id).push(reaction);
+    }
+  }
+  state.posts.set(id,posts);
+  for(const p of posts)state.postReactions.set(p.id,map.get(p.id)||[]);
+  if(state.selected===id&&state.activeView==='posts')renderPosts(g);
+}
+async function publishGroupPost(kind,body){
+  const g=selected();
+  if(!g||!isActive(g))throw Error('Only joined group members can publish.');
+  if(!['update','milestone','announcement'].includes(kind)||
+    !body.trim()||body.trim().length>3000)throw Error('Invalid post.');
+  if(state.preview){
+    const id='sample-post-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+    const post={id,group_id:g.id,author_id:state.uid,kind,body,
+      created_at:new Date().toISOString()};
+    state.posts.set(g.id,[post,...(state.posts.get(g.id)||[])]);
+    state.postReactions.set(id,[]);
+    renderPosts(g);
+    return;
+  }
+  const result=await state.client.from('agent_group_posts')
+    .insert({group_id:g.id,author_id:state.uid,kind,body})
+    .select('id').single();
+  if(result.error)throw result.error;
+  await loadPosts(g.id);
+}
+async function reactToPost(post,reaction){
+  const g=selected();
+  if(!g||!isActive(g)||post.group_id!==g.id)throw Error('Join this group to react.');
+  const list=state.postReactions.get(post.id)||[];
+  const own=list.find(r=>r.user_id===state.uid);
+  if(!state.preview){
+    let result;
+    if(own?.reaction===reaction){
+      result=await state.client.from('agent_group_post_reactions')
+        .delete().eq('post_id',post.id).eq('user_id',state.uid);
+    }else if(own){
+      result=await state.client.from('agent_group_post_reactions')
+        .update({reaction}).eq('post_id',post.id).eq('user_id',state.uid);
+    }else{
+      result=await state.client.from('agent_group_post_reactions')
+        .insert({post_id:post.id,user_id:state.uid,reaction});
+    }
+    if(result.error)throw result.error;
+    await loadPosts(g.id);
+    return;
+  }
+  state.postReactions.set(post.id,
+    [...list.filter(r=>r.user_id!==state.uid),...(own?.reaction===reaction?[]:
+      [{post_id:post.id,user_id:state.uid,reaction}])]);
+  renderPosts(g);
+}
+async function setMemberAdmin(g,m,makeAdmin){
+  if(!isOwner(g)||m.user_id===state.uid||m.status!=='active'||
+      !['admin','member'].includes(m.role))
+    throw Error('Only the group owner can appoint or remove administrators.');
+  if(state.preview){
+    m.role=makeAdmin?'admin':'member';
+    renderMembers(g);
+    return;
+  }
+  const result=await state.client.rpc('set_agent_group_admin',{
+    p_group:g.id,p_member:m.user_id,p_make_admin:makeAdmin});
+  if(result.error)throw result.error;
+  await loadMembers(g.id);
+  renderMembers(g);
+}
 async function selectGroup(id){
   if(!state.groups.some(g=>g.id===id))return;
   state.selected=id;const g=selected();
@@ -213,8 +387,15 @@ async function selectGroup(id){
   nodes.mute.disabled=!isActive(g);
   nodes.mute.textContent=state.muted.has(g.id)?'Unmute':'Mute';
   renderGroups();renderMembers(g);
+  nodes.postBody.disabled=!isActive(g);
+  nodes.postSubmit.disabled=!isActive(g);
+  nodes.postKind.disabled=!isActive(g);
+  renderPosts(g);
   if(!state.preview&&isActive(g)){
-    try{await loadMessages(g.id);}catch(e){status('Could not load this private conversation.',true);}
+    try{
+      await loadMessages(g.id);
+      await loadPosts(g.id);
+    }catch(e){status('Could not load this private group.',true);}
   }else{
     renderMessages(g);
     if(state.preview&&isActive(g)&&document.visibilityState!=='hidden'){
@@ -288,6 +469,8 @@ function resetEmptyGroup(){
   state.selected=null;
   clear(nodes.messages);
   nodes.messages.append(el('p','dsg-empty-item','Create your first team group.'));
+  clear(nodes.postList);
+  nodes.postList.append(el('p','dsg-post-empty','Create a group to share team milestones.'));
   clear(nodes.members);
   nodes.name.textContent='No groups yet';
   nodes.topic.textContent='Create a private group to get started.';
@@ -295,7 +478,8 @@ function resetEmptyGroup(){
   nodes.count.textContent=String(state.groups.length);
   nodes.memberCount.textContent='0';
   nodes.activeCount.textContent='0';
-  for(const name of ['input','send','invite','leave','mute','edit'])nodes[name].disabled=true;
+  for(const name of ['input','send','invite','leave','mute','edit',
+    'postBody','postSubmit','postKind'])nodes[name].disabled=true;
 }
 const soundPulse=()=>{
   if(!state.soundEnabled)return;
@@ -360,7 +544,10 @@ async function refreshUpdates({manual=false}={}){
     else{
       await refreshUnread();
       const g=selected();
-      if(g&&isActive(g))await loadMessages(g.id);
+      if(g&&isActive(g)){
+        await loadMessages(g.id);
+        if(state.activeView==='posts')await loadPosts(g.id);
+      }
     }
     if(manual)await refreshUnread({notify:false});
     if(manual)status('Your private groups are up to date.');
@@ -466,6 +653,7 @@ async function createGroup(name,topic){
     state.groups.unshift(g);
     state.memberships.set(id,[{group_id:id,user_id:state.uid,role:'owner',status:'active',muted:false}]);
     state.messages.set(id,[]);
+    state.posts.set(id,[]);
     await selectGroup(id);
     return;
   }
@@ -576,6 +764,31 @@ async function prepareInvites(){
 }
 function bindEvents(){
   nodes.create.addEventListener('click',()=>openDialog(nodes.createDialog));
+  nodes.chatTab.addEventListener('click',()=>switchGroupView('chat'));
+  nodes.postsTab.addEventListener('click',async()=>{
+    switchGroupView('posts');
+    if(!state.preview&&selected()&&isActive(selected())){
+      try{await loadPosts(selected().id);}catch{status('Could not load group posts.',true);}
+    }
+  });
+  nodes.postBody.addEventListener('input',()=>{
+    nodes.postCount.textContent=nodes.postBody.value.length+' / 3000';
+  });
+  nodes.postForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(state.busy)return;
+    const body=nodes.postBody.value.trim();
+    if(!body||body.length>3000)return;
+    state.busy=true;
+    nodes.postSubmit.disabled=true;
+    try{
+      await publishGroupPost(nodes.postKind.value,body);
+      nodes.postBody.value='';
+      nodes.postCount.textContent='0 / 3000';
+      status(state.preview?'Example post shared in this browser only.':'Posted privately to your group.');
+    }catch(err){status(err?.message||'Unable to publish group post.',true);}
+    finally{state.busy=false;nodes.postSubmit.disabled=!selected()||!isActive(selected());}
+  });
   nodes.edit.addEventListener('click',()=>{
     const g=selected();
     if(!g||!isOwner(g))return;
@@ -687,6 +900,30 @@ function localDemo(){
   ]);
   state.messages.set('demo-pending',[
     {author_id:'demo-c',body:'Welcome to our regional mentorship circle. We share group coaching and leadership resources here.',created_at:'2026-11-13T09:00:00Z'}
+  ]);
+  state.posts.set('demo-leadership',[
+    {id:'demo-recognition-1',group_id:'demo-leadership',author_id:'demo-a',
+      kind:'milestone',
+      body:'Congratulations to Alex Morgan on completing the state producer licensing exam! 🎉\\n\\nYour consistency and hard work deserve recognition. The entire DominionStar team is celebrating this milestone with you. #TeamDominionStar #Licensing',
+      created_at:'2026-11-13T14:30:00Z'},
+    {id:'demo-announcement-1',group_id:'demo-leadership',author_id:state.uid,
+      kind:'announcement',
+      body:'Weekly team development reminder: bring your training questions to our next leadership session.\\nJoin https://zoom.us/j/7443001370',
+      created_at:'2026-11-12T19:00:00Z'}
+  ]);
+  state.posts.set('demo-training',[
+    {id:'demo-training-1',group_id:'demo-training',author_id:'demo-a',
+      kind:'update',body:'Study plan for this week: finish two practice exams, review missed questions, and join our coaching call. Consistent preparation builds confidence.',
+      created_at:'2026-11-12T11:00:00Z'}
+  ]);
+  state.posts.set('demo-pending',[
+    {id:'demo-pending-1',group_id:'demo-pending',author_id:'demo-c',
+      kind:'milestone',body:'Private mentorship milestone — visible only after joining the group.',
+      created_at:'2026-11-12T09:00:00Z'}
+  ]);
+  state.postReactions.set('demo-recognition-1',[
+    {post_id:'demo-recognition-1',user_id:'demo-b',reaction:'celebrate'},
+    {post_id:'demo-recognition-1',user_id:'demo-c',reaction:'like'}
   ]);
   state.unread.set('demo-training',2);
   nodes.simulate.hidden=false;
