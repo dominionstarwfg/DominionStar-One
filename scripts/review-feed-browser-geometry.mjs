@@ -481,11 +481,20 @@ try{
       const flyerChooser=page.waitForEvent('filechooser');
       await page.locator('#dsgChatShareFlyer').click();
       const filePicker=await flyerChooser;
-      await filePicker.setFiles({name:'team-training-flyer.png',
+      // A renamed text/html payload must not render as a flyer or get posted.
+      await filePicker.setFiles({name:'fake-flyer.png',
+        mimeType:'image/png',buffer:Buffer.from('<script>alert("bad")</script>')});
+      await page.waitForFunction(()=>
+        document.querySelector('#dsgAttachmentNotice')?.textContent
+          ?.includes('File contents do not match'));
+      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),false);
+      assert.equal(await page.locator('#dsgAttachmentContent img').count(),0);
+      // A real portrait image is still accepted immediately afterward.
+      await page.locator('#dsgPostFile').setInputFiles({name:'team-training-flyer.png',
         mimeType:'image/png',
         buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAwAAAAVCAIAAAD9zpjjAAAAGUlEQVR4nGMUccxkIASYCKoYVTSqaGgrAgCBwQDoTpb6NQAAAABJRU5ErkJggg==','base64')});
       await page.locator('#dsgPostsPanel').waitFor({state:'visible'});
-      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
+      await page.locator('#dsgAttachmentPreview').waitFor({state:'visible'});
       await page.waitForTimeout(600);
       const flyerDiagnostics=await page.evaluate(()=>{
         const img=document.querySelector('#dsgAttachmentContent img');
@@ -522,7 +531,7 @@ try{
         name:'team-training-flyer.png',mimeType:'image/png',
         buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAwAAAAVCAIAAAD9zpjjAAAAGUlEQVR4nGMUccxkIASYCKoYVTSqaGgrAgCBwQDoTpb6NQAAAABJRU5ErkJggg==','base64')
       });
-      assert.equal(await page.locator('#dsgAttachmentPreview').isVisible(),true);
+      await page.locator('#dsgAttachmentPreview').waitFor({state:'visible'});
       assert.match(await page.locator('#dsgAttachmentInfo').innerText(),/team-training-flyer.png/);
       assert.match(await page.locator('#dsgAttachmentNotice').innerText(),/browser session/);
       assert.equal(await page.locator('#dsgPostBody').inputValue(),'');
@@ -538,6 +547,9 @@ try{
         name:'leadership-presentation.pdf',mimeType:'application/pdf',
         buffer:Buffer.from('%PDF-1.4\\n1 0 obj\\n<< /Type /Catalog >>\\nendobj\\n%%EOF\\n')
       });
+      await page.waitForFunction(()=>
+        document.querySelector('#dsgAttachmentContent')?.textContent
+          ?.includes('leadership-presentation.pdf'));
       assert.match(await page.locator('#dsgAttachmentContent').innerText(),
         /leadership-presentation.pdf/);
       assert.equal(await page.locator('#dsgAttachmentContent iframe').count(),0);
