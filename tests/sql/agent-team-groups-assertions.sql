@@ -20,11 +20,17 @@ insert into public.agent_group_posts(group_id,author_id,kind,body)
   returning id as post_id \gset
 insert into public.agent_group_post_reactions(post_id,user_id,reaction)
   values(:'post_id','11111111-1111-4111-8111-111111111111','celebrate');
+select set_config('test.group_post_id',:'post_id',false);
+insert into public.agent_group_post_comments(post_id,author_id,body)
+  values(:'post_id','11111111-1111-4111-8111-111111111111',
+    'Well done on your producer exam! #TeamDominionStar');
 do $$ begin
   if (select count(*) from public.agent_group_posts)<>1 then
     raise exception 'Group owner cannot read their private recognition post';end if;
   if (select count(*) from public.agent_group_post_reactions)<>1 then
     raise exception 'Owner private celebration reaction is missing';end if;
+  if (select count(*) from public.agent_group_post_comments)<>1 then
+    raise exception 'Group owner could not read the private milestone reply';end if;
 end $$;
 insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
 values(:'group_id','22222222-2222-4222-8222-222222222222','member','invited','11111111-1111-4111-8111-111111111111');
@@ -112,6 +118,13 @@ do $$ begin
     raise exception 'Invited agent read private recognition posts';end if;
   if (select count(*) from public.agent_group_post_reactions)<>0 then
     raise exception 'Invited agent read post reactions';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Invited agent read private post replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '22222222-2222-4222-8222-222222222222','Unauthorized reply')$q$
+  ) then raise exception 'Invited agent replied before accepting';end if;
   if not public.synthetic_assert_denied(
     $q$insert into public.agent_group_posts(group_id,author_id,kind,body)
         select id,'22222222-2222-4222-8222-222222222222','milestone',
@@ -136,6 +149,8 @@ do $$ begin
     raise exception 'Joined member could not see group congratulations';end if;
   if (select count(*) from public.agent_group_post_reactions)<>1 then
     raise exception 'Joined member cannot view celebrations';end if;
+  if (select count(*) from public.agent_group_post_comments)<>1 then
+    raise exception 'Joined member cannot read existing milestone replies';end if;
   if not public.synthetic_assert_denied(
     $q$update public.agent_group_members set role='owner'
        where user_id='22222222-2222-4222-8222-222222222222'$q$
@@ -212,11 +227,21 @@ insert into public.agent_group_posts(group_id,author_id,kind,body)
     'Training call reminder for all joined members');
 insert into public.agent_group_post_reactions(post_id,user_id,reaction)
   values(:'post_id','22222222-2222-4222-8222-222222222222','like');
+insert into public.agent_group_post_comments(post_id,author_id,body)
+  values(:'post_id','22222222-2222-4222-8222-222222222222',
+    'Congratulations! Looking forward to more milestones.');
 do $$ begin
   if (select count(*) from public.agent_group_posts)<>2 then
     raise exception 'Joined member cannot publish group post';end if;
   if (select count(*) from public.agent_group_post_reactions)<>2 then
     raise exception 'Joined member cannot react to group post';end if;
+  if (select count(*) from public.agent_group_post_comments)<>2 then
+    raise exception 'Joined member could not post a milestone reply';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '11111111-1111-4111-8111-111111111111','Spoofed reply')$q$
+  ) then raise exception 'Post reply author spoofing was permitted';end if;
   if not public.synthetic_assert_denied(
     $q$insert into public.agent_group_post_reactions(post_id,user_id,reaction)
       select id,'33333333-3333-4333-8333-333333333333','like'
@@ -243,6 +268,13 @@ do $$ begin
     raise exception 'Uninvited agent sees private group posts';end if;
   if (select count(*) from public.agent_group_post_reactions)<>0 then
     raise exception 'Uninvited agent sees private reactions';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Uninvited agent sees private milestone replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '33333333-3333-4333-8333-333333333333','Unauthorized reply')$q$
+  ) then raise exception 'Uninvited agent wrote a private reply';end if;
   if (select count(*) from public.list_agent_group_unread())<>0 then
     raise exception 'Uninvited agent learned unread metadata';end if;
   if not public.synthetic_assert_denied(
@@ -268,6 +300,8 @@ do $$ begin
     raise exception 'Revoked member still sees milestone posts';end if;
   if (select count(*) from public.agent_group_post_reactions)<>0 then
     raise exception 'Revoked member still sees celebrations';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Revoked member still sees private post replies';end if;
   if (select count(*) from public.list_agent_group_unread())<>0 then
     raise exception 'Revoked member learned unread metadata';end if;
 end $$;
@@ -289,6 +323,8 @@ do $$ begin
     then raise exception 'Anonymous reader saw group milestones';end if;
   if not public.synthetic_assert_denied($q$select * from public.agent_group_post_reactions$q$)
     then raise exception 'Anonymous reader saw group celebrations';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_post_comments$q$)
+    then raise exception 'Anonymous reader saw private milestone replies';end if;
   if not public.synthetic_assert_denied(
     $q$select public.set_agent_group_admin(
       '11111111-1111-4111-8111-111111111111',
