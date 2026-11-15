@@ -57,12 +57,27 @@
             </div>
             <label class="dsg-screenreader" for="dsgPostBody">Your group post</label>
             <textarea id="dsgPostBody" rows="4" maxlength="3000"
-              placeholder="Recognize a new license, promotion, team win, or share an encouraging update…" required disabled></textarea>
+              placeholder="Add a caption for your flyer, recognize a new license, or share a team announcement…" disabled></textarea>
+            <div class="dsg-post-media-controls">
+              <button id="dsgPostAttachButton" type="button" class="dsg-attach-button" disabled aria-controls="dsgPostFile">📎 Add Photo / Flyer / PDF</button>
+              <input id="dsgPostFile" class="dsg-file-input" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" aria-label="Choose a photo, flyer or PDF to post" disabled>
+              <span>JPG, PNG, WebP or PDF · maximum 15 MB · one file per post</span>
+            </div>
+            <section id="dsgAttachmentPreview" class="dsg-attachment-preview" aria-label="Attached flyer preview" hidden>
+              <div class="dsg-attachment-heading"><strong>Attached file</strong><button id="dsgRemoveAttachment" type="button" class="dsg-remove-attachment">Remove file</button></div>
+              <div id="dsgAttachmentContent" class="dsg-attachment-content"></div>
+              <small id="dsgAttachmentInfo" class="dsg-attachment-info"></small>
+            </section>
+            <p id="dsgAttachmentNotice" class="dsg-attachment-notice" role="status" aria-live="polite">Add an image or PDF and a caption. In this review preview, files are not uploaded or saved.</p>
             <div class="dsg-post-footer"><small id="dsgPostCount">0 / 3000</small><button id="dsgPostSubmit" class="dsg-button dsg-primary" type="submit" disabled>Publish to Group</button></div>
           </form>
           <div class="dsg-posts-heading"><strong>Group posts</strong><small>Recognition · Leadership · Training</small></div>
           <div id="dsgPostList" class="dsg-post-list" aria-live="polite"></div>
         </section>
+        <div id="dsgChatShareRow" class="dsg-chat-share-row">
+          <button id="dsgChatShareFlyer" type="button" class="dsg-chat-share-button" disabled>📎 Share a Flyer / File</button>
+          <span>Opens a new post in Posts &amp; Milestones</span>
+        </div>
         <form id="dsgMessageForm" class="dsg-message-form">
           <label class="dsg-screenreader" for="dsgMessageInput">Message your group</label>
           <textarea id="dsgMessageInput" rows="2" maxlength="2000" placeholder="Message your team…" required disabled></textarea>
