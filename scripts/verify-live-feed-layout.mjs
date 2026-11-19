@@ -38,9 +38,20 @@ try{
       await page.addScriptTag({url:origin+'/assets/js/dashboard-social.js'});
       const target=surface==='feed'?'feedPageStream':'dashboardSocialPreview';
       await page.evaluate(async ({seed,target})=>{
+        const state=window.__layoutTest={liked:false,comments:[],reposts:[],failRefresh:false,copied:''};
+        Object.defineProperty(navigator,'share',{configurable:true,value:undefined});
+        Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{state.copied=value;}}});
         const client={
-          rpc:async(name)=>{if(name!=='list_community_feed')throw Error('Unexpected RPC '+name);return {data:seed,error:null};},
-          from:name=>({select:()=>({in:()=>name==='community_comments'?{eq:async()=>({data:[],error:null})}:Promise.resolve({data:[],error:null})})})
+          rpc:async(name,args)=>{
+            if(name==='community_toggle_reaction'){state.liked=!state.liked;return {data:state.liked,error:null};}
+            if(name!=='list_community_feed')throw Error('Unexpected RPC '+name);
+            if(state.failRefresh)return {data:null,error:new Error('Simulated refresh failure')};
+            return {data:seed,error:null};
+          },
+          from:name=>({
+            select:()=>({in:()=>name==='community_comments'?{eq:async()=>({data:state.comments.map(c=>({message_id:c.message_id})),error:null})}:Promise.resolve({data:state.liked?[{message_id:'short',user_id:'layout-test-member',reaction:'like'}]:[],error:null})}),
+            insert:async value=>{if(name==='community_comments')state.comments.push(value);else if(name==='community_messages')state.reposts.push(value);else throw Error('Unexpected insert '+name);return {error:null};}
+          })
         };
         await window.DSDashboardSocial.mount({client,memberId:'layout-test-member',target:document.getElementById(target),resultLimit:8});
       },{seed,target});
@@ -66,6 +77,37 @@ try{
         assert.ok(c.copyBottom<c.bottom&&c.scroll<=c.copyWidth+3,'clipped text');
         assert.ok(c.actions.every(h=>h>=38&&h<=60),'oversized controls '+JSON.stringify(c.actions));
         if(i)assert.ok(c.top-m.cards[i-1].bottom>=12&&c.top-m.cards[i-1].bottom<=20,'inconsistent post spacing');
+      }
+      // Exercise the existing authenticated-renderer event handlers.
+      if(width===1536||width===390){
+        const card=page.locator('#'+target+' [data-post-id="short"]');
+        const like=card.locator('[data-social="like"]');
+        await like.click();
+        await page.waitForFunction(target=>document.querySelector('#'+target+' [data-post-id="short"] [data-social="like"]')?.getAttribute('aria-pressed')==='true',target);
+        await like.click();
+        await page.waitForFunction(target=>document.querySelector('#'+target+' [data-post-id="short"] [data-social="like"]')?.getAttribute('aria-pressed')==='false',target);
+        await card.locator('[data-social="comment"]').click();
+        await card.locator('textarea').fill('A real-handler comment test');
+        await card.locator('.ds30-comment-form button[type="submit"]').click();
+        await page.waitForFunction(()=>window.__layoutTest.comments.length===1);
+        await page.waitForFunction(()=>document.querySelector('.ds30-social-status')?.textContent==='Comment posted.');
+        await card.locator('[data-social="share"]').click();
+        await page.waitForFunction(()=>window.__layoutTest.copied.includes('/community/?post=short'));
+        await page.waitForFunction(()=>document.querySelector('.ds30-social-status')?.textContent==='Post link copied.');
+        page.once('dialog',dialog=>dialog.accept());
+        await card.locator('[data-social="repost"]').click();
+        await page.waitForFunction(()=>window.__layoutTest.reposts.length===1);
+        await page.waitForFunction(()=>document.querySelector('.ds30-social-status')?.textContent==='Reposted to the community.');
+        await card.locator('[data-social="comment"]').click();
+        await card.locator('textarea').fill('Saved even while refresh fails');
+        await page.evaluate(()=>window.__layoutTest.failRefresh=true);
+        await card.locator('.ds30-comment-form button[type="submit"]').click();
+        await page.waitForFunction(()=>document.querySelector('.ds30-social-status')?.textContent.includes('Comment posted. Refresh'));
+        assert.equal(await page.evaluate(()=>window.__layoutTest.comments.length),2);
+        assert.equal(await card.locator('textarea').inputValue(),'');
+        await page.evaluate(()=>window.__layoutTest.failRefresh=false);
+        await page.evaluate(async target=>{await document.getElementById(target).__ds30Controller.refresh();},target);
+        console.log('LIVE_RENDERER_INTERACTIONS_PASS',surface,width);
       }
       if(surface==='member-dashboard'){
         assert.equal(await page.locator('.dsx-overview-drawer').evaluate(n=>n.open),false);

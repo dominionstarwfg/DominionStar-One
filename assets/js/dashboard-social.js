@@ -175,8 +175,8 @@
         client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false),
         avatarLookup
       ]);
-      avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       if(current!==revision)return;
+      avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       const reactionOk=!reactionResult.error,commentOk=!commentResult.error;
       const counts=new Map(ids.map(id=>[String(id),{
         likes:0,comments:0,viewerLiked:false,reactionsKnown:reactionOk,commentsKnown:commentOk
@@ -202,6 +202,10 @@
       catch(error){ notice(error?.message||'The action could not be completed.',true); }
       finally{busy=false;target.removeAttribute('aria-busy');}
     };
+    const refreshAfterSaved = async message => {
+      try{await refresh();notice(message);}
+      catch{notice(message+' Refresh the page to see the latest updates.');}
+    };
     const closeMenus = () => {
       target.querySelectorAll('.ds30-post-menu').forEach(menu=>menu.hidden=true);
       target.querySelectorAll('[data-social="menu"]').forEach(button=>button.setAttribute('aria-expanded','false'));
@@ -209,6 +213,7 @@
     target.addEventListener('click', event => {
       const button=event.target.closest('button[data-social]');
       if(!button||!target.contains(button))return;
+      if(busy)return;
       const card=button.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       if(!post)return;
@@ -221,6 +226,7 @@
       closeMenus();
       if(action==='comment'){
         const form=card.querySelector('.ds30-comment-form');
+        if(post.is_locked){notice('Comments are closed for this post.',true);return;}
         form.hidden=!form.hidden;
         button.setAttribute('aria-expanded',String(!form.hidden));
         if(!form.hidden)form.querySelector('textarea')?.focus();
@@ -232,7 +238,7 @@
           target_message_id:post.id,target_reaction:'like'
         });
         if(result.error)throw result.error;
-        await refresh();notice('Reaction updated.');
+        await refreshAfterSaved('Reaction updated.');
       });
       if(action==='copy')return void inFlight(async()=>{
         await copy([post.title,post.body||post.description].filter(Boolean).join('\n\n'));
@@ -266,7 +272,7 @@
             body:message,post_type:'discussion',is_pinned:false
           });
           if(result.error)throw result.error;
-          await refresh();notice('Reposted to the community.');
+          await refreshAfterSaved('Reposted to the community.');
         });
       }
     });
@@ -274,6 +280,7 @@
       const form=event.target.closest('.ds30-comment-form');
       if(!form)return;
       event.preventDefault();
+      if(busy)return;
       const card=form.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       const body=form.querySelector('textarea')?.value.trim();
@@ -285,7 +292,9 @@
         });
         if(result.error)throw result.error;
         // Noncritical mention alerts are handled separately by the Community workflow.
-        await refresh();notice('Comment posted.');
+        const input=form.querySelector('textarea');
+        if(input)input.value='';
+        await refreshAfterSaved('Comment posted.');
       });
     });
     target.__ds30Controller={refresh};
