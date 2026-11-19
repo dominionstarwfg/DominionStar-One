@@ -18,6 +18,14 @@
     } catch { return escapeHtml(part); }
   }).join('');
 
+  const postKind = post => {
+    const body=String(post.body||post.description||'');
+    if (/https?:\/\/(?:[\w-]+\.)*zoom\.us\/(?:j\/|my\/|wc\/join\/|s\/)/i.test(body)) return 'meeting';
+    if (/https?:\/\/[^\s<>"']+/i.test(body)) return 'link';
+    if (/^(quote|inspiration)$/i.test(String(post.post_type||''))) return 'quote';
+    if (/^announcement$/i.test(String(post.post_type||''))) return 'announcement';
+    return 'text';
+  };
   const icons = {
     like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
     comment:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
@@ -83,14 +91,21 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        const text=description.length>900 ? description.slice(0,900)+'…' : description;
+        // Preserve the actual saved post; let the layout determine its height.
+        const kind=postKind(post);
+        const length=description.length>320?'long':'short';
+        const messageContent=kind==='meeting'||kind==='link'
+          ? '<div class="ds30-post-message-bubble">'+
+              (kind==='meeting'?'<div class="ds30-post-message-label">Shared Zoom meeting link</div>':'')+
+              '<p class="ds30-post-copy">'+linkify(description)+'</p></div>'
+          : '<p class="ds30-post-copy">'+linkify(description)+'</p>';
         const stats=counts.get(String(post.id))||{};
         const likeCount=readableCount(stats.likes||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
         const initials=author.trim().split(/\s+/).map(word=>word[0]).slice(0,2).join('').toUpperCase();
         const isLiked=Boolean(stats.viewerLiked);
         return `
-        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
+        <article class="ds30-social-post" data-post-kind="${kind}" data-post-length="${length}" data-post-id="${escapeHtml(post.id)}">
           <header class="ds30-post-authorbar">
             <span class="ds30-author-avatar" aria-hidden="true">
               <span class="ds30-author-initials">${escapeHtml(initials||'DS')}</span>
@@ -114,8 +129,7 @@
             </div>
           </header>
           ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
-          <p class="ds30-post-copy">${linkify(text)}</p>
-          ${description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${messageContent}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span>${likeCount} ${stats.likes===1?'like':'likes'}</span>
             <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>

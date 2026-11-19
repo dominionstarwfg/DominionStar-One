@@ -37,9 +37,9 @@ test('desktop scale remains compact and social-app dense',()=>{
   assert.doesNotMatch(css,/\.dsx-hero\{[\s\S]{0,180}min-height:260px!important/);
 });
 
-test('dashboard social preview stays separate from the full Feed and only requests one post',()=>{
+test('dashboard shows a bounded eight real posts and stays separate from the full Feed',()=>{
   assert.doesNotThrow(()=>new vm.Script(previewJs));
-  assert.match(previewJs,/resultLimit:1/);
+  assert.match(previewJs,/resultLimit:8/);
   assert.match(previewJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
   assert.match(previewJs,/community_notify_mentions/);
   assert.match(social,/resultLimit=20/);

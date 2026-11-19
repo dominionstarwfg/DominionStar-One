@@ -57,7 +57,7 @@
       client,
       memberId:session.user.id,
       target,
-      resultLimit:1
+      resultLimit:8
     });
   };
 
