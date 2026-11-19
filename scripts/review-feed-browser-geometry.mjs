@@ -124,6 +124,8 @@ try{
         return {
           count:cards.length,width:rect(stage).width,
           short:rect(short).height,long:rect(long).height,
+          shortSections:[...short.children].filter(n=>getComputedStyle(n).display!=='none').map(n=>({className:n.className,height:rect(n).height,top:rect(n).top-rect(short).top,bottom:rect(n).bottom-rect(short).top})),
+          actionButtons:[...short.querySelectorAll('.ds-review-actions button')].map(n=>rect(n).height),
           gaps:cards.slice(1).map((card,i)=>rect(card).top-rect(cards[i]).bottom),
           paragraphs:[...stage.querySelectorAll('.ds-review-post-body,.ds-review-photo-caption,.ds-review-post > p')].map(n=>({
             font:parseFloat(getComputedStyle(n).fontSize),contrast:contrast(n),
@@ -137,7 +139,9 @@ try{
       });
       assert.ok(visibleAudit.count>=5,v.label+' missing example posts');
       assert.ok(visibleAudit.width<=801,v.label+' excessive reading-column width');
-      assert.ok(visibleAudit.short<300,v.label+' short post has excessive empty space');
+      process.stdout.write('FEED_SHORT_POST_DIAGNOSTIC '+v.label+' '+JSON.stringify({height:visibleAudit.short,sections:visibleAudit.shortSections,actions:visibleAudit.actionButtons})+'\n');
+      assert.ok(visibleAudit.short<300,v.label+' short post has excessive empty space: '+visibleAudit.short);
+      assert.ok(visibleAudit.actionButtons.every(height=>height>=38&&height<=60),v.label+' legacy preview action controls are oversized');
       assert.ok(visibleAudit.long>visibleAudit.short*1.5,v.label+' long post did not grow naturally');
       for(const gap of visibleAudit.gaps)assert.ok(gap>=12&&gap<=20,v.label+' duplicate or inadequate card spacing: '+gap);
       for(const p of visibleAudit.paragraphs){
