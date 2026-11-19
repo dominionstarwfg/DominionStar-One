@@ -653,6 +653,8 @@ try{
           commentCount:card.querySelectorAll('.dsg-post-comment-row').length};
       });
       assert.equal(replyLayout.display,'block');
+      assert.ok(await samplePost.locator('.dsg-post-comment-text').first().evaluate(n=>parseFloat(getComputedStyle(n).fontSize))>=14,view.label+' group reply text too small');
+      assert.ok(await samplePost.locator('.dsg-post-copy').evaluate(n=>parseFloat(getComputedStyle(n).fontSize))>=15,view.label+' group post text too small');
       assert.equal(replyLayout.whiteSpace,'pre-wrap');
       assert.ok(replyLayout.width>80);
       assert.ok(replyLayout.scrollWidth<=replyLayout.width+3,
@@ -748,6 +750,9 @@ try{
       assert.equal(await chat.count(),1);
       assert.match(await chat.first().innerText(),/Welcome #team/);
       assert.equal(await chat.first().locator('a[href^="https://zoom.us/"]').count(),1);
+      const chatReading=await chat.first().locator('.dsg-chat-bubble').evaluate(n=>({font:parseFloat(getComputedStyle(n).fontSize),width:n.getBoundingClientRect().width,scroll:n.scrollWidth}));
+      assert.ok(chatReading.font>=15,view.label+' group chat text too small');
+      assert.ok(chatReading.scroll<=chatReading.width+3,view.label+' group chat bubble clips its contents');
       await page.locator('#dsgInviteButton').click();
       await page.locator('#dsgInviteDialog').waitFor({state:'visible'});
       await page.locator('#dsgInviteSearch').fill('Alex');
