@@ -326,3 +326,150 @@ body.ds-visual-review .ds-review-tag-empty{
     padding:16px;
   }
 }
+
+/* November 18: shared social-feed reading contract. These two streams are
+   the only scope; do not affect Community, Team Groups, Meet or navigation.
+   One spacing system replaces stacked legacy paddings and sibling margins. */
+:is(#feedPageStream,#dashboardSocialPreview){
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  grid-auto-rows:max-content!important;align-content:start!important;align-items:start!important;
+  width:100%!important;max-width:800px!important;min-width:0!important;
+  height:auto!important;max-height:none!important;overflow:visible!important;
+  gap:16px!important;margin-inline:auto!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post,.ds-review-post){
+  box-sizing:border-box!important;display:block!important;position:relative!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;margin:0!important;padding:17px 20px 11px!important;
+  border-radius:15px!important;color:#f1f5fb!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-authorbar,.ds-review-author){
+  display:flex!important;align-items:center!important;min-width:0!important;
+  gap:10px!important;margin:0 0 12px!important;padding:0!important;
+  border-bottom:0!important;background:transparent!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author,.ds-review-author>span:nth-child(2)){
+  flex:1 1 auto!important;min-width:0!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author strong,.ds-review-author strong){
+  color:#f8fafc!important;font-size:14px!important;line-height:1.4!important;font-weight:750!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author small,.ds30-post-rank,.ds-review-author small){
+  color:#c1d0e1!important;font-size:12px!important;line-height:1.45!important;opacity:1!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post>h3,.ds-review-post-title){
+  color:#f6f9fd!important;font-size:17px!important;line-height:1.45!important;
+  margin:0 0 9px!important;padding:0!important;font-weight:750!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body,.ds-review-photo-caption){
+  box-sizing:border-box!important;display:block!important;position:static!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0 0 13px!important;padding:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:#f0f5fc!important;opacity:1!important;font-size:15px!important;
+  line-height:1.68!important;font-weight:450!important;
+  overflow:visible!important;white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;
+  text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body,.ds30-comment-body) a{
+  display:inline!important;position:static!important;float:none!important;
+  width:auto!important;max-width:none!important;min-width:0!important;
+  margin:0!important;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;
+  color:#a8d2ff!important;font:inherit!important;white-space:normal!important;
+  text-decoration:underline!important;text-underline-offset:3px!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;opacity:1!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body) :is(a.ds30-hashtag,a.ds-review-tag){
+  color:#f4ce87!important;font-weight:650!important;text-decoration:none!important;
+  overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble){
+  box-sizing:border-box!important;display:block!important;min-width:0!important;
+  width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;
+  overflow:visible!important;margin:0 0 13px!important;padding:15px 16px!important;
+  border-radius:12px!important;background:#0b233d!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble) :is(.ds30-post-copy,.ds-review-post-body){
+  margin:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-label,.ds-review-message-bubble>strong){
+  color:#e3effd!important;font-size:13px!important;line-height:1.5!important;margin:0 0 9px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout{
+  display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important;
+  height:auto!important;max-height:none!important;margin:0 0 13px!important;padding:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout .ds-review-post-photo{
+  display:block!important;width:100%!important;height:auto!important;
+  max-width:100%!important;max-height:none!important;object-fit:contain!important;
+  margin:0 auto!important;aspect-ratio:auto!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout figcaption{
+  color:#c1d0e1!important;font-size:12px!important;line-height:1.45!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds-review-quote-card,.ds-review-milestone-card){
+  box-sizing:border-box!important;min-width:0!important;width:100%!important;
+  height:auto!important;max-height:none!important;min-height:0!important;
+  margin:0 0 13px!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds-review-quote-card blockquote{
+  color:#f7f9fc!important;line-height:1.35!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-engagement,.ds-review-engagement){
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  flex-wrap:wrap!important;gap:6px 12px!important;min-height:0!important;
+  margin:0!important;padding:9px 0!important;
+  border-top:1px solid #31465f!important;border-bottom:1px solid #31465f!important;
+  color:#c4d3e4!important;font-size:12px!important;line-height:1.4!important;
+  background:transparent!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions,.ds-review-actions){
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;gap:4px!important;margin:0!important;padding:5px 0 0!important;
+  min-height:0!important;height:auto!important;background:transparent!important;border:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button){
+  box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;min-width:0!important;height:auto!important;min-height:40px!important;
+  margin:0!important;padding:6px 3px!important;gap:6px!important;
+  font-size:12px!important;line-height:1.35!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button) :is(.ds30-action-icon,.ds-review-action-icon){
+  width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;
+  max-width:18px!important;max-height:18px!important;flex:0 0 18px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds30-comments:not(:has(.ds30-comment-entry,.ds30-comments-more,.ds30-comment-unavailable,.ds30-comment-locked,.ds30-comment-form:not([hidden]))){
+  display:none!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds-review-sample-thread{
+  margin:8px 0 0!important;padding:12px 0 0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-bubble{
+  box-sizing:border-box!important;max-width:calc(100% - 42px)!important;min-width:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-body{
+  color:#edf4fc!important;font-size:14px!important;line-height:1.55!important;
+  white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-name{
+  color:#f6f9fd!important;font-size:13px!important;line-height:1.4!important;
+}
+@media(max-width:690px){
+  body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post,.ds-review-post){
+    padding:14px 13px 9px!important;border-radius:13px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body){
+    font-size:15px!important;line-height:1.6!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button){
+    flex-direction:column!important;min-height:44px!important;gap:3px!important;
+    font-size:11px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble){
+    padding:12px!important;
+  }
+}
