@@ -18,6 +18,14 @@
     } catch { return escapeHtml(part); }
   }).join('');
 
+  const postKind = post => {
+    const body=String(post.body||post.description||'');
+    if (/https?:\/\/(?:[\w-]+\.)*zoom\.us\/(?:j\/|my\/|wc\/join\/|s\/)/i.test(body)) return 'meeting';
+    if (/https?:\/\/[^\s<>"']+/i.test(body)) return 'link';
+    if (/^(quote|inspiration)$/i.test(String(post.post_type||''))) return 'quote';
+    if (/^announcement$/i.test(String(post.post_type||''))) return 'announcement';
+    return 'text';
+  };
   const icons = {
     like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
     comment:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
@@ -83,14 +91,21 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        const text=description.length>900 ? description.slice(0,900)+'…' : description;
+        // Preserve the actual saved post; let the layout determine its height.
+        const kind=postKind(post);
+        const length=description.length>320?'long':'short';
+        const messageContent=kind==='meeting'||kind==='link'
+          ? '<div class="ds30-post-message-bubble">'+
+              (kind==='meeting'?'<div class="ds30-post-message-label">Shared Zoom meeting link</div>':'')+
+              '<p class="ds30-post-copy">'+linkify(description)+'</p></div>'
+          : '<p class="ds30-post-copy">'+linkify(description)+'</p>';
         const stats=counts.get(String(post.id))||{};
         const likeCount=readableCount(stats.likes||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
         const initials=author.trim().split(/\s+/).map(word=>word[0]).slice(0,2).join('').toUpperCase();
         const isLiked=Boolean(stats.viewerLiked);
         return `
-        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
+        <article class="ds30-social-post" data-post-kind="${kind}" data-post-length="${length}" data-post-id="${escapeHtml(post.id)}">
           <header class="ds30-post-authorbar">
             <span class="ds30-author-avatar" aria-hidden="true">
               <span class="ds30-author-initials">${escapeHtml(initials||'DS')}</span>
@@ -114,8 +129,7 @@
             </div>
           </header>
           ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
-          <p class="ds30-post-copy">${linkify(text)}</p>
-          ${description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${messageContent}
           <div class="ds30-post-engagement" aria-label="Post engagement">
             <span>${likeCount} ${stats.likes===1?'like':'likes'}</span>
             <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
@@ -161,8 +175,8 @@
         client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false),
         avatarLookup
       ]);
-      avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       if(current!==revision)return;
+      avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       const reactionOk=!reactionResult.error,commentOk=!commentResult.error;
       const counts=new Map(ids.map(id=>[String(id),{
         likes:0,comments:0,viewerLiked:false,reactionsKnown:reactionOk,commentsKnown:commentOk
@@ -188,6 +202,10 @@
       catch(error){ notice(error?.message||'The action could not be completed.',true); }
       finally{busy=false;target.removeAttribute('aria-busy');}
     };
+    const refreshAfterSaved = async message => {
+      try{await refresh();notice(message);}
+      catch{notice(message+' Refresh the page to see the latest updates.');}
+    };
     const closeMenus = () => {
       target.querySelectorAll('.ds30-post-menu').forEach(menu=>menu.hidden=true);
       target.querySelectorAll('[data-social="menu"]').forEach(button=>button.setAttribute('aria-expanded','false'));
@@ -195,6 +213,7 @@
     target.addEventListener('click', event => {
       const button=event.target.closest('button[data-social]');
       if(!button||!target.contains(button))return;
+      if(busy)return;
       const card=button.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       if(!post)return;
@@ -207,6 +226,7 @@
       closeMenus();
       if(action==='comment'){
         const form=card.querySelector('.ds30-comment-form');
+        if(post.is_locked){notice('Comments are closed for this post.',true);return;}
         form.hidden=!form.hidden;
         button.setAttribute('aria-expanded',String(!form.hidden));
         if(!form.hidden)form.querySelector('textarea')?.focus();
@@ -218,7 +238,7 @@
           target_message_id:post.id,target_reaction:'like'
         });
         if(result.error)throw result.error;
-        await refresh();notice('Reaction updated.');
+        await refreshAfterSaved('Reaction updated.');
       });
       if(action==='copy')return void inFlight(async()=>{
         await copy([post.title,post.body||post.description].filter(Boolean).join('\n\n'));
@@ -252,7 +272,7 @@
             body:message,post_type:'discussion',is_pinned:false
           });
           if(result.error)throw result.error;
-          await refresh();notice('Reposted to the community.');
+          await refreshAfterSaved('Reposted to the community.');
         });
       }
     });
@@ -260,6 +280,7 @@
       const form=event.target.closest('.ds30-comment-form');
       if(!form)return;
       event.preventDefault();
+      if(busy)return;
       const card=form.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       const body=form.querySelector('textarea')?.value.trim();
@@ -271,7 +292,9 @@
         });
         if(result.error)throw result.error;
         // Noncritical mention alerts are handled separately by the Community workflow.
-        await refresh();notice('Comment posted.');
+        const input=form.querySelector('textarea');
+        if(input)input.value='';
+        await refreshAfterSaved('Comment posted.');
       });
     });
     target.__ds30Controller={refresh};

@@ -57,7 +57,7 @@
       client,
       memberId:session.user.id,
       target,
-      resultLimit:1
+      resultLimit:8
     });
   };
 
@@ -71,6 +71,7 @@
     const text=body.value.trim();
     if(!text){setStatus('Write something before posting.','error');body.focus();return;}
 
+    if(publish.disabled)return;
     publish.disabled=true;
     publish.textContent='Posting…';
     setStatus('Publishing…','pending');
@@ -84,18 +85,23 @@
         is_pinned:false
       }).select('id').single();
       if(inserted.error)throw inserted.error;
-
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:inserted.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error&&!['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
-
+      // The insert has succeeded. Notifications and refresh are noncritical;
+      // do not report a committed post as unsaved.
       body.value='';
-      await target.__ds30Controller?.refresh?.();
-      setStatus('Posted to your network.','success');
+      try{
+        const mention=await client.rpc('community_notify_mentions',{
+          target_message_id:inserted.data.id,
+          message_body:text.slice(0,2000)
+        });
+        if(mention.error&&!['PGRST202','42883'].includes(String(mention.error.code||'')))
+          console.warn('Mention notification could not complete:',mention.error);
+      }catch(error){console.warn('Mention notification could not complete:',error);}
+      try{
+        await refresh();
+        setStatus('Posted to your network.','success');
+      }catch{
+        setStatus('Post saved. Refresh the page to see the latest updates.','success');
+      }
     }catch(error){
       setStatus(error?.message||'Your post could not be published.','error');
     }finally{

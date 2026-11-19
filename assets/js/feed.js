@@ -118,6 +118,7 @@
     }
     if(!publish)return;
 
+    if(publish.disabled)return;
     publish.disabled=true;
     publish.textContent='Posting…';
     showStatus('Publishing to your network…','pending');
@@ -131,18 +132,23 @@
         is_pinned:false
       }).select('id').single();
       if(insert.error)throw insert.error;
-
-      const mention=await client.rpc('community_notify_mentions',{
-        target_message_id:insert.data.id,
-        message_body:text.slice(0,2000)
-      });
-      if(mention.error && !['PGRST202','42883'].includes(String(mention.error.code||''))){
-        console.warn('Mention notification could not complete:',mention.error);
-      }
-
+      // The insert has succeeded. Notifications and refresh are noncritical;
+      // do not report a committed post as unsaved.
       body.value='';
-      await mountFeed();
-      showStatus('Posted to your Feed.','success');
+      try{
+        const mention=await client.rpc('community_notify_mentions',{
+          target_message_id:insert.data.id,
+          message_body:text.slice(0,2000)
+        });
+        if(mention.error&&!['PGRST202','42883'].includes(String(mention.error.code||'')))
+          console.warn('Mention notification could not complete:',mention.error);
+      }catch(error){console.warn('Mention notification could not complete:',error);}
+      try{
+        await mountFeed();
+        showStatus('Posted to your Feed.','success');
+      }catch{
+        showStatus('Post saved. Refresh the page to see the latest updates.','success');
+      }
     }catch(error){
       showStatus(error?.message||'Your post could not be published.','error');
     }finally{
