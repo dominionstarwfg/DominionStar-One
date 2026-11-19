@@ -1,0 +1,55 @@
+/* Agent OS Community — five compact, glance-readable reactions.
+   Scope to Community, never leak sizes into the Feed or DominionStar Meet. */
+#communityApp .community-reaction-row{
+  display:flex!important;align-items:center!important;flex-wrap:wrap!important;
+  gap:7px!important;margin:12px 0!important;min-width:0!important;
+}
+#communityApp .community-reaction-button{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  gap:6px!important;flex:0 0 auto!important;
+  min-height:36px!important;max-height:none!important;
+  padding:7px 10px!important;margin:0!important;
+  border:1px solid rgba(129,169,213,.22)!important;
+  border-radius:10px!important;background:rgba(11,35,66,.55)!important;
+  color:#d6e4f4!important;white-space:nowrap!important;
+  font:750 11.5px/1.2 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  box-shadow:none!important;
+}
+#communityApp .community-reaction-button .dsx-inline-action-icon{
+  display:block!important;flex:0 0 17px!important;
+  width:17px!important;height:17px!important;
+  min-width:17px!important;min-height:17px!important;
+  max-width:17px!important;max-height:17px!important;
+  fill:none!important;stroke-width:1.9!important;
+}
+#communityApp .community-reaction-button span,
+#communityApp .community-reaction-button b{
+  display:inline!important;font:inherit!important;color:inherit!important;
+}
+#communityApp .community-reaction-button b{opacity:.82!important;}
+#communityApp .community-reaction-button:hover,
+#communityApp .community-reaction-button:focus-visible{
+  background:rgba(90,148,220,.14)!important;border-color:rgba(137,183,240,.40)!important;
+}
+#communityApp .community-reaction-button[data-reaction="like"].is-active{color:#85baff!important;background:rgba(24,119,242,.16)!important;}
+#communityApp .community-reaction-button[data-reaction="love"].is-active,
+#communityApp .community-reaction-button[data-reaction="love"]:hover{
+  color:#ff95a4!important;background:rgba(255,75,103,.14)!important;border-color:rgba(255,109,131,.34)!important;
+}
+#communityApp .community-reaction-button[data-reaction="love"] .dsx-inline-action-icon{
+  color:#ff91a2!important;
+}
+#communityApp .community-reaction-button[data-reaction="celebrate"].is-active{color:#f6d479!important;background:rgba(242,201,76,.12)!important;}
+#communityApp .community-reaction-button[data-reaction="support"].is-active{color:#83edb6!important;background:rgba(53,208,127,.12)!important;}
+#communityApp .community-reaction-button[data-reaction="insightful"].is-active{color:#c3b9ff!important;background:rgba(155,140,255,.12)!important;}
+@media(max-width:690px){
+  #communityApp .community-reaction-row{gap:6px!important;}
+  #communityApp .community-reaction-button{
+    min-height:36px!important;padding:7px 8px!important;font-size:11px!important;
+  }
+  #communityApp .community-reaction-button .dsx-inline-action-icon{
+    width:16px!important;height:16px!important;min-width:16px!important;
+    min-height:16px!important;max-width:16px!important;max-height:16px!important;
+    flex-basis:16px!important;
+  }
+}

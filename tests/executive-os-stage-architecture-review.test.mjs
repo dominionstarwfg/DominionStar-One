@@ -9,7 +9,9 @@ test('member dashboard is an executive landing stage and Feed is a separate work
   assert.match(html,/>Dashboard<\/span>/);
   assert.match(html,/href="\/feed\/"/);
   assert.match(html,/href="\/notifications\/"/);
-  assert.match(html,/Welcome back to DominionStar Executive OS/);
+  assert.match(html,/Your DominionStar Executive OS/);
+  assert.match(html,/id="heroGreeting"/);
+  assert.doesNotMatch(html,/Welcome back to DominionStar Executive OS/);
   assert.match(html,/class="dsx-overview"/);
   assert.match(html,/id="dashboardNextAppointment"/);
   assert.match(html,/id="journeyPercent"/);
@@ -51,7 +53,8 @@ test('dedicated Feed uses real profile avatars and existing authenticated social
   assert.match(feed,/id="feedPageComposer"/);
   assert.match(feedJs,/createSignedUrl\(profile\.avatar_path,3600\)/);
   assert.match(feedJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(feedJs,/community_notify_mentions/);
+  // Saved community_messages trigger is the only approved mention source.
+  assert.doesNotMatch(feedJs,/rpc\('community_notify_mentions'/);
   assert.match(social,/resultLimit=20/);
   assert.match(social,/result_limit:safeLimit/);
 });

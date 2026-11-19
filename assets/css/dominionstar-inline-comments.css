@@ -1,0 +1,221 @@
+/* DominionStar One — familiar social-feed comment anatomy.
+   Authenticated member actions use existing approved/RLS-scoped Community data;
+   visual-review examples remain backend-free and synthetic. */
+
+#feedPageStream .ds30-comments,
+.dsos-executive #dashboardSocialPreview .ds30-comments{
+  display:block!important;
+  box-sizing:border-box;
+  min-width:0!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  padding:10px 2px 4px!important;
+  background:transparent!important;
+  border:0!important;
+  overflow:visible!important;
+}
+
+#feedPageStream .ds30-comment-count,
+.dsos-executive #dashboardSocialPreview .ds30-comment-count{
+  appearance:none;
+  padding:5px 2px!important;
+  border:0!important;
+  color:#baccdf!important;
+  background:transparent!important;
+  font:650 12px/1.35 system-ui,sans-serif!important;
+  cursor:pointer!important;
+  border-radius:5px!important;
+}
+#feedPageStream .ds30-comment-count:hover,
+.dsos-executive #dashboardSocialPreview .ds30-comment-count:hover{
+  color:#a5d1ff!important;text-decoration:underline!important;
+}
+#feedPageStream .ds30-comment-count:focus-visible,
+.dsos-executive #dashboardSocialPreview .ds30-comment-count:focus-visible,
+#feedPageStream .ds30-comments-more:focus-visible,
+.dsos-executive #dashboardSocialPreview .ds30-comments-more:focus-visible{
+  outline:2px solid #83baff!important;
+  outline-offset:3px!important;
+}
+#feedPageStream .ds30-comment-list,
+.dsos-executive #dashboardSocialPreview .ds30-comment-list{
+  display:grid!important;gap:12px!important;
+  min-width:0;margin:3px 0 12px!important;
+}
+#feedPageStream .ds30-comment-entry,
+.dsos-executive #dashboardSocialPreview .ds30-comment-entry{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:9px!important;
+  min-width:0!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#feedPageStream .ds30-comment-avatar,
+.dsos-executive #dashboardSocialPreview .ds30-comment-avatar{
+  display:grid!important;place-items:center!important;
+  flex:0 0 32px!important;
+  width:32px!important;height:32px!important;
+  border-radius:50%!important;
+  background:#21496d!important;
+  border:1px solid rgba(154,191,229,.38)!important;
+  color:#f3dfb4!important;
+  font:850 11px/1 system-ui,sans-serif!important;
+}
+#feedPageStream .ds30-comment-bubble,
+.dsos-executive #dashboardSocialPreview .ds30-comment-bubble{
+  display:block!important;
+  box-sizing:border-box!important;
+  min-width:0!important;
+  width:max-content!important;
+  max-width:min(100%,710px)!important;
+  height:auto!important;max-height:none!important;
+  border-radius:15px!important;
+  padding:10px 14px 11px!important;
+  border:1px solid rgba(145,180,214,.20)!important;
+  background:rgba(13,43,74,.87)!important;
+  color:#eaf3ff!important;
+  overflow-wrap:anywhere!important;
+}
+#feedPageStream .ds30-comment-name,
+.dsos-executive #dashboardSocialPreview .ds30-comment-name{
+  margin:0 0 3px!important;
+  color:#f8fbff!important;
+  font:800 12px/1.45 system-ui,sans-serif!important;
+}
+#feedPageStream .ds30-comment-body,
+.dsos-executive #dashboardSocialPreview .ds30-comment-body{
+  display:block!important;
+  margin:0!important;padding:0!important;
+  height:auto!important;max-height:none!important;
+  color:#e3eefc!important;
+  font:450 13px/1.63 system-ui,sans-serif!important;
+  white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+  -webkit-line-clamp:unset!important;
+  line-clamp:unset!important;
+}
+#feedPageStream .ds30-comment-body a,
+.dsos-executive #dashboardSocialPreview .ds30-comment-body a{
+  color:#9fcfff!important;text-decoration:underline!important;
+  text-underline-offset:2px!important;
+}
+#feedPageStream .ds30-comment-bubble small,
+.dsos-executive #dashboardSocialPreview .ds30-comment-bubble small{
+  display:block!important;
+  margin:5px 0 0!important;
+  color:#aec1d6!important;
+  font-size:10.5px!important;
+}
+#feedPageStream .ds30-comments-more,
+.dsos-executive #dashboardSocialPreview .ds30-comments-more{
+  display:inline-flex!important;
+  justify-content:flex-start!important;
+  min-height:38px!important;
+  padding:8px 3px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:#accbf0!important;
+  font:750 12px/1.45 system-ui,sans-serif!important;
+  cursor:pointer!important;
+}
+#feedPageStream .ds30-comments-more:hover,
+.dsos-executive #dashboardSocialPreview .ds30-comments-more:hover{
+  text-decoration:underline!important;
+}
+#feedPageStream .ds30-comment-empty[hidden],
+.dsos-executive #dashboardSocialPreview .ds30-comment-empty[hidden],
+#feedPageStream .ds30-comment-form[hidden],
+.dsos-executive #dashboardSocialPreview .ds30-comment-form[hidden]{
+  display:none!important;
+}
+#feedPageStream .ds30-comment-form,
+.dsos-executive #dashboardSocialPreview .ds30-comment-form{
+  display:block!important;
+  height:auto!important;
+  max-height:none!important;
+  margin:10px 0 4px!important;
+  padding:12px!important;
+  background:rgba(9,32,59,.82)!important;
+  border-radius:12px!important;
+  border:1px solid rgba(143,181,215,.26)!important;
+}
+#feedPageStream .ds30-comment-form label,
+.dsos-executive #dashboardSocialPreview .ds30-comment-form label{
+  display:block!important;
+  color:#dfeeff!important;
+  margin:0 0 7px!important;
+  font:750 12px/1.4 system-ui,sans-serif!important;
+}
+#feedPageStream .ds30-comment-row textarea,
+.dsos-executive #dashboardSocialPreview .ds30-comment-row textarea{
+  background:#092443!important;
+  border:1px solid rgba(151,187,229,.36)!important;
+  color:#f4f9ff!important;
+  border-radius:11px!important;
+  min-height:54px!important;
+  height:auto!important;
+  resize:vertical!important;
+}
+#feedPageStream .ds30-comment-row textarea::placeholder,
+.dsos-executive #dashboardSocialPreview .ds30-comment-row textarea::placeholder{
+  color:#afc7df!important;
+}
+#feedPageStream .ds30-comment-locked,
+.dsos-executive #dashboardSocialPreview .ds30-comment-locked,
+#feedPageStream .ds30-comment-unavailable,
+.dsos-executive #dashboardSocialPreview .ds30-comment-unavailable{
+  color:#b6c9de!important;
+  font:550 12px/1.5 system-ui,sans-serif!important;
+  margin:9px 0!important;
+}
+/* The preview should show comments like a social feed, without needing to click. */
+body.ds-visual-review .ds-review-sample-thread{
+  margin:13px 0 0!important;
+  padding:13px 0 0!important;
+  display:grid!important;gap:10px!important;
+  border-top:1px solid rgba(140,176,215,.16)!important;
+  height:auto!important;max-height:none!important;
+}
+body.ds-visual-review .ds-review-sample-thread .ds30-comment-entry{
+  display:flex!important;align-items:flex-start;gap:9px;
+}
+body.ds-visual-review .ds-review-sample-thread .ds30-comment-avatar{
+  display:grid;place-items:center;flex:0 0 30px;
+  width:30px;height:30px;border-radius:50%;
+  background:#20496e;color:#f7db99;font-size:10px;font-weight:850;
+}
+body.ds-visual-review .ds-review-sample-thread .ds30-comment-bubble{
+  width:max-content;max-width:calc(100% - 40px);
+  padding:10px 13px;border-radius:13px;
+  border:1px solid rgba(139,174,209,.22);
+  background:rgba(9,36,67,.84)!important;
+}
+body.ds-visual-review .ds-review-sample-thread .ds30-comment-name{
+  color:#f5f9ff!important;font-size:11.5px;font-weight:800;
+}
+body.ds-visual-review .ds-review-sample-thread .ds30-comment-body{
+  color:#e5effb!important;
+  margin:2px 0!important;
+  font-size:12px!important;
+  line-height:1.6!important;
+  white-space:pre-wrap!important;
+}
+body.ds-visual-review .ds-review-sample-thread small{
+  color:#b1c3da!important;font-size:10px;
+}
+@media(max-width:650px){
+  #feedPageStream .ds30-comment-bubble,
+  .dsos-executive #dashboardSocialPreview .ds30-comment-bubble{
+    padding:10px 12px!important;
+    max-width:calc(100% - 42px)!important;
+  }
+  #feedPageStream .ds30-comment-entry,
+  .dsos-executive #dashboardSocialPreview .ds30-comment-entry{gap:7px!important}
+  #feedPageStream .ds30-comment-avatar,
+  .dsos-executive #dashboardSocialPreview .ds30-comment-avatar{
+    flex-basis:29px!important;width:29px!important;height:29px!important;
+  }
+}

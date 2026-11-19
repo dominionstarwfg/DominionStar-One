@@ -36,10 +36,6 @@
 <span id="chatConnectionStatus" class="community-connecting">Connecting…</span>
 <span id="chatUnreadBadge" class="community-chat-unread member-hidden">0 new</span>
 </div>
-<label class="member-inline-check member-hidden" aria-hidden="true">
-<input id="chatEmailPreference" type="checkbox">
-Email me about new chat messages
-</label>
 <a class="btn btn-outline" href="/account-settings/#messages">Message settings</a>
 </div>
 
@@ -50,7 +46,7 @@ Email me about new chat messages
 <form id="chatComposer" class="community-chat-composer">
 <textarea name="body" maxlength="1500" required rows="3" placeholder="Write a message to approved members…"></textarea>
 <div>
-<small>Email alerts are queued only for members who enable them. Actual sending requires an email-delivery function/provider.</small>
+<small>Routine Community Chat messages stay in the app. Selected email alerts are managed in Message settings.</small>
 <button id="chatSendButton" class="btn btn-gold" type="submit">Send Message</button>
 </div>
 <div id="chatResult" class="member-message"></div>
@@ -61,9 +57,9 @@ Email me about new chat messages
 
 <footer class="platform-release-footer">DominionStar Institute · v8.0 Project Genesis RC5</footer>
 <script src="/assets/js/supabase-config.js?v=7.0"></script>
-<script src="/assets/js/data-layer.js?v=7.0"></script>
+<script src="/assets/js/data-layer.js?v=privacy-gate-20261108"></script>
 <script src="/assets/js/member-auth.js?v=7.0"></script>
-<script src="/assets/js/community-chat.js?v=7.0"></script>
+<script src="/assets/js/community-chat.js?v=review-selected-email-20261110"></script>
 <script src="/assets/js/aurora-ui.js?v=7.0"></script>
 <script src="/assets/js/dominionstar-agent-nav-shell.js?v=review-2"></script>\n</body>
 </html>

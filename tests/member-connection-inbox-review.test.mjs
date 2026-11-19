@@ -1,0 +1,346 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+
+const source=readFileSync(new URL('../assets/js/member-directory.js',import.meta.url),'utf8');
+const self='10000000-0000-4000-8000-000000000001';
+const peer='20000000-0000-4000-8000-000000000002';
+const conn='30000000-0000-4000-8000-000000000003';
+const member=(id,name='Approved Peer')=>({
+  id,full_name:name,preferred_name:name.split(' ')[0],rank:'Associate',
+  verification_status:'approved',avatar_path:null,city:'',state:''
+});
+const flush=async()=>{for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));};
+const buttons=element=>[...element.innerHTML.matchAll(/<button\b([^>]*)>/g)].map(([,markup])=>{
+  const attr=name=>(markup.match(new RegExp('(?:^|\\s)'+name+'="([^"]*)"'))||[])[1]||'';
+  const btn={
+    dataset:{
+      id:attr('data-id'),action:attr('data-action'),
+      connectionId:attr('data-connection-id'),
+      connectionResponse:attr('data-connection-response')
+    },
+    disabled:/\sdisabled(?:\s|>|\b)/.test(markup),
+    addEventListener(_kind,handler){this.click=handler;}
+  };
+  return btn;
+});
+const element=()=>{
+  let html='';
+  const cache=new Map();
+  // Real DOM nodes preserve event listeners until innerHTML replaces them.
+  // Do not synthesize fresh unbound buttons for every querySelectorAll call.
+  return {
+    get innerHTML(){return html;},
+    set innerHTML(value){html=value;cache.clear();},
+    textContent:'',value:'',
+    classList:{add(){},remove(){},toggle(){}},
+    handlers:{},addEventListener(name,handler){this.handlers[name]=handler;},
+    querySelectorAll(selector){
+      if(cache.has(selector))return cache.get(selector);
+      const matched=selector==='.connect-member'
+        ?buttons(this).filter(b=>b.dataset.action)
+        :selector==='[data-connection-response]'
+          ?buttons(this).filter(b=>b.dataset.connectionResponse):[];
+      cache.set(selector,matched);
+      return matched;
+    },
+    scrollIntoView(){}
+  };
+};
+
+async function mount({flag=true,rows=[],hidden=false,failRead=false,failRpc=false,
+  approvalError=false,insertBehavior='normal'}={}){
+  const roster=[member(self,'Self Member'),...(hidden?[]:[member(peer)])];
+  const state={rows:rows.map(x=>({...x})),rpcCalls:[],inserts:[],tables:[],failRead,
+    deferRead:false,pendingReads:[]};
+  const nodes=Object.fromEntries([
+    'directoryGate','directoryApp','directoryGrid',
+    'directorySearch','directoryRank','directoryConnectionPanel',
+    'directoryInvitations','directoryConnectionStatus','directoryConnectionsRefresh'
+  ].map(id=>[id,element()]));
+  const client={
+    auth:{getSession:async()=>({data:{session:{user:{id:self}}},error:null})},
+    rpc:async(name,payload)=>{
+      if(name==='community_set_presence')return {data:true,error:null};
+      state.rpcCalls.push({name,payload});
+      if(failRpc)return {data:null,error:{message:'RPC unavailable'}};
+      const c=state.rows.find(x=>x.id===payload.target_connection_id);
+      if(!c)return {data:false,error:null};
+      if(name==='respond_my_member_connection'&&c.recipient_id===self&&c.status==='pending'){
+        c.status=payload.target_status;return {data:true,error:null};
+      }
+      if(name==='cancel_my_member_connection'&&c.requester_id===self&&c.status==='pending'){
+        state.rows=state.rows.filter(x=>x.id!==c.id);return {data:true,error:null};
+      }
+      return {data:false,error:null};
+    },
+    from(table){
+      state.tables.push(table);
+      return {
+        select(){return this;},eq(){return this;},
+        single:async()=>approvalError
+          ?{data:null,error:{message:'Approval lookup unavailable'}}
+          :{data:{verification_status:'approved'},error:null},
+        order:async()=>({data:table==='member_public_profiles'?roster:[],error:null}),
+        or:async()=>{
+          if(state.deferRead)return new Promise(resolve=>state.pendingReads.push(resolve));
+          return state.failRead?{data:null,error:{message:'SELECT denied'}}:
+            {data:state.rows,error:null};
+        },
+        insert:async payload=>{
+          state.inserts.push(payload);
+          if(['reciprocal','collision-unreadable'].includes(insertBehavior)){
+            // Concurrent B→A request reached the database first. The new
+            // unordered-pair constraint must reject A→B with 23505.
+            state.rows.push({
+              id:'30000000-0000-4000-8000-000000000088',
+              requester_id:peer,recipient_id:self,status:'pending'
+            });
+            if(insertBehavior==='collision-unreadable')state.failRead=true;
+            return {error:{code:'23505',message:'Existing unordered pair'}};
+          }
+          if(insertBehavior==='network-unknown'){
+            state.failRead=true;
+            throw new Error('Connection reset before insert confirmation');
+          }
+          state.rows.push({
+            id:'30000000-0000-4000-8000-000000000099',
+            ...payload,status:'pending'
+          });
+          if(insertBehavior==='network-committed')
+            throw new Error('Connection reset after server commit');
+          return {error:null};
+        }
+      };
+    }
+  };
+  const window={DSAuth:{ready:true,init:async()=>client},
+    DOMINIONSTAR_AGENT_DATA_FEATURES:{publicMemberProfilesV2:flag}};
+  vm.runInNewContext(source,{
+    window,document:{getElementById:id=>nodes[id]||null},
+    location:{href:''},Map,Set,Object,Promise,Date,Error,console,
+    setTimeout(){/* Synthetic requests resolve before timeout. */}
+  },{filename:'member-directory.js'});
+  await flush();
+  return {state,nodes,grid:()=>nodes.directoryGrid.innerHTML,
+    requests:()=>nodes.directoryInvitations.innerHTML,
+    cardButton:()=>nodes.directoryGrid.querySelectorAll('.connect-member')[0],
+    requestButton:choice=>nodes.directoryInvitations
+      .querySelectorAll('[data-connection-response]')
+      .find(b=>b.dataset.connectionResponse===choice),
+    refresh:async()=>{nodes.directoryConnectionsRefresh.handlers.click();await flush();}
+  };
+}
+
+test('Directory feature stays fail-closed without the coordinated privacy release',async()=>{
+  const h=await mount({flag:false});
+  assert.match(h.nodes.directoryGate.innerHTML,/temporarily unavailable/);
+  assert.ok(!h.state.tables.includes('member_public_profiles'));
+  assert.ok(!h.state.tables.includes('member_connections'));
+  assert.equal(h.state.rpcCalls.length,0);
+});
+
+test('Incoming invitation is visible with safe member identity and accepts by scoped RPC',async()=>{
+  const h=await mount({rows:[{
+    id:conn,requester_id:peer,recipient_id:self,status:'pending'
+  }]});
+  assert.match(h.requests(),/Approved|Peer/);
+  assert.match(h.requests(),/Accept/);
+  assert.match(h.requests(),/Decline/);
+  assert.match(h.grid(),/Review request/);
+  h.requestButton('accepted').click();
+  await flush();
+  assert.equal(h.state.rpcCalls.length,1);
+  assert.equal(h.state.rpcCalls[0].name,'respond_my_member_connection');
+  assert.equal(h.state.rpcCalls[0].payload.target_connection_id,conn);
+  assert.equal(h.state.rpcCalls[0].payload.target_status,'accepted');
+  assert.equal(h.state.rows[0].status,'accepted');
+  assert.match(h.grid(),/Connected/);
+  assert.doesNotMatch(h.requests(),/data-connection-response="accepted"/);
+});
+
+test('Recipient can decline only a pending invitation through its scoped RPC',async()=>{
+  const h=await mount({rows:[{
+    id:conn,requester_id:peer,recipient_id:self,status:'pending'
+  }]});
+  h.requestButton('declined').click();
+  await flush();
+  assert.equal(h.state.rpcCalls.length,1);
+  assert.equal(h.state.rpcCalls[0].name,'respond_my_member_connection');
+  assert.equal(h.state.rpcCalls[0].payload.target_status,'declined');
+  assert.equal(h.state.rows[0].status,'declined');
+  assert.match(h.grid(),/Unavailable/);
+  assert.doesNotMatch(h.requests(),/data-connection-response="declined"/);
+});
+
+test('Outgoing pending invitation cancels only through scoped RPC and permits new request',async()=>{
+  const h=await mount({rows:[{
+    id:conn,requester_id:self,recipient_id:peer,status:'pending'
+  }]});
+  assert.match(h.grid(),/Cancel request/);
+  const b=h.cardButton();
+  assert.equal(b.dataset.action,'cancel');
+  b.click();
+  await flush();
+  assert.equal(h.state.rpcCalls.length,1);
+  assert.equal(h.state.rpcCalls[0].name,'cancel_my_member_connection');
+  assert.equal(h.state.rows.length,0);
+  assert.match(h.grid(),/>Connect<\/button>/);
+  assert.equal(h.cardButton().dataset.action,'request');
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.equal(h.state.inserts[0].status,'pending');
+  assert.equal(h.state.inserts[0].requester_id,self);
+  assert.equal(h.state.inserts[0].recipient_id,peer);
+  assert.match(h.grid(),/Cancel request/);
+});
+
+test('Denied connection SELECT blocks new requests rather than guessing connection state',async()=>{
+  const h=await mount({failRead:true});
+  assert.match(h.grid(),/Checking/);
+  assert.match(h.nodes.directoryConnectionStatus.textContent,/could not be verified/);
+  await h.cardButton().click();
+  assert.equal(h.state.inserts.length,0);
+  assert.equal(h.state.rpcCalls.length,0);
+  h.state.failRead=false;
+  await h.refresh();
+  assert.match(h.grid(),/>Connect<\/button>/);
+});
+
+test('Denied accept preserves pending request, status and retry controls',async()=>{
+  const h=await mount({failRpc:true,rows:[{
+    id:conn,requester_id:peer,recipient_id:self,status:'pending'
+  }]});
+  h.requestButton('accepted').click();
+  await flush();
+  assert.equal(h.state.rows[0].status,'pending');
+  assert.match(h.nodes.directoryConnectionStatus.textContent,/could not be completed/);
+  assert.match(h.requests(),/Accept/);
+  assert.equal(h.state.inserts.length,0);
+});
+
+test('Reciprocal 23505 collision reveals incoming request instead of a permanent Exists button',async()=>{
+  const h=await mount({insertBehavior:'reciprocal'});
+  assert.match(h.grid(),/>Connect<\/button>/);
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.equal(h.state.rows.length,1);
+  assert.equal(h.state.rows[0].requester_id,peer);
+  assert.equal(h.state.rows[0].recipient_id,self);
+  assert.match(h.grid(),/Review request/);
+  assert.match(h.requests(),/Accept/);
+  assert.doesNotMatch(h.grid(),/Connection exists/);
+  // The next action is to accept the real incoming invitation, NOT send a
+  // duplicate reciprocal request.
+  h.requestButton('accepted').click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Connected/);
+});
+
+test('Unknown reciprocal collision must ask for verified state and block blind re-invite',async()=>{
+  const h=await mount({insertBehavior:'collision-unreadable'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.equal(h.cardButton().dataset.action,'refresh');
+  assert.match(h.grid(),/Verify status/);
+  assert.match(h.nodes.directoryConnectionStatus.textContent,/could not be verified/);
+  await h.cardButton().click(); // Still cannot read; should NOT insert.
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  h.state.failRead=false;
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Review request/);
+});
+
+test('Timed-out insert that committed is reconciled without duplicating request',async()=>{
+  const h=await mount({insertBehavior:'network-committed'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Cancel request/);
+  assert.equal(h.cardButton().dataset.action,'cancel');
+});
+
+test('Unconfirmed insert and unavailable SELECT do not enable a second write',async()=>{
+  const h=await mount({insertBehavior:'network-unknown'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  assert.match(h.grid(),/Verify status/);
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.state.inserts.length,1);
+  h.state.failRead=false;
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.cardButton().dataset.action,'request');
+});
+
+test('Manual Refresh requests clears unknown state after an authoritative empty SELECT',async()=>{
+  const h=await mount({insertBehavior:'network-unknown'});
+  await h.cardButton().click();
+  await flush();
+  assert.equal(h.cardButton().dataset.action,'refresh');
+  h.state.failRead=false;
+  await h.refresh(); // Toolbar refresh must recover, not just the card button.
+  assert.match(h.grid(),/>Connect<\/button>/);
+  assert.equal(h.cardButton().dataset.action,'request');
+  assert.equal(h.state.inserts.length,1,'Refreshing must not send another invitation');
+});
+
+test('An older delayed connection refresh cannot overwrite a newer accepted relationship',async()=>{
+  const h=await mount();
+  assert.equal(h.cardButton().dataset.action,'request');
+  h.state.deferRead=true;
+  h.nodes.directoryConnectionsRefresh.handlers.click();
+  await flush();
+  h.nodes.directoryConnectionsRefresh.handlers.click();
+  await flush();
+  assert.equal(h.state.pendingReads.length,2);
+  const older=h.state.pendingReads[0];
+  const newer=h.state.pendingReads[1];
+  const accepted={id:conn,requester_id:self,recipient_id:peer,status:'accepted'};
+  const stale={...accepted,status:'pending'};
+  newer({data:[accepted],error:null});
+  await flush();
+  assert.match(h.grid(),/Connected/);
+  older({data:[stale],error:null});
+  await flush();
+  assert.match(h.grid(),/Connected/);
+  assert.doesNotMatch(h.grid(),/Cancel request/);
+});
+
+test('Failed membership verification is not mislabeled as Founder denial',async()=>{
+  const h=await mount({approvalError:true});
+  assert.match(h.nodes.directoryGate.innerHTML,/Unable to verify your membership/);
+  assert.doesNotMatch(h.nodes.directoryGate.innerHTML,/Founder approval is required/);
+  assert.ok(!h.state.tables.includes('member_public_profiles'));
+  assert.ok(!h.state.tables.includes('member_connections'));
+});
+
+test('Opted-out requester is not resolved through private profiles',async()=>{
+  const h=await mount({hidden:true,rows:[{
+    id:conn,requester_id:peer,recipient_id:self,status:'pending'
+  }]});
+  assert.match(h.requests(),/<strong>Member<\/strong>/);
+  assert.ok(h.state.tables.filter(t=>t==='member_profiles').length===1,
+    'Only the signed-in member approval status can read the private profile table');
+  assert.ok(h.state.tables.includes('member_public_profiles'));
+});
+
+test('Member connections use scoped select/RPC and no browser UPDATE/DELETE',()=>{
+  assert.match(source,/\.from\('member_connections'\)[\s\S]*?\.select\('id,requester_id,recipient_id,status,created_at'\)/);
+  assert.match(source,/\.or\('requester_id\.eq\.'\+id\+',recipient_id\.eq\.'\+id\)/);
+  assert.match(source,/rpc\('respond_my_member_connection'/);
+  assert.match(source,/rpc\('cancel_my_member_connection'/);
+  assert.doesNotMatch(source,/\.from\('member_connections'\)\.(?:update|delete)\(/);
+  assert.doesNotMatch(source,/select\('.*agent_code/);
+  assert.doesNotThrow(()=>new vm.Script(source));
+});

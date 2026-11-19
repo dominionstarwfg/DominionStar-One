@@ -9,7 +9,8 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
   }[c]));
 
-  if (!memberId || !window.DSAuth.ready) {
+  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(memberId||'')) ||
+      !window.DSAuth?.ready) {
     gate.innerHTML = '<p class="eyebrow">Error</p><h1>Member profile unavailable</h1>';
     return;
   }
@@ -32,9 +33,11 @@
     return;
   }
 
+  // This is a Founder-only administrative record, not a peer profile.
+  // Request only fields displayed in the Founder UI; never SELECT *.
   const { data: profile, error } = await supabase
     .from('member_profiles')
-    .select('*')
+    .select('id,full_name,email,agent_code,smd_name,rank,verification_status,account_notes')
     .eq('id', memberId)
     .single();
 

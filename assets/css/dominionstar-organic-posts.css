@@ -1,0 +1,513 @@
+/* Agent OS — organic social cards, November 2026 review.
+   Posts fit their content; background treatment is type-aware, never templated
+   into a fixed-size poster. The authenticated Feed and preview share spacing. */
+
+/* Protect the natural-height Feed when legacy executive styles load earlier. */
+#feedPageStream .ds30-social-post,
+.dsos-executive #dashboardSocialPreview .ds30-social-post{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  padding:clamp(17px,2.25vw,27px)!important;
+  border-radius:18px!important;
+  border:1px solid rgba(149,181,219,.27)!important;
+  background:linear-gradient(155deg,#112b4b,#0d223d)!important;
+  box-shadow:0 10px 25px rgba(0,0,0,.15)!important;
+}
+#feedPageStream .ds30-social-post + .ds30-social-post,
+.dsos-executive #dashboardSocialPreview .ds30-social-post + .ds30-social-post{
+  margin-top:19px!important;
+}
+#feedPageStream .ds30-social-post[data-post-kind="text"],
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-kind="text"]{
+  background:linear-gradient(150deg,#122b46,#0b243c)!important;
+}
+#feedPageStream .ds30-social-post[data-post-kind="meeting"],
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-kind="meeting"]{
+  border-color:rgba(108,158,223,.48)!important;
+  background:linear-gradient(135deg,#102d52,#0b1e39)!important;
+}
+#feedPageStream .ds30-social-post[data-post-kind="link"],
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-kind="link"]{
+  background:linear-gradient(155deg,#163349,#0c2738)!important;
+  border-color:rgba(120,193,198,.34)!important;
+}
+#feedPageStream .ds30-social-post[data-post-kind="quote"],
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-kind="quote"]{
+  background:linear-gradient(140deg,#1a2947,#10263e)!important;
+  border-color:rgba(216,178,105,.31)!important;
+}
+#feedPageStream .ds30-social-post[data-post-kind="announcement"],
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-kind="announcement"]{
+  background:linear-gradient(150deg,#162e50,#122740)!important;
+}
+#feedPageStream .ds30-post-copy,
+.dsos-executive #dashboardSocialPreview .ds30-post-copy{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:13px 0 18px!important;
+  background:transparent!important;
+  color:#eaf2fc!important;
+  font-size:clamp(14px,1.3vw,16px)!important;
+  line-height:1.75!important;
+  white-space:pre-wrap!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  -webkit-line-clamp:unset!important;
+  line-clamp:unset!important;
+  text-overflow:clip!important;
+}
+#feedPageStream .ds30-social-post[data-post-length="short"] .ds30-post-copy,
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-length="short"] .ds30-post-copy{
+  margin-bottom:17px!important;
+}
+#feedPageStream .ds30-social-post[data-post-length="long"] .ds30-post-copy,
+.dsos-executive #dashboardSocialPreview .ds30-social-post[data-post-length="long"] .ds30-post-copy{
+  margin-top:18px!important;margin-bottom:23px!important;
+  line-height:1.85!important;
+}
+#feedPageStream .ds30-social-post h3,
+.dsos-executive #dashboardSocialPreview .ds30-social-post h3{
+  height:auto!important;max-height:none!important;
+  overflow-wrap:anywhere!important;
+  font-size:clamp(16px,1.75vw,20px)!important;
+  line-height:1.4!important;
+  margin:14px 0 10px!important;
+}
+#feedPageStream .ds30-post-copy a,
+.dsos-executive #dashboardSocialPreview .ds30-post-copy a{
+  color:#8fc5ff!important;
+  text-decoration:underline!important;
+  text-underline-offset:3px;
+  overflow-wrap:anywhere!important;
+}
+#feedPageStream .ds30-post-copy a.ds30-hashtag,
+.dsos-executive #dashboardSocialPreview .ds30-post-copy a.ds30-hashtag{
+  color:#e2c17a!important;
+  font-weight:750!important;
+  text-decoration:none!important;
+}
+#feedPageStream .ds30-post-copy a.ds30-hashtag:hover,
+.dsos-executive #dashboardSocialPreview .ds30-post-copy a.ds30-hashtag:hover{
+  text-decoration:underline!important;
+}
+#feedPageStream .ds30-post-message-bubble,
+.dsos-executive #dashboardSocialPreview .ds30-post-message-bubble{
+  width:100%;
+  min-width:0;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin:13px 0 19px;
+  padding:18px 20px;
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(24,67,113,.50),rgba(10,37,71,.70));
+  border:1px solid rgba(132,184,237,.30);
+  box-shadow:inset 0 1px rgba(255,255,255,.035);
+}
+#feedPageStream .ds30-post-message-bubble .ds30-post-copy,
+.dsos-executive #dashboardSocialPreview .ds30-post-message-bubble .ds30-post-copy{
+  margin:0!important;
+}
+#feedPageStream .ds30-post-message-label,
+.dsos-executive #dashboardSocialPreview .ds30-post-message-label{
+  display:flex;align-items:center;gap:9px;
+  margin:0 0 11px;
+  color:#cfdded;font-size:12px;font-weight:850;
+}
+#feedPageStream .ds30-post-message-label svg,
+.dsos-executive #dashboardSocialPreview .ds30-post-message-label svg{
+  width:20px;height:20px;stroke:#95c8ff;stroke-width:1.8;
+  fill:none;stroke-linejoin:round;
+}
+#feedPageStream .ds30-post-engagement,
+.dsos-executive #dashboardSocialPreview .ds30-post-engagement{
+  padding-top:11px!important;
+  margin-top:12px!important;
+  border-top:1px solid rgba(135,171,207,.15)!important;
+}
+#feedPageStream .ds30-post-actions,
+.dsos-executive #dashboardSocialPreview .ds30-post-actions{
+  margin-top:11px!important;
+}
+#feedPageStream .ds30-social-post .ds30-author-photo,
+.dsos-executive #dashboardSocialPreview .ds30-social-post .ds30-author-photo{
+  object-fit:cover!important;
+}
+#feedPageStream .ds30-tag-filter,
+.dsos-executive #dashboardSocialPreview .ds30-tag-filter{
+  display:flex;gap:12px;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+  padding:12px 15px;
+  border:1px solid rgba(224,188,118,.3);
+  border-radius:11px;
+  background:#102b49;
+  color:#f1dbb2;
+  font-size:13px;
+}
+#feedPageStream .ds30-tag-filter a,
+.dsos-executive #dashboardSocialPreview .ds30-tag-filter a{
+  color:#9ecaff;text-decoration:underline;
+}
+
+/* Visual-review examples: content-dependent backgrounds and generous height. */
+body.ds-visual-review #feedPageStream .ds-review-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post{
+  box-sizing:border-box!important;
+  display:block!important;
+  height:auto!important;max-height:none!important;min-height:0!important;
+  overflow:visible!important;
+  padding:clamp(18px,2.4vw,28px)!important;
+  margin-bottom:18px!important;
+  border-radius:20px!important;
+  border:1px solid rgba(151,181,216,.32)!important;
+  background:linear-gradient(145deg,#132d4b,#0c213a)!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.14)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-zoom-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-zoom-post{
+  background:linear-gradient(145deg,#102d55,#0b2344 70%,#081d36)!important;
+  border-color:rgba(113,170,227,.42)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-photo-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-photo-post{
+  background:linear-gradient(150deg,#1b3347,#102538)!important;
+  border-color:rgba(154,180,196,.35)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-quote-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-quote-post{
+  background:linear-gradient(150deg,#242944,#152740)!important;
+  border-color:rgba(221,179,102,.33)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-milestone-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-milestone-post{
+  background:linear-gradient(145deg,#173b39,#102b35)!important;
+  border-color:rgba(124,190,167,.36)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-text-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-text-post{
+  background:linear-gradient(150deg,#132f4f,#112942)!important;
+}
+body.ds-visual-review #feedPageStream .ds-review-post.ds-review-long-post,
+body.ds-visual-review #dashboardSocialPreview .ds-review-post.ds-review-long-post{
+  background:linear-gradient(150deg,#172e4a,#10273f)!important;
+}
+body.ds-visual-review .ds-review-post p,
+body.ds-visual-review .ds-review-post .ds-review-post-body{
+  display:block!important;
+  position:static!important;
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  overflow:visible!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+  font-size:14px!important;
+  line-height:1.77!important;
+  color:#e8f0fa!important;
+  margin:16px 0 20px!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-message-bubble{
+  width:100%;height:auto;max-height:none;
+  margin:16px 0 20px;
+  padding:21px 23px;
+  background:linear-gradient(130deg,rgba(16,52,88,.76),rgba(7,30,58,.88));
+  border:1px solid rgba(139,185,231,.36);
+  border-radius:16px;
+}
+body.ds-visual-review .ds-review-post .ds-review-message-bubble .ds-review-post-body{
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+  white-space:pre-wrap!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-message-bubble strong{
+  display:block;margin-bottom:10px;
+  color:#c9def4;font-size:13px;
+}
+body.ds-visual-review .ds-review-post .ds-review-post-body a,
+body.ds-visual-review .ds-review-post p a{
+  color:#90c6ff!important;text-decoration:underline;
+  text-underline-offset:3px;overflow-wrap:anywhere;
+}
+body.ds-visual-review .ds-review-post a.ds-review-tag{
+  color:#f0c77b!important;
+  font-weight:850;
+  text-decoration:none!important;
+}
+body.ds-visual-review .ds-review-post a.ds-review-tag:hover{
+  text-decoration:underline!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-post-body small{
+  display:block;margin-top:10px;color:#c7d5e6;
+  font-size:12px;
+}
+body.ds-visual-review .ds-review-post.ds-review-text-post .ds-review-post-body{
+  font-size:18px!important;line-height:1.75!important;
+}
+body.ds-visual-review .ds-review-post.ds-review-long-post .ds-review-post-body{
+  font-size:15px!important;line-height:1.88!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-photo-layout{
+  max-height:none!important;
+  overflow:hidden!important;
+  margin:13px 0 18px!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-photo-layout img{
+  max-height:none!important;
+  width:auto!important;
+  max-width:100%!important;
+  height:auto!important;
+  object-fit:contain!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-engagement{
+  margin-top:15px!important;padding-top:12px!important;
+  border-top:1px solid rgba(145,175,208,.15);
+}
+body.ds-visual-review .ds-review-post .ds-review-actions{
+  margin-top:10px!important;padding-top:10px!important;
+}
+body.ds-visual-review .ds-review-post .ds-review-author{
+  margin-bottom:11px;
+  padding-bottom:12px!important;
+}
+/* Example hashtags remain functional even though the review database is disabled. */
+body.ds-visual-review .ds-review-tag-filter{
+  margin:0 0 17px;
+  padding:13px 16px;
+  border:1px solid rgba(217,175,100,.38);
+  border-radius:12px;
+  color:#f0ddba;
+  background:#132e4c;
+  font-size:13px;
+  line-height:1.5;
+}
+body.ds-visual-review .ds-review-tag-filter a{
+  margin-left:7px;
+  color:#9dc9ff;
+  text-decoration:underline;
+}
+body.ds-visual-review .ds-review-tag-empty{
+  margin:20px 0;
+  padding:20px;
+  color:#e2edf8;
+  border:1px solid rgba(140,177,212,.26);
+  border-radius:12px;
+  background:#122d4e;
+}
+
+@media(max-width:650px){
+  #feedPageStream .ds30-social-post,
+  .dsos-executive #dashboardSocialPreview .ds30-social-post{
+    padding:18px!important;
+  }
+  #feedPageStream .ds30-post-message-bubble,
+  .dsos-executive #dashboardSocialPreview .ds30-post-message-bubble{
+    padding:15px;
+  }
+  body.ds-visual-review #feedPageStream .ds-review-post,
+  body.ds-visual-review #dashboardSocialPreview .ds-review-post{
+    padding:18px!important;
+  }
+  body.ds-visual-review .ds-review-post .ds-review-message-bubble{
+    padding:16px;
+  }
+}
+
+/* November 18: shared social-feed reading contract. These two streams are
+   the only scope; do not affect Community, Team Groups, Meet or navigation.
+   One spacing system replaces stacked legacy paddings and sibling margins. */
+:is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview){
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  grid-auto-rows:max-content!important;align-content:start!important;align-items:start!important;
+  width:100%!important;max-width:800px!important;min-width:0!important;
+  height:auto!important;max-height:none!important;overflow:visible!important;
+  gap:16px!important;margin-inline:auto!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post,.ds-review-post){
+  box-sizing:border-box!important;display:block!important;position:relative!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;margin:0!important;padding:17px 20px 11px!important;
+  border-radius:15px!important;color:#f1f5fb!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-authorbar,.ds-review-author){
+  display:flex!important;align-items:center!important;min-width:0!important;
+  gap:10px!important;margin:0 0 12px!important;padding:0!important;
+  border-bottom:0!important;background:transparent!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author,.ds-review-author>span:nth-child(2)){
+  flex:1 1 auto!important;min-width:0!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author strong,.ds-review-author strong){
+  color:#f8fafc!important;font-size:14px!important;line-height:1.4!important;font-weight:750!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-author small,.ds30-post-rank,.ds-review-author small){
+  color:#c1d0e1!important;font-size:12px!important;line-height:1.45!important;opacity:1!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post>h3,.ds-review-post-title){
+  color:#f6f9fd!important;font-size:17px!important;line-height:1.45!important;
+  margin:0 0 9px!important;padding:0!important;font-weight:750!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body,.ds-review-photo-caption){
+  box-sizing:border-box!important;display:block!important;position:static!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0 0 13px!important;padding:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  color:#f0f5fc!important;opacity:1!important;font-size:15px!important;
+  line-height:1.68!important;font-weight:450!important;
+  overflow:visible!important;white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;
+  text-overflow:clip!important;-webkit-line-clamp:unset!important;line-clamp:unset!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body,.ds30-comment-body) a{
+  display:inline!important;position:static!important;float:none!important;
+  width:auto!important;max-width:none!important;min-width:0!important;
+  margin:0!important;padding:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;
+  color:#a8d2ff!important;font:inherit!important;white-space:normal!important;
+  text-decoration:underline!important;text-underline-offset:3px!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;opacity:1!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body) :is(a.ds30-hashtag,a.ds-review-tag){
+  color:#f4ce87!important;font-weight:650!important;text-decoration:none!important;
+  overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble){
+  box-sizing:border-box!important;display:block!important;min-width:0!important;
+  width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;
+  overflow:visible!important;margin:0 0 13px!important;padding:15px 16px!important;
+  border-radius:12px!important;background:#0b233d!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble) :is(.ds30-post-copy,.ds-review-post-body){
+  margin:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-label,.ds-review-message-bubble>strong){
+  color:#e3effd!important;font-size:13px!important;line-height:1.5!important;margin:0 0 9px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout{
+  display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important;
+  height:auto!important;max-height:none!important;margin:0 0 13px!important;padding:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout .ds-review-post-photo{
+  display:block!important;width:100%!important;height:auto!important;
+  max-width:100%!important;max-height:none!important;object-fit:contain!important;
+  margin:0 auto!important;aspect-ratio:auto!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-photo-layout figcaption{
+  color:#c1d0e1!important;font-size:12px!important;line-height:1.45!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds-review-quote-card,.ds-review-milestone-card){
+  box-sizing:border-box!important;min-width:0!important;width:100%!important;
+  height:auto!important;max-height:none!important;min-height:0!important;
+  margin:0 0 13px!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-quote-card blockquote{
+  color:#f7f9fc!important;line-height:1.35!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-engagement,.ds-review-engagement){
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  flex-wrap:wrap!important;gap:6px 12px!important;min-height:0!important;
+  margin:0!important;padding:9px 0!important;
+  border-top:1px solid #31465f!important;border-bottom:1px solid #31465f!important;
+  color:#c4d3e4!important;font-size:12px!important;line-height:1.4!important;
+  background:transparent!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions,.ds-review-actions){
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;gap:4px!important;margin:0!important;padding:5px 0 0!important;
+  min-height:0!important;height:auto!important;background:transparent!important;border:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button){
+  box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;min-width:0!important;height:auto!important;min-height:40px!important;
+  margin:0!important;padding:6px 3px!important;gap:6px!important;
+  font-size:12px!important;line-height:1.35!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button) :is(.ds30-action-icon,.ds-review-action-icon){
+  width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;
+  max-width:18px!important;max-height:18px!important;flex:0 0 18px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-comments:not(:has(.ds30-comment-entry,.ds30-comments-more,.ds30-comment-unavailable,.ds30-comment-locked,.ds30-comment-form:not([hidden]))){
+  display:none!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-sample-thread{
+  margin:8px 0 0!important;padding:12px 0 0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-bubble{
+  box-sizing:border-box!important;max-width:calc(100% - 42px)!important;min-width:0!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-body{
+  color:#edf4fc!important;font-size:14px!important;line-height:1.55!important;
+  white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-comment-name{
+  color:#f6f9fd!important;font-size:13px!important;line-height:1.4!important;
+}
+@media(max-width:690px){
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-social-post,.ds-review-post){
+    padding:14px 13px 9px!important;border-radius:13px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-copy,.ds-review-post>p,.ds-review-post-body){
+    font-size:15px!important;line-height:1.6!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-actions>button,.ds30-react-main,.ds-review-actions>button){
+    flex-direction:column!important;min-height:44px!important;gap:3px!important;
+    font-size:11px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) :is(.ds30-post-message-bubble,.ds-review-message-bubble){
+    padding:12px!important;
+  }
+}
+
+/* Keep composer and network heading on the same reading column. */
+#feedApp .dsx-feed-page-composer,
+.dsos-executive .dsx-dashboard-composer,
+.dsos-executive .dsx-dashboard-feed-head{
+  box-sizing:border-box!important;width:100%!important;max-width:800px!important;
+  min-width:0!important;margin-inline:auto!important;
+}
+#feedApp #feedComposerBody,
+.dsos-executive .dsx-dashboard-composer textarea{
+  font-size:15px!important;line-height:1.6!important;color:#f5f9ff!important;
+}
+
+/* Audit repair: older demo span rules treated every action label as a
+   separate 40px control. Labels are part of the button, not another row. */
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-actions button .ds-review-action-label{
+  display:inline!important;min-height:0!important;height:auto!important;max-height:none!important;
+  padding:0!important;margin:0!important;line-height:1.25!important;
+  color:inherit!important;font-size:inherit!important;white-space:nowrap!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-actions button{
+  max-height:none!important;
+}
+@media(max-width:690px){
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-author{
+    flex-wrap:nowrap!important;gap:8px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-sample-mark{
+    font-size:8px!important;letter-spacing:0!important;padding:3px 4px!important;
+    max-width:76px!important;text-align:center;white-space:normal!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-engagement>span{
+    min-width:0!important;font-size:11px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-post.ds-review-text-post .ds-review-post-body{
+    margin-bottom:10px!important;
+  }
+}

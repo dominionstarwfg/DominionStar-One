@@ -19,10 +19,35 @@ on:
       - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
+      - 'assets/css/dominionstar-feed-flow.css'
+      - 'assets/css/dominionstar-inline-comments.css'
+      - 'assets/css/dominionstar-social-first-dashboard.css'
+      - 'tests/feed-natural-post-flow-review.test.mjs'
       - 'direct-messages/**'
       - 'netlify/functions/push-public-key.mjs'
       - 'netlify/functions/process-push-outbox.mjs'
       - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'netlify/functions/process-email-outbox.mjs'
+      - 'netlify/functions/email-outbox-health.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
+      - 'tests/founder-email-health-panel-review.test.mjs'
+      - 'tests/email-outbox-health-review.test.mjs'
+      - 'netlify/functions/_shared/priority-email-policy.mjs'
+      - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
+      - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
+      - 'tests/community-notification-source-review.test.mjs'
+      - 'assets/js/community-hub.js'
+      - 'assets/js/community-chat.js'
+      - 'community-chat/index.html'
+      - 'scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql'
+      - 'assets/js/notifications-center.js'
+      - 'notifications/index.html'
+      - 'scripts/verify-isolated-agent-staging.mjs'
+      - 'tests/isolated-agent-staging-guard.test.mjs'
+      - 'tests/priority-email-routing-review.test.mjs'
+      - 'tests/priority-email-delivery-worker.test.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
@@ -65,10 +90,35 @@ on:
       - 'assets/js/dashboard-social-preview.js'
       - 'assets/js/community-media-draft-review.js'
       - 'assets/css/dominionstar-cinematic-os.css'
+      - 'assets/css/dominionstar-feed-flow.css'
+      - 'assets/css/dominionstar-inline-comments.css'
+      - 'assets/css/dominionstar-social-first-dashboard.css'
+      - 'tests/feed-natural-post-flow-review.test.mjs'
       - 'direct-messages/**'
       - 'netlify/functions/push-public-key.mjs'
       - 'netlify/functions/process-push-outbox.mjs'
       - 'netlify/functions/scheduled-push-outbox.mjs'
+      - 'netlify/functions/process-email-outbox.mjs'
+      - 'netlify/functions/email-outbox-health.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
+      - 'tests/founder-email-health-panel-review.test.mjs'
+      - 'tests/email-outbox-health-review.test.mjs'
+      - 'netlify/functions/_shared/priority-email-policy.mjs'
+      - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
+      - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
+      - 'tests/community-notification-source-review.test.mjs'
+      - 'assets/js/community-hub.js'
+      - 'assets/js/community-chat.js'
+      - 'community-chat/index.html'
+      - 'scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql'
+      - 'assets/js/notifications-center.js'
+      - 'notifications/index.html'
+      - 'scripts/verify-isolated-agent-staging.mjs'
+      - 'tests/isolated-agent-staging-guard.test.mjs'
+      - 'tests/priority-email-routing-review.test.mjs'
+      - 'tests/priority-email-delivery-worker.test.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/check-agent-release-gates.mjs'
@@ -106,12 +156,18 @@ jobs:
           node --check assets/js/dashboard-social-preview.js
           node --check assets/js/community-media-draft-review.js
           node --check assets/js/direct-messages.js
+          node --check assets/js/community-chat.js
           node --check assets/js/notification-feature-flags.js
           node --check scripts/check-agent-release-gates.mjs
           node --check sw.js
           node --check netlify/functions/push-public-key.mjs
           node --check netlify/functions/process-push-outbox.mjs
           node --check netlify/functions/scheduled-push-outbox.mjs
+          node --check netlify/functions/process-email-outbox.mjs
+          node --check netlify/functions/email-outbox-health.mjs
+          node --check assets/js/founder-email-health.mjs
+          node --check netlify/functions/_shared/priority-email-policy.mjs
+          node --check scripts/verify-isolated-agent-staging.mjs
       - name: Targeted notification regression
         run: |
           node --test tests/notification-push-readability-review.test.mjs
@@ -119,6 +175,13 @@ jobs:
           node --test tests/agent-notification-meet-isolation-runtime.test.mjs
           node --test tests/security-email-outbox-privilege-gate.test.mjs
           node --test tests/notification-rpc-hardening-review.test.mjs
+          node --test tests/priority-email-routing-review.test.mjs
+          node --test tests/priority-email-delivery-worker.test.mjs
+          node --test tests/email-outbox-health-review.test.mjs
+          node --test tests/founder-email-health-panel-review.test.mjs
+          node --test tests/community-notification-source-review.test.mjs
+          node --test tests/legacy-community-broadcast-review.test.mjs
+          node --test tests/isolated-agent-staging-guard.test.mjs
       - name: Full Node regression suite
         shell: bash
         run: |
@@ -134,6 +197,9 @@ jobs:
         run: |
           grep -Fq 'DO NOT RUN' scripts/security/notification-read-state.DO-NOT-RUN.review.sql
           grep -Fq 'DO NOT RUN' scripts/security/web-push-foundation.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
+          grep -Fq 'DO NOT RUN' scripts/security/legacy-community-broadcast-disable.DO-NOT-RUN.review.sql
           if grep -R --line-number -E '^[[:space:]]+(supabase db|psql .*notification-read-state|psql .*web-push-foundation|apply_migration)' .github/workflows; then
             echo "Production database mutation command found in review workflow" >&2
             exit 1

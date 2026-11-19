@@ -1,0 +1,339 @@
+-- All assertions execute against the disposable fixture, NEVER production.
+\set ON_ERROR_STOP on
+set role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+select public.create_agent_group('Leadership Team','Weekly goals and training') as group_id \gset
+do $$ begin
+  if (select count(*) from public.agent_groups where name='Leadership Team') <> 1 then
+    raise exception 'Owner cannot read newly created group';
+  end if;
+  if (select count(*) from public.agent_group_members where role='owner' and status='active') <> 1 then
+    raise exception 'Creator must become active group owner atomically';
+  end if;
+end $$;
+
+insert into public.agent_group_messages(group_id,author_id,body)
+values(:'group_id','11111111-1111-4111-8111-111111111111','Private meeting: https://zoom.us/j/7443001370');
+insert into public.agent_group_posts(group_id,author_id,kind,body)
+  values(:'group_id','11111111-1111-4111-8111-111111111111','milestone',
+    'Congratulations on completing your producer license!')
+  returning id as post_id \gset
+insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+  values(:'post_id','11111111-1111-4111-8111-111111111111','celebrate');
+select set_config('test.group_post_id',:'post_id',false);
+insert into public.agent_group_post_comments(post_id,author_id,body)
+  values(:'post_id','11111111-1111-4111-8111-111111111111',
+    'Well done on your producer exam! #TeamDominionStar');
+do $$ begin
+  if (select count(*) from public.agent_group_posts)<>1 then
+    raise exception 'Group owner cannot read their private recognition post';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>1 then
+    raise exception 'Owner private celebration reaction is missing';end if;
+  if (select count(*) from public.agent_group_post_comments)<>1 then
+    raise exception 'Group owner could not read the private milestone reply';end if;
+end $$;
+insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
+values(:'group_id','22222222-2222-4222-8222-222222222222','member','invited','11111111-1111-4111-8111-111111111111');
+
+-- Seed synthetic pre-existing group administrators and an ordinary member.
+-- Administrative membership promotion is NOT a public browser operation.
+reset role;
+insert into public.agent_group_members(group_id,user_id,role,status) values
+ (:'group_id','66666666-6666-4666-8666-666666666666','admin','active'),
+ (:'group_id','77777777-7777-4777-8777-777777777777','admin','active'),
+ (:'group_id','88888888-8888-4888-8888-888888888888','member','active');
+set role authenticated;
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',false);
+do $$ begin
+  -- Admin cannot kick another administrator (RLS affects zero rows).
+  delete from public.agent_group_members where user_id='77777777-7777-4777-8777-777777777777';
+  if not exists(select 1 from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777') then
+    raise exception 'Admin could remove another admin';
+  end if;
+  delete from public.agent_group_members where user_id='88888888-8888-4888-8888-888888888888';
+  if exists(select 1 from public.agent_group_members
+    where user_id='88888888-8888-4888-8888-888888888888') then
+    raise exception 'Admin could not remove ordinary member';
+  end if;
+  update public.agent_groups set name='Unauthorized Rename';
+  if exists(select 1 from public.agent_groups where name='Unauthorized Rename') then
+    raise exception 'Non-owner admin renamed the group';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+do $$ begin
+  update public.agent_groups set name='Leadership & Learning Team',
+    topic='Updated owner-controlled topic';
+  if not exists(select 1 from public.agent_groups
+      where name='Leadership & Learning Team' and topic='Updated owner-controlled topic')
+  then raise exception 'Group owner could not edit group details';end if;
+  delete from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777';
+  if exists(select 1 from public.agent_group_members
+    where user_id='77777777-7777-4777-8777-777777777777') then
+    raise exception 'Owner could not remove another admin';
+  end if;
+end $$;
+
+do $$ begin
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
+       select id,'44444444-4444-4444-8444-444444444444','member','invited',owner_id
+       from public.agent_groups limit 1$q$
+  ) then raise exception 'Pending agent was invited';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
+       select id,'55555555-5555-4555-8555-555555555555','member','invited',owner_id
+       from public.agent_groups limit 1$q$
+  ) then raise exception 'Non-directory member was invited';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
+       select id,'33333333-3333-4333-8333-333333333333','admin','active',owner_id
+       from public.agent_groups limit 1$q$
+  ) then raise exception 'Owner bypassed invite-only membership restrictions';end if;
+  if not public.synthetic_assert_denied(
+    $q$update public.agent_group_members set role='admin'
+       where user_id='22222222-2222-4222-8222-222222222222'$q$
+  ) then raise exception 'Role elevation was possible';end if;
+  -- RLS DELETE can safely affect zero rows without raising an error.
+  -- Assert that owner membership survives an attempted self-removal.
+  delete from public.agent_group_members
+    where user_id='11111111-1111-4111-8111-111111111111';
+  if not exists(select 1 from public.agent_group_members
+      where user_id='11111111-1111-4111-8111-111111111111' and role='owner')
+  then raise exception 'Owner could leave without transferring ownership';end if;
+end $$;
+
+-- Invited agent sees ONLY the group invitation and their membership row.
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+do $$ begin
+  if (select count(*) from public.agent_groups)<>1 then
+    raise exception 'Invited approved member cannot see group name';
+  end if;
+  if (select count(*) from public.agent_group_messages)<>0 then
+    raise exception 'Invited, not joined agent read private messages';
+  end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Invited agent read private recognition posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Invited agent read post reactions';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Invited agent read private post replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '22222222-2222-4222-8222-222222222222','Unauthorized reply')$q$
+  ) then raise exception 'Invited agent replied before accepting';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_posts(group_id,author_id,kind,body)
+        select id,'22222222-2222-4222-8222-222222222222','milestone',
+          'Unauthorized milestone' from public.agent_groups limit 1$q$
+  ) then raise exception 'Invited agent posted before accepting';end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Invited agent obtained private unread metadata';
+  end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_messages(group_id,author_id,body)
+       select id,'22222222-2222-4222-8222-222222222222','Not yet joined'
+       from public.agent_groups limit 1$q$
+  ) then raise exception 'Pending invitee could send before acceptance';end if;
+end $$;
+update public.agent_group_members set status='active'
+ where user_id='22222222-2222-4222-8222-222222222222' and status='invited';
+do $$ begin
+  if (select count(*) from public.agent_group_messages)<>1 then
+    raise exception 'Joined member could not read historical group message';
+  end if;
+  if (select count(*) from public.agent_group_posts)<>1 then
+    raise exception 'Joined member could not see group congratulations';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>1 then
+    raise exception 'Joined member cannot view celebrations';end if;
+  if (select count(*) from public.agent_group_post_comments)<>1 then
+    raise exception 'Joined member cannot read existing milestone replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$update public.agent_group_members set role='owner'
+       where user_id='22222222-2222-4222-8222-222222222222'$q$
+  ) then raise exception 'Joined member escalated role';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_members(group_id,user_id,role,status,invited_by)
+       select group_id,'33333333-3333-4333-8333-333333333333','member','invited',
+         '22222222-2222-4222-8222-222222222222'
+       from public.agent_group_members limit 1$q$
+  ) then raise exception 'Ordinary member could invite';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_messages(group_id,author_id,body)
+       select group_id,'11111111-1111-4111-8111-111111111111','Spoofed message'
+       from public.agent_group_members limit 1$q$
+  ) then raise exception 'Ordinary member could spoof author';end if;
+end $$;
+
+-- An owner post after acceptance must become unread only for other joined agents.
+-- Owners' own posts do not count. Read positions cannot be moved backwards or
+-- into the future and never reveal message content to an outsider.
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+insert into public.agent_group_messages(group_id,author_id,body)
+  values(:'group_id','11111111-1111-4111-8111-111111111111','New after invitation acceptance');
+do $$ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
+  then raise exception 'Owner own message counted as unread';end if;
+end $$;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+do $$ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>1
+  then raise exception 'Joined member lacks one new unread group message';end if;
+end $$;
+update public.agent_group_members
+  set last_read_at=(select max(created_at) from public.agent_group_messages
+                    where author_id='11111111-1111-4111-8111-111111111111')
+  where group_id=:'group_id' and user_id='22222222-2222-4222-8222-222222222222';
+do $$ begin
+  if (select coalesce(sum(unread_count),0) from public.list_agent_group_unread())<>0
+  then raise exception 'Reading messages did not clear unread count';end if;
+  if not public.synthetic_assert_denied(
+    $q$update public.agent_group_members set last_read_at=now()+interval '7 day'
+      where user_id='22222222-2222-4222-8222-222222222222'$q$
+  ) then raise exception 'Future-dated read cursor accepted';end if;
+end $$;
+-- Only group creator may grant or revoke administrative privileges.
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',false);
+do $$ begin
+  if not public.synthetic_assert_denied(
+    $q$select public.set_agent_group_admin(
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',true)$q$
+  ) then raise exception 'Appointed admin delegated their own admin powers';end if;
+end $$;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+select public.set_agent_group_admin(:'group_id',
+  '22222222-2222-4222-8222-222222222222',true);
+do $$ begin
+  if not exists(select 1 from public.agent_group_members
+      where user_id='22222222-2222-4222-8222-222222222222' and role='admin')
+  then raise exception 'Owner could not appoint group admin';end if;
+end $$;
+select public.set_agent_group_admin(:'group_id',
+  '22222222-2222-4222-8222-222222222222',false);
+do $$ begin
+  if not exists(select 1 from public.agent_group_members
+      where user_id='22222222-2222-4222-8222-222222222222' and role='member')
+  then raise exception 'Owner could not revoke group admin';end if;
+end $$;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+insert into public.agent_group_posts(group_id,author_id,kind,body)
+  values(:'group_id','22222222-2222-4222-8222-222222222222','announcement',
+    'Training call reminder for all joined members');
+insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+  values(:'post_id','22222222-2222-4222-8222-222222222222','like');
+insert into public.agent_group_post_comments(post_id,author_id,body)
+  values(:'post_id','22222222-2222-4222-8222-222222222222',
+    'Congratulations! Looking forward to more milestones.');
+do $$ begin
+  if (select count(*) from public.agent_group_posts)<>2 then
+    raise exception 'Joined member cannot publish group post';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>2 then
+    raise exception 'Joined member cannot react to group post';end if;
+  if (select count(*) from public.agent_group_post_comments)<>2 then
+    raise exception 'Joined member could not post a milestone reply';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '11111111-1111-4111-8111-111111111111','Spoofed reply')$q$
+  ) then raise exception 'Post reply author spoofing was permitted';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_reactions(post_id,user_id,reaction)
+      select id,'33333333-3333-4333-8333-333333333333','like'
+      from public.agent_group_posts limit 1$q$
+  ) then raise exception 'Reaction author spoofing was permitted';end if;
+end $$;
+update public.agent_group_members set muted=true
+ where user_id='22222222-2222-4222-8222-222222222222';
+insert into public.agent_group_messages(group_id,author_id,body)
+values(:'group_id','22222222-2222-4222-8222-222222222222','Message after invitation acceptance');
+do $$ begin
+  if (select count(*) from public.agent_group_messages)<>3 then
+    raise exception 'Joined member cannot send messages';
+  end if;
+end $$;
+
+-- Approved but uninvited agent sees NOTHING.
+select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',false);
+do $$ begin
+  if (select count(*) from public.agent_groups)<>0 then raise exception 'Uninvited agent sees group';end if;
+  if (select count(*) from public.agent_group_members)<>0 then raise exception 'Uninvited agent sees membership';end if;
+  if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Uninvited agent sees chat';end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Uninvited agent sees private group posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Uninvited agent sees private reactions';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Uninvited agent sees private milestone replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_post_comments(post_id,author_id,body)
+       values(current_setting('test.group_post_id')::uuid,
+         '33333333-3333-4333-8333-333333333333','Unauthorized reply')$q$
+  ) then raise exception 'Uninvited agent wrote a private reply';end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Uninvited agent learned unread metadata';end if;
+  if not public.synthetic_assert_denied(
+    $q$select public.create_agent_group('', 'bad')$q$
+  ) then raise exception 'Blank group name accepted';end if;
+  if not public.synthetic_assert_denied(
+    $q$insert into public.agent_group_messages(group_id,author_id,body)
+       values('11111111-1111-4111-8111-111111111111',
+       '33333333-3333-4333-8333-333333333333','Illegal')$q$
+  ) then raise exception 'Uninvited sender not blocked';end if;
+end $$;
+
+-- Founder-approval loss must immediately revoke group access.
+reset role;
+update public.member_profiles set verification_status='revoked'
+ where id='22222222-2222-4222-8222-222222222222';
+set role authenticated;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+do $$ begin
+  if (select count(*) from public.agent_groups)<>0 then raise exception 'Revoked member sees group';end if;
+  if (select count(*) from public.agent_group_messages)<>0 then raise exception 'Revoked member sees messages';end if;
+  if (select count(*) from public.agent_group_posts)<>0 then
+    raise exception 'Revoked member still sees milestone posts';end if;
+  if (select count(*) from public.agent_group_post_reactions)<>0 then
+    raise exception 'Revoked member still sees celebrations';end if;
+  if (select count(*) from public.agent_group_post_comments)<>0 then
+    raise exception 'Revoked member still sees private post replies';end if;
+  if (select count(*) from public.list_agent_group_unread())<>0 then
+    raise exception 'Revoked member learned unread metadata';end if;
+end $$;
+
+select set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',false);
+do $$ begin
+  if not public.synthetic_assert_denied(
+    $q$select public.create_agent_group('Unauthorized Team','')$q$
+  ) then raise exception 'Pending member could create private group';end if;
+end $$;
+
+-- Anon has no table or creation access.
+reset role;
+set role anon;
+do $$ begin
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_messages$q$)
+    then raise exception 'Anonymous member read group messages';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_posts$q$)
+    then raise exception 'Anonymous reader saw group milestones';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_post_reactions$q$)
+    then raise exception 'Anonymous reader saw group celebrations';end if;
+  if not public.synthetic_assert_denied($q$select * from public.agent_group_post_comments$q$)
+    then raise exception 'Anonymous reader saw private milestone replies';end if;
+  if not public.synthetic_assert_denied(
+    $q$select public.set_agent_group_admin(
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',true)$q$
+  ) then raise exception 'Anonymous user called admin-grant RPC';end if;
+  if not public.synthetic_assert_denied($q$select * from public.list_agent_group_unread()$q$)
+    then raise exception 'Anonymous member called unread summary';end if;
+  if not public.synthetic_assert_denied($q$select public.create_agent_group('Anon Group','')$q$)
+    then raise exception 'Anonymous member could create group';end if;
+end $$;
+reset role;
+select 'ISOLATED_TEAM_GROUP_RLS_PASS' as result;

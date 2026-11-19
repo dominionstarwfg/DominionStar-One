@@ -1,5 +1,11 @@
 
 (() => {
+  // Coordinated database + browser cutover gate. Do not enable until the
+  // public-safe directory projection is prepared and verified in staging.
+  // This is an application routing flag, NOT an authorization boundary.
+  window.DOMINIONSTAR_AGENT_DATA_FEATURES=Object.freeze({
+    publicMemberProfilesV2:false
+  });
   const config = window.DOMINIONSTAR_SUPABASE || {};
   const configured = Boolean(
     config.url && config.anonKey &&

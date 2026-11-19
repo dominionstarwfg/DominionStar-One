@@ -6,9 +6,19 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   }[char]));
-  // Linkify only HTTP(S); keep all user-entered text escaped.
+  // Only linkify validated HTTP(S) URLs and hashtags. Never treat member input
+  // as HTML, javascript: URLs, or external data fetched without consent.
+  const hashtags = value => Array.from(
+    String(value ?? '').matchAll(/(^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{1,64})/gu),
+    match => match[2].toLocaleLowerCase()
+  );
+  const linkifyHashtags = value => String(value ?? '')
+    .split(/(#[\p{L}\p{N}_]{1,64})/gu)
+    .map(part => /^#[\p{L}\p{N}_]{1,64}$/u.test(part)
+      ? '<a class="ds30-hashtag" href="/feed/?tag='+encodeURIComponent(part.slice(1))+'">'+escapeHtml(part)+'</a>'
+      : escapeHtml(part)).join('');
   const linkify = value => String(value ?? '').split(/(https?:\/\/[^\s<>"']+)/gi).map(part => {
-    if (!/^https?:\/\//i.test(part)) return escapeHtml(part);
+    if (!/^https?:\/\//i.test(part)) return linkifyHashtags(part);
     const trailing=(part.match(/[).,!?;:]+$/)||[])[0]||'';
     const candidate=part.slice(0,part.length-trailing.length);
     try {
@@ -17,9 +27,27 @@
       return '<a href="'+escapeHtml(url.href)+'" target="_blank" rel="noopener noreferrer nofollow">'+escapeHtml(candidate)+'</a>'+escapeHtml(trailing);
     } catch { return escapeHtml(part); }
   }).join('');
+  const postKind = post => {
+    const body=String(post.body||post.description||'');
+    if (/https?:\/\/(?:[\w-]+\.)*zoom\.us\/(?:j\/|my\/|wc\/join\/|s\/)/i.test(body)) return 'meeting';
+    if (/https?:\/\/[^\s<>"']+/i.test(body)) return 'link';
+    if (/^(quote|inspiration)$/i.test(String(post.post_type||''))) return 'quote';
+    if (/^announcement$/i.test(String(post.post_type||''))) return 'announcement';
+    return 'text';
+  };
+  const requestedTag = (() => {
+    try {
+      const value=new URL(location.href||location.origin).searchParams.get('tag')||'';
+      return /^[\p{L}\p{N}_]{1,64}$/u.test(value)?value.toLocaleLowerCase():'';
+    } catch {return '';}
+  })();
 
   const icons = {
     like:'<path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8a3 3 0 0 1 2 3v4h6a2 2 0 0 1 2 2l-2 8a3 3 0 0 1-3 2H7"/>',
+    love:'<path d="M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"/>',
+    celebrate:'<path d="m12 2 1.8 5.3L19 9.1l-4.3 3.2 1.6 5.4L12 14.6l-4.3 3.1 1.6-5.4L5 9.1l5.2-1.8L12 2Z"/>',
+    support:'<path d="M8.5 13.5 5 10l-3 3m20 0-3-3-3.5 3.5M6 10V6a3 3 0 0 1 6 0v7m6-3V6a3 3 0 0 0-6 0"/><path d="M5 14c1.5 4 4 6 7 7 3-1 5.5-3 7-7"/>',
+    insightful:'<path d="M9 18h6M10 22h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.9.8-1.5 1.7-1.5 2.5h-4c0-.8-.6-1.7-1.5-2.5Z"/>',
     comment:'<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8Z"/>',
     repost:'<path d="m17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4M21 13v3a2 2 0 0 1-2 2H3"/>',
     share:'<path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M4 13v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/>',
@@ -32,6 +60,15 @@
   };
   const asPosts = result => Array.isArray(result) ? result : [];
   const readableCount = (count, known) => known ? String(count) : '—';
+  const reactionMeta = {
+    like:{label:'Like',icon:'like'},
+    love:{label:'Love',icon:'love'},
+    celebrate:{label:'Celebrate',icon:'celebrate'},
+    support:{label:'Support',icon:'support'},
+    insightful:{label:'Insightful',icon:'insightful'}
+  };
+  const reactionOrder=['like','love','celebrate','support','insightful'];
+  const reactionBadge = name => '<span class="ds30-reaction-badge ds30-reaction-'+name+'" aria-hidden="true">'+icon(reactionMeta[name]?.icon||'like')+'</span>';
 
   async function mount({client, memberId, target, resultLimit=20}) {
     if (!client || !memberId || !target) throw new Error('The member feed requires a verified session.');
@@ -41,6 +78,10 @@
     }
     let posts = [];
     let avatarUrls = new Map();
+    let commentThreads = new Map();
+    const expandedComments = new Set();
+    const openComposers = new Set();
+    let lastCounts = new Map();
     let busy = false;
     let revision = 0;
     const status = document.createElement('p');
@@ -75,7 +116,14 @@
       finally{link.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);}
     };
     const render = (counts) => {
-      target.innerHTML = posts.map(post => {
+      const filtered=target.id==='feedPageStream'&&requestedTag
+        ? posts.filter(post=>hashtags(String(post.title||'')+' '+String(post.body||post.description||'')).includes(requestedTag))
+        : posts;
+      const filterBanner=target.id==='feedPageStream'&&requestedTag
+        ? '<div class="ds30-tag-filter" role="status"><span>Latest posts tagged <strong>#'+escapeHtml(requestedTag)+'</strong></span><a href="/feed/">Show all posts</a></div>'
+        : '';
+      lastCounts=counts;
+      target.innerHTML = filterBanner + (filtered.map(post => {
         const author=post.author_preferred_name||post.author_full_name||'DominionStar Member';
         const authorRank=String(post.author_rank||'').trim() || '—';
         const foundingNumber=Number(post.author_exclusive_number);
@@ -83,14 +131,44 @@
           ? 'Founding Member #'+foundingNumber : '';
         const avatarUrl=post.author_avatar_path?avatarUrls.get(post.author_avatar_path):null;
         const description=String(post.body||post.description||'');
-        const text=description.length>900 ? description.slice(0,900)+'…' : description;
+        // Full text is shown in BOTH the Dashboard and Feed. A short post uses
+        // little space; a long post grows vertically without clipping.
+        const kind=postKind(post);
+        const length=description.length>320?'long':'short';
+        const messageContent=kind==='meeting'||kind==='link'
+          ? '<div class="ds30-post-message-bubble">'+
+              (kind==='meeting'?'<div class="ds30-post-message-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="12" height="14" rx="2"></rect><path d="m15 10 6-3v10l-6-3"></path></svg>Shared Zoom meeting link</div>':'')+
+              '<p class="ds30-post-copy">'+linkify(description)+'</p></div>'
+          : '<p class="ds30-post-copy">'+linkify(description)+'</p>';
         const stats=counts.get(String(post.id))||{};
-        const likeCount=readableCount(stats.likes||0,stats.reactionsKnown);
+        const reactionCount=readableCount(stats.totalReactions||0,stats.reactionsKnown);
         const commentCount=readableCount(stats.comments||0,stats.commentsKnown);
         const initials=author.trim().split(/\s+/).map(word=>word[0]).slice(0,2).join('').toUpperCase();
-        const isLiked=Boolean(stats.viewerLiked);
+        const viewerReaction=String(stats.viewerReaction||'');
+        const reactionChips=reactionOrder
+          .filter(name=>(stats.reactions?.[name]||0)>0)
+          .slice(0,3)
+          .map(name=>'<span class="ds30-reaction-chip" title="'+reactionMeta[name].label+'">'+reactionBadge(name)+'</span>')
+          .join('');
+        const reactionLabel=viewerReaction?(reactionMeta[viewerReaction]?.label||'React'):'Like';
+        const thread=commentThreads.get(String(post.id))||[];
+        const expanded=expandedComments.has(String(post.id));
+        const shownComments=expanded?thread:thread.slice(-2);
+        // Approved members' comments come from RLS-scoped community_comments.
+        // Do not read unapproved private member_profiles for display names.
+        const commentRow=comment=>{
+          const self=comment.user_id===memberId;
+          const authorComment=comment.user_id===post.user_id;
+          const commenter=self?'You':authorComment?author:'Community member';
+          const avatarText=self?'Y':authorComment?(initials||'DS'):'CM';
+          return '<div class="ds30-comment-entry">'+
+            '<span class="ds30-comment-avatar" aria-hidden="true">'+escapeHtml(avatarText)+'</span>'+
+            '<div class="ds30-comment-bubble"><div class="ds30-comment-name">'+escapeHtml(commenter)+'</div>'+
+            '<p class="ds30-comment-body">'+linkify(String(comment.body||''))+'</p>'+
+            '<small>'+escapeHtml(displayDate(comment.created_at))+'</small></div></div>';
+        };
         return `
-        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}">
+        <article class="ds30-social-post" data-post-id="${escapeHtml(post.id)}" data-post-kind="${escapeHtml(kind)}" data-post-length="${length}">
           <header class="ds30-post-authorbar">
             <span class="ds30-author-avatar" aria-hidden="true">
               <span class="ds30-author-initials">${escapeHtml(initials||'DS')}</span>
@@ -113,28 +191,39 @@
               </div>
             </div>
           </header>
-          ${post.title ? '<h3>'+escapeHtml(post.title)+'</h3>' : ''}
-          <p class="ds30-post-copy">${linkify(text)}</p>
-          ${description.length>900?'<a class="ds30-view-full" href="'+escapeHtml(linkFor(post.id))+'">Read full post →</a>':''}
+          ${post.title ? '<h3>'+linkify(post.title)+'</h3>' : ''}
+          ${messageContent}
           <div class="ds30-post-engagement" aria-label="Post engagement">
-            <span>${likeCount} ${stats.likes===1?'like':'likes'}</span>
-            <span>${commentCount} ${stats.comments===1?'comment':'comments'}</span>
+            <span class="ds30-reaction-summary">${reactionChips}<span>${reactionCount} ${stats.totalReactions===1?'reaction':'reactions'}</span></span>
+            <button class="ds30-comment-count" type="button" data-social="comments" aria-expanded="${expanded}" aria-label="View comments for this post">${commentCount} ${stats.comments===1?'comment':'comments'}</button>
           </div>
           <div class="ds30-post-actions" role="group" aria-label="Post actions">
-            <button type="button" class="${isLiked?'is-liked':''}" data-social="like" aria-pressed="${isLiked}">${icon('like')}<span>Like</span></button>
+            <div class="ds30-react-wrap">
+              <button type="button" class="ds30-react-main ${viewerReaction?'has-reaction reaction-'+escapeHtml(viewerReaction):''}" data-social="react" aria-haspopup="menu" aria-expanded="false" aria-pressed="${Boolean(viewerReaction)}">${icon(viewerReaction||'like')}<span>${escapeHtml(reactionLabel)}</span></button>
+              <div class="ds30-reaction-picker" hidden role="menu" aria-label="Choose a reaction">
+                ${reactionOrder.map(name=>'<button type="button" role="menuitem" class="reaction-'+name+'" data-social="reaction" data-reaction="'+name+'" title="'+reactionMeta[name].label+'"><span class="ds30-reaction-picker-icon">'+reactionBadge(name)+'</span><span>'+reactionMeta[name].label+'</span></button>').join('')}
+              </div>
+            </div>
             <button type="button" data-social="comment" aria-expanded="false">${icon('comment')}<span>Comment</span></button>
             <button type="button" data-social="repost" title="Share the original post to your professional network">${icon('repost')}<span>Repost</span></button>
             <button type="button" data-social="share">${icon('share')}<span>Share</span></button>
           </div>
-          <form class="ds30-comment-form" hidden>
-            <label for="ds30-comment-${escapeHtml(post.id)}">Your comment</label>
-            <div class="ds30-comment-row">
-              <textarea id="ds30-comment-${escapeHtml(post.id)}" maxlength="1500" rows="2" required placeholder="Write a thoughtful comment…"></textarea>
-              <button type="submit">Post</button>
-            </div>
-          </form>
+          <section class="ds30-comments" aria-label="Post comments">
+            ${!stats.commentsKnown?'<p class="ds30-comment-unavailable">Comments are temporarily unavailable.</p>':
+              (thread.length?
+                '<div class="ds30-comment-list">'+shownComments.map(commentRow).join('')+'</div>'+
+                (thread.length>2?'<button class="ds30-comments-more" type="button" data-social="comments" aria-expanded="'+expanded+'">'+
+                  (expanded?'Show fewer comments':'View all '+thread.length+' comments')+'</button>':'')
+                :'<p class="ds30-comment-empty" hidden>No comments yet.</p>')}
+            ${post.is_locked?'<p class="ds30-comment-locked">Comments are closed for this post.</p>':
+              '<form class="ds30-comment-form" '+(openComposers.has(String(post.id))?'':'hidden')+'>'+
+                '<label for="ds30-comment-'+escapeHtml(post.id)+'">Write a comment</label>'+
+                '<div class="ds30-comment-row">'+
+                  '<textarea id="ds30-comment-'+escapeHtml(post.id)+'" maxlength="1500" rows="2" required placeholder="Write a comment…"></textarea>'+
+                  '<button type="submit">Post</button></div></form>'}
+          </section>
         </article>`;
-      }).join('') || '<div class="dashboard-empty-compact"><strong>No community posts yet.</strong><p>Be the first to share an update.</p><a href="/community/">Open Community →</a></div>';
+      }).join('') || '<div class="dashboard-empty-compact"><strong>No matching posts in the latest network updates.</strong><p>Try another hashtag or browse the full Feed.</p><a href="/feed/">Show all posts →</a></div>');
       // Broken/expired profile image URLs must fall back to the author's initials.
       target.querySelectorAll?.('.ds30-author-photo').forEach(image => {
         image.addEventListener('error',() => image.remove(),{once:true});
@@ -147,7 +236,7 @@
       if(current!==revision)return;
       if(result.error)throw result.error;
       posts=asPosts(result.data).filter(p=>p && p.id);
-      if(!posts.length){avatarUrls=new Map();render(new Map());return;}
+      if(!posts.length){avatarUrls=new Map();commentThreads=new Map();render(new Map());return;}
       const ids=posts.map(post=>post.id);
       const avatarPaths=[...new Set(posts.map(post=>post.author_avatar_path).filter(path=>typeof path==='string'&&path.trim()))];
       const avatarLookup=Promise.all(avatarPaths.map(async path=>{
@@ -158,25 +247,36 @@
       }));
       const [reactionResult,commentResult,avatarEntries]=await Promise.all([
         client.from('community_reactions').select('message_id,user_id,reaction').in('message_id',ids),
-        client.from('community_comments').select('message_id').in('message_id',ids).eq('is_deleted',false),
+        client.from('community_comments').select('message_id,user_id,body,created_at').in('message_id',ids).eq('is_deleted',false),
         avatarLookup
       ]);
       avatarUrls=new Map(avatarEntries.filter(item=>item[1]));
       if(current!==revision)return;
       const reactionOk=!reactionResult.error,commentOk=!commentResult.error;
       const counts=new Map(ids.map(id=>[String(id),{
-        likes:0,comments:0,viewerLiked:false,reactionsKnown:reactionOk,commentsKnown:commentOk
+        totalReactions:0,reactions:{like:0,love:0,celebrate:0,support:0,insightful:0},
+        comments:0,viewerReaction:'',reactionsKnown:reactionOk,commentsKnown:commentOk
       }]));
       if(reactionOk)(reactionResult.data||[]).forEach(reaction=>{
         const info=counts.get(String(reaction.message_id));
-        if(!info||reaction.reaction!=='like')return;
-        info.likes+=1;
-        if(reaction.user_id===memberId)info.viewerLiked=true;
+        const name=String(reaction.reaction||'');
+        if(!info||!reactionOrder.includes(name))return;
+        info.totalReactions+=1;
+        info.reactions[name]=(info.reactions[name]||0)+1;
+        if(reaction.user_id===memberId)info.viewerReaction=name;
       });
+      commentThreads=new Map();
       if(commentOk)(commentResult.data||[]).forEach(comment=>{
         const info=counts.get(String(comment.message_id));
-        if(info)info.comments+=1;
+        if(!info)return;
+        info.comments+=1;
+        if(typeof comment.body!=='string')return;
+        const key=String(comment.message_id);
+        if(!commentThreads.has(key))commentThreads.set(key,[]);
+        commentThreads.get(key).push(comment);
       });
+      for(const thread of commentThreads.values())thread.sort((a,b)=>
+        (new Date(a.created_at||0).getTime()||0)-(new Date(b.created_at||0).getTime()||0));
       render(counts);
       if(!reactionOk||!commentOk)notice('Some reaction totals are unavailable. You can still open the full conversation.');
     };
@@ -191,10 +291,15 @@
     const closeMenus = () => {
       target.querySelectorAll('.ds30-post-menu').forEach(menu=>menu.hidden=true);
       target.querySelectorAll('[data-social="menu"]').forEach(button=>button.setAttribute('aria-expanded','false'));
+      target.querySelectorAll('.ds30-reaction-picker').forEach(picker=>picker.hidden=true);
+      target.querySelectorAll('[data-social="react"]').forEach(button=>button.setAttribute('aria-expanded','false'));
     };
     target.addEventListener('click', event => {
       const button=event.target.closest('button[data-social]');
-      if(!button||!target.contains(button))return;
+      if(!button||!target.contains(button)){
+        if(!event.target.closest('.ds30-react-wrap,.ds30-post-options'))closeMenus();
+        return;
+      }
       const card=button.closest('.ds30-social-post');
       const post=findPost(card?.dataset.postId);
       if(!post)return;
@@ -204,18 +309,40 @@
         closeMenus();menu.hidden=!willOpen;
         button.setAttribute('aria-expanded',String(willOpen));return;
       }
+      if(action==='react'){
+        const picker=card.querySelector('.ds30-reaction-picker');
+        // Inspect state before closing other menus so the same control can toggle off.
+        const willOpen=picker.hidden;
+        closeMenus();
+        picker.hidden=!willOpen;
+        button.setAttribute('aria-expanded',String(willOpen));
+        if(willOpen)picker.querySelector('button[data-social="reaction"]')?.focus();
+        return;
+      }
       closeMenus();
       if(action==='comment'){
         const form=card.querySelector('.ds30-comment-form');
-        form.hidden=!form.hidden;
-        button.setAttribute('aria-expanded',String(!form.hidden));
-        if(!form.hidden)form.querySelector('textarea')?.focus();
+        if(!form){notice('Comments are closed for this post.',true);return;}
+        const next=form.hidden;
+        form.hidden=!next;
+        if(next)openComposers.add(String(post.id));else openComposers.delete(String(post.id));
+        button.setAttribute('aria-expanded',String(next));
+        if(next)form.querySelector('textarea')?.focus();
         return;
       }
-      if(action==='like')return void inFlight(async()=>{
+      if(action==='comments'){
+        const id=String(post.id);
+        const next=!expandedComments.has(id);
+        if(next)expandedComments.add(id);else expandedComments.delete(id);
+        render(lastCounts);
+        return;
+      }
+      if(action==='reaction')return void inFlight(async()=>{
+        const reaction=String(button.dataset.reaction||'like');
+        if(!reactionOrder.includes(reaction))return;
         notice('Saving your reaction…');
         const result=await client.rpc('community_toggle_reaction',{
-          target_message_id:post.id,target_reaction:'like'
+          target_message_id:post.id,target_reaction:reaction
         });
         if(result.error)throw result.error;
         await refresh();notice('Reaction updated.');
@@ -256,6 +383,35 @@
         });
       }
     });
+    // Treat the reaction choices as a keyboard-navigable menu, not a mouse-only popup.
+    target.addEventListener('keydown',event=>{
+      if(event.key==='Escape'){
+        const expanded=target.querySelector('[data-social="react"][aria-expanded="true"],[data-social="menu"][aria-expanded="true"]');
+        if(!expanded)return;
+        event.preventDefault();
+        closeMenus();
+        expanded.focus();
+        return;
+      }
+      const picker=event.target.closest?.('.ds30-reaction-picker');
+      if(!picker||picker.hidden)return;
+      const options=Array.from(picker.querySelectorAll('button[data-social="reaction"]'));
+      if(!options.length)return;
+      const index=options.indexOf(document.activeElement);
+      let next=-1;
+      if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%options.length;
+      else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index+options.length-1)%options.length;
+      else if(event.key==='Home')next=0;
+      else if(event.key==='End')next=options.length-1;
+      if(next>=0){
+        event.preventDefault();
+        options[next].focus();
+      }
+    });
+    document.addEventListener?.('click',event=>{
+      // A picker must not stay open after the member clicks elsewhere.
+      if(!target.contains(event.target))closeMenus();
+    });
     target.addEventListener('submit',event=>{
       const form=event.target.closest('.ds30-comment-form');
       if(!form)return;
@@ -271,6 +427,8 @@
         });
         if(result.error)throw result.error;
         // Noncritical mention alerts are handled separately by the Community workflow.
+        expandedComments.add(String(post.id));
+        openComposers.add(String(post.id));
         await refresh();notice('Comment posted.');
       });
     });

@@ -30,6 +30,24 @@
    return;
  }
  gate.classList.add('member-hidden');app.classList.remove('member-hidden');$('currentSessionEmail').textContent=session.user.email||'Signed-in member';
+ // The email delivery destination is Supabase Auth's verified address on
+ // file, never a member-entered email in profile fields or a post payload.
+ const priorityEmailDestination=$('priorityNotificationEmail');
+ if(priorityEmailDestination){
+   db.auth.getUser().then(result=>{
+     if(result.error||!result.data?.user||result.data.user.id!==session.user.id){
+       throw new Error('Verified email could not be checked');
+     }
+     const account=result.data.user;
+     priorityEmailDestination.textContent=
+       account.email&&account.email_confirmed_at
+       ? account.email+' (verified)'
+       : 'No verified email. Verify your sign-in email to receive priority alerts.';
+   }).catch(()=>{
+     priorityEmailDestination.textContent=
+       'Verification unavailable. Refresh to confirm your email destination.';
+   });
+ }
  await window.CommunicationEngine?.init?.({client:db,session}).catch(()=>{});
  const tabs=[...document.querySelectorAll('[data-settings-tab]')];
  tabs.forEach(b=>b.onclick=()=>{
@@ -43,10 +61,27 @@
  let settings=session.user.user_metadata?.dominionstar_settings||{};
  const defaults={appearance:{theme:'system',textSize:'standard',reduceMotion:false},privacy:{directoryVisible:true,onlineVisible:true,allowMessages:true},notifications:{emailEnabled:true,announcements:true,messages:false,community:false,appointments:true,browser:false,sound:true}};
  const state={appearance:{...defaults.appearance,...settings.appearance},privacy:{...defaults.privacy,...settings.privacy},notifications:{...defaults.notifications,...settings.notifications}};
+ // Under the approved data cutover, directory visibility is a database rule,
+ // never a trust decision based on user-editable auth metadata.
+ const publicDirectoryV2=window.DOMINIONSTAR_AGENT_DATA_FEATURES?.publicMemberProfilesV2===true;
+ let serverDirectoryVisibilityReady=!publicDirectoryV2;
+ let serverDirectoryVisibilityError='';
+ if(publicDirectoryV2){
+   try{
+     const v=await db.from('member_profiles')
+       .select('profile_visibility').eq('id',session.user.id).single();
+     if(v.error)throw v.error;
+     if(!['private','members'].includes(v.data?.profile_visibility))throw new Error('Unrecognized privacy setting');
+     state.privacy.directoryVisible=v.data.profile_visibility==='members';
+     serverDirectoryVisibilityReady=true;
+   }catch(error){
+     serverDirectoryVisibilityError=error.message||'Server privacy setting is unavailable';
+   }
+ }
  try{const r=await db.from('notification_preferences').select('email_enabled,announcements_email_enabled,messages_email_enabled,community_email_enabled,appointments_email_enabled').eq('user_id',session.user.id).maybeSingle();if(r.data)Object.assign(state.notifications,{emailEnabled:r.data.email_enabled,announcements:r.data.announcements_email_enabled,messages:r.data.messages_email_enabled,community:r.data.community_email_enabled,appointments:r.data.appointments_email_enabled})}catch(_){}
  state.notifications.browser=localStorage.getItem('ds_browser_notifications')==='on';state.notifications.sound=localStorage.getItem('ds_comm_sounds')!=='off';$('theme').value=state.appearance.theme;$('textSize').value=state.appearance.textSize;
  const status=(id,text,kind='')=>{const n=$(id);n.textContent=text;n.dataset.state=kind};
- const row=(root,key,label,note,checked,onchange)=>{const wrap=document.createElement('label');wrap.className='settings-switch-row';wrap.innerHTML=`<span><strong>${label}</strong><small>${note}</small></span><span class="settings-switch"><input type="checkbox" ${checked?'checked':''} aria-label="${label}"><i></i></span>`;const input=wrap.querySelector('input');input.onchange=()=>onchange(input,key);$(root).append(wrap)};
+ const row=(root,key,label,note,checked,onchange)=>{const wrap=document.createElement('label');wrap.className='settings-switch-row';wrap.innerHTML=`<span><strong>${label}</strong><small>${note}</small></span><span class="settings-switch"><input type="checkbox" ${checked?'checked':''} aria-label="${label}"><i></i></span>`;const input=wrap.querySelector('input');input.onchange=()=>onchange(input,key);$(root).append(wrap);return input};
  const lock=value=>{app.setAttribute('aria-busy',String(value));document.querySelectorAll('.settings-switch input,.settings-field select').forEach(x=>x.disabled=value)};
  const confirms=(actual,expected)=>actual&&Object.entries(expected).every(([key,value])=>typeof value==='object'&&value!==null?confirms(actual[key],value):actual[key]===value);
  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -114,9 +149,9 @@
  row('messageSwitches','messages','Private-message email alerts','Email me when an approved member sends a message.',state.notifications.messages,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});row('messageSwitches','community','Community replies and mentions','Email me for replies and mentions.',state.notifications.community,async(i,k)=>{const before=!i.checked;state.notifications[k]=i.checked;if(!await saveNotification('messagesResult')){i.checked=before;state.notifications[k]=before}});
  const webPushReady=window.DOMINIONSTAR_NOTIFICATION_FEATURES?.webPush===true;
  const notificationRows=[
-   ['emailEnabled','Selected email alerts','Use my verified email only for the alert categories enabled below.'],
-   ['announcements','Founder & critical announcements','Email important official platform announcements.'],
-   ['appointments','Appointments & schedule changes','Email appointment confirmations, changes, and cancellations.'],
+   ['emailEnabled','Selected email alerts','Deliver only eligible priority events to my verified account email.'],
+   ['announcements','Founder & critical announcements','Email urgent official announcements; routine updates remain in-app.'],
+   ['appointments','Appointments & schedule changes','Email confirmations, reschedules, and cancellations; not every calendar update.'],
    ['browser',webPushReady?'Push notifications':'Browser alerts',webPushReady?'Show DominionStar system notifications on this device, including when the dashboard is closed.':'Show system alerts on this device while DominionStar is open.'],
    ['sound','Notification sounds','Play a short DominionStar tone for live priority notifications.']
  ];
@@ -145,7 +180,62 @@
      status('notificationsResult',error?.message||'Could not update notifications.','error');
    }
  }));
- [['directoryVisible','Member directory','Show my approved profile in the member directory.'],['onlineVisible','Online presence','Let approved members see when I am online.'],['allowMessages','Member messages','Allow approved members to message me.']].forEach(x=>row('privacySwitches',...x,state.privacy[x[0]],toggle('privacy','securityResult')));
+ const savePrivacySwitch=async(input,key)=>{
+   if(key!=='directoryVisible'||!publicDirectoryV2){
+     toggle('privacy','securityResult')(input,key);
+     return;
+   }
+   const desired=input.checked,prior=!desired;
+   input.disabled=true;
+   status('securityResult','Saving server-enforced member directory visibility…','saving');
+   let accepted=false,confirmed=false;
+   try{
+     if(!serverDirectoryVisibilityReady)throw new Error('Server privacy setting is unavailable. Refresh before changing it.');
+     const value=desired?'members':'private';
+     const changed=await db.rpc('set_my_member_directory_visibility',{target_visibility:value});
+     if(changed.error)throw changed.error;
+     accepted=true;
+     const verified=await db.from('member_profiles')
+       .select('profile_visibility').eq('id',session.user.id).single();
+     if(verified.error||verified.data?.profile_visibility!==value){
+       throw new Error('Server did not confirm directory visibility. Refresh to verify.');
+     }
+     confirmed=true;
+     state.privacy.directoryVisible=desired;
+     if(!await saveMetadata('privacy',{...state.privacy},'securityResult')){
+       status('securityResult','Server visibility saved; account preference synchronization needs a refresh.','warning');
+     }else{
+       status('securityResult',desired?'Visible only in the approved member directory.':'Removed from the approved member directory.','saved');
+     }
+   }catch(error){
+     if(accepted){
+       // Never claim a remote database change was rolled back without proof.
+       state.privacy.directoryVisible=desired;
+       status('securityResult','The server accepted the visibility change but verification failed. Refresh before changing it again.','warning');
+     }else{
+       input.checked=prior;
+       state.privacy.directoryVisible=prior;
+       status('securityResult',error?.message||'Could not change directory visibility.','error');
+     }
+   }finally{
+     // Keep the control blocked when a server write cannot be verified.
+     input.disabled=accepted&&!confirmed;
+   }
+ };
+ const privacyRows=[
+   ['directoryVisible','Member directory','Show my approved profile in the member directory.'],
+   ['onlineVisible','Online presence','Let approved members see when I am online.'],
+   ['allowMessages','Member messages','Allow approved members to message me.']
+ ];
+ privacyRows.forEach(x=>{
+   const control=row('privacySwitches',...x,state.privacy[x[0]],savePrivacySwitch);
+   if(x[0]==='directoryVisible'&&publicDirectoryV2&&!serverDirectoryVisibilityReady){
+     control.disabled=true;
+   }
+ });
+ if(publicDirectoryV2&&!serverDirectoryVisibilityReady){
+   status('securityResult',serverDirectoryVisibilityError||'Server privacy setting unavailable; directory control disabled.','error');
+ }
  const saveAppearance=async()=>{
    const before={...state.appearance};
    const requested={...state.appearance,theme:$('theme').value,textSize:$('textSize').value};

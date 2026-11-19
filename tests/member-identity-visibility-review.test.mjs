@@ -12,7 +12,8 @@ test('Verified dashboard identity has greeting, name, profile image and contract
    assert.ok(dashboard.includes('id="'+id+'"'),id+' missing');
  }
  assert.match(dashboard,/<span id="heroGreeting">Good day<\/span>, <strong id="heroMemberName"/);
- assert.match(dashboard,/Welcome back to DominionStar Executive OS/);
+ assert.match(dashboard,/Your DominionStar Executive OS/);
+ assert.doesNotMatch(dashboard,/Welcome back to DominionStar Executive OS/);
  assert.match(dashboardJs,/heroGreeting\.textContent = greetingText/);
  assert.match(dashboardJs,/setIdentityText\('heroMemberName', firstName\)/);
  assert.match(dashboardJs,/setIdentityText\('topbarMemberName', fullName\)/);

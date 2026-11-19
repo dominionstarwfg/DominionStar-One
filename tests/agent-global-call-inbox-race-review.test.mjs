@@ -44,13 +44,14 @@ async function harness({profileWait,engineWait,signalWait}={}){
  const client={
   auth:{getSession:async()=>({data:{session:{user:{id:'recipient'}}}})},
   from(name){
-   assert.equal(name,'member_profiles');
+   assert.ok(['member_profiles','member_public_profiles'].includes(name),'Unexpected caller table: '+name);
    return {select(columns){return{eq(key,value){return{
      async maybeSingle(){
        if(columns==='verification_status,agent_code'){
          assert.equal(value,'recipient');
          return{data:{verification_status:'approved',agent_code:'DS123'},error:null};
        }
+       assert.equal(name,'member_public_profiles');
        assert.equal(value,'caller');
        if(profileWait)await profileWait.promise;
        return {data:{...profile},error:null};
@@ -70,6 +71,7 @@ async function harness({profileWait,engineWait,signalWait}={}){
  };
  const window={DSAuth:{ready:true,async init(){return client}},
   CommunicationEngine:engine,DOMINIONSTAR_CALL_PRIVATE_V2:false,
+  DOMINIONSTAR_AGENT_DATA_FEATURES:{publicMemberProfilesV2:true},
   addEventListener(){}};
  const storage={setItem(key,value){log.storage.set(key,value)},getItem(key){return log.storage.get(key)||null},
   removeItem(key){log.storage.delete(key)}};

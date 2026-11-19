@@ -28,20 +28,23 @@ test('approved illustration composition is present on Dashboard',()=>{
 });
 
 test('desktop scale remains compact and social-app dense',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Illustration geometry lock'));
   assert.match(css,/grid-template-columns:220px minmax\(0,1fr\)!important/);
-  assert.match(css,/\.dsx-hero\{[\s\S]*min-height:178px!important/);
-  assert.match(css,/\.dsx-stat\{[\s\S]*min-height:82px!important/);
-  assert.match(css,/\.dsx-dashboard-grid\{[\s\S]*315px!important/);
-  assert.match(css,/\.dsx-global-search\{[\s\S]*min-height:40px!important/);
+  assert.match(tail,/\.dsx-hero\{[\s\S]*min-height:162px!important[\s\S]*max-height:162px!important/);
+  assert.match(tail,/\.dsx-stat\{[\s\S]*min-height:74px!important[\s\S]*max-height:74px!important/);
+  assert.match(tail,/\.dsx-dashboard-grid\{[\s\S]*304px!important/);
+  assert.match(tail,/\.dsx-global-search\{[\s\S]*min-height:36px!important/);
   assert.match(css,/\.dsx-quick-grid-six\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
-  assert.doesNotMatch(css,/\.dsx-hero\{[\s\S]{0,180}min-height:260px!important/);
+  assert.doesNotMatch(tail,/min-height:260px!important|min-height:178px!important|min-height:82px!important|315px!important/);
 });
 
 test('dashboard social preview stays separate from the full Feed and only requests one post',()=>{
   assert.doesNotThrow(()=>new vm.Script(previewJs));
   assert.match(previewJs,/resultLimit:1/);
   assert.match(previewJs,/\.from\('community_messages'\)[\s\S]*\.insert\(/);
-  assert.match(previewJs,/community_notify_mentions/);
+  // Posting must rely on the reviewed source-row notification trigger,
+  // not the legacy browser RPC that ordinary agents cannot execute.
+  assert.doesNotMatch(previewJs,/rpc\('community_notify_mentions'/);
   assert.match(social,/resultLimit=20/);
   assert.match(social,/result_limit:safeLimit/);
   assert.match(html,/href="\/feed\//);
@@ -60,4 +63,30 @@ test('Founder dashboard content stays compact instead of dumping raw meeting tex
   assert.match(dashboardJs,/Read Full Update →/);
   assert.match(dashboardJs,/founderEvent=await withTimeout/);
   assert.match(dashboardJs,/Join Meeting/);
+});
+
+
+test('effective illustration geometry uses the final compact desktop overrides',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Illustration geometry lock'));
+  assert.match(tail,/width:min\(1320px,calc\(100% - 34px\)\)!important/);
+  assert.match(tail,/\.dsx-hero\{[\s\S]*min-height:162px!important[\s\S]*max-height:162px!important/);
+  assert.match(tail,/\.dsx-stat\{[\s\S]*min-height:74px!important[\s\S]*max-height:74px!important/);
+  assert.match(tail,/\.dsx-dashboard-grid\{[\s\S]*304px!important/);
+  assert.match(tail,/\.dsx-quick-grid-six a\{min-height:52px!important/);
+  assert.match(tail,/#feedApp\{[\s\S]*1280px/);
+  assert.match(tail,/\.dm-os\.dm-os-three\{[\s\S]*260px[\s\S]*240px/);
+});
+
+
+test('featured social post uses one real media block and no duplicate pseudo banner',()=>{
+  assert.doesNotMatch(css,/#dashboardSocialPreview \.ds-review-post:first-child:after/);
+  assert.match(css,/\.ds-review-feature-media\{[\s\S]*min-height:118px!important/);
+});
+
+test('hero preserves the approved cinematic globe and premium profile anchors',()=>{
+  const tail=css.slice(css.lastIndexOf('/* ===== Final hero\/profile polish'));
+  assert.match(tail,/\.dsx-hero:before\{[\s\S]*width:670px!important[\s\S]*height:670px!important/);
+  assert.match(tail,/\.dsx-hero:after\{[\s\S]*width:390px!important[\s\S]*#ffd86f/);
+  assert.match(tail,/\.dsx-hero-profile\{[\s\S]*max-width:330px!important/);
+  assert.match(tail,/\.dsx-welcome\{[\s\S]*color:#d5e0ec!important/);
 });

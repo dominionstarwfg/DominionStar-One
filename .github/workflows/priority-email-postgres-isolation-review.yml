@@ -1,0 +1,79 @@
+name: DominionStar — Disposable Priority Email SQL Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql'
+      - 'scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql'
+      - 'tests/sql/community-notifications-fixture.sql'
+      - 'tests/sql/priority-email-fixture.sql'
+      - 'tests/sql/priority-email-assertions.sql'
+      - '.github/workflows/priority-email-postgres-isolation-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  priority-email-isolation:
+    name: Verified recipients + trusted email sources (synthetic PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: SYNTHETIC_EMAIL_CI_ONLY_NO_REAL_DATA
+      PGDATABASE: synthetic_priority_emails
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SYNTHETIC_EMAIL_CI_ONLY_NO_REAL_DATA
+          POSTGRES_DB: synthetic_priority_emails
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synthetic_priority_emails"
+          --health-interval 4s
+          --health-timeout 3s
+          --health-retries 12
+    steps:
+      - name: Checkout review branch (no deployment)
+        uses: actions/checkout@v4
+      - name: Install local PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql --version
+      - name: Verify database is disposable, local and free of email credentials
+        run: |
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = synthetic_priority_emails
+          test "$DOMINIONSTAR_STAGING_ISOLATION_APPROVED" = ""
+          test "$(psql -v ON_ERROR_STOP=1 -Atc 'select current_database()')" = synthetic_priority_emails
+          test -z "${SUPABASE_URL:-}"
+          test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          test -z "${RESEND_API_KEY:-}"
+          test -z "${DOMINIONSTAR_EMAIL_FROM:-}"
+      - name: Create synthetic auth, events, member preferences and outbox
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/community-notifications-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/priority-email-fixture.sql
+      - name: Compile source-verified Community notification trigger
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/community-notifications-from-source.DO-NOT-RUN.review.sql
+      - name: Compile priority email trigger with real PostgreSQL permissions
+        run: |
+          grep -Fq 'REVIEW ONLY — DO NOT RUN' scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/security/priority-member-email-routing.DO-NOT-RUN.review.sql
+      - name: Test event whitelist, verified Auth recipient, preferences and spoof denial
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/priority-email-assertions.sql
+      - name: Verify no real email delivery or remote database was accessed
+        run: echo "DISPOSABLE_PRIORITY_EMAIL_NO_SUPABASE_NO_SEND_PASS"

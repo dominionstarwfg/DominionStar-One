@@ -1,0 +1,92 @@
+name: DominionStar — Feed Browser Geometry Review (Isolated)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/review-feed-browser-geometry.mjs'
+      - 'scripts/review-feed-social-interactions.mjs'
+      - 'scripts/review-founder-email-health-browser.mjs'
+      - 'founder-email/index.html'
+      - 'assets/js/founder-email-health.mjs'
+      - 'assets/css/dominionstar-founder-email-health.css'
+      - 'assets/js/community-hub.js'
+      - 'assets/css/dominionstar-community-reactions.css'
+      - 'community/**'
+      - 'scripts/security/community-single-reaction.DO-NOT-RUN.review.sql'
+      - 'scripts/build-public-netlify.sh'
+      - 'team-groups/**'
+      - 'assets/js/dominionstar-team-groups.js'
+      - 'assets/css/dominionstar-team-groups.css'
+      - 'assets/js/dashboard-social.js'
+      - 'assets/css/dominionstar-feed-flow.css'
+      - 'assets/css/dominionstar-inline-comments.css'
+      - 'assets/css/dominionstar-social-first-dashboard.css'
+      - 'feed/**'
+      - 'member-dashboard/**'
+      - '.github/workflows/feed-browser-geometry-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-layout:
+    name: Feed natural-height + icon geometry (synthetic preview)
+    # Pinned OS: Playwright 1.57 does not support GitHub's ubuntu-26.04 latest image.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      DOMINIONSTAR_STAGING_ISOLATION_APPROVED: ''
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install ephemeral browser test runner (never deploy)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.57.0
+          # Avoid external Ubuntu apt mirrors; a transient DNS outage previously broke this gate.
+          # GitHub's hosted Ubuntu image already carries Chromium's required shared libraries.
+          npx playwright install chromium
+      - name: Build backend-free visual preview locally
+        env:
+          NETLIFY: 'true'
+          CONTEXT: deploy-preview
+        run: |
+          bash scripts/build-public-netlify.sh
+          test -s public-dist/feed/index.html
+          test -s public-dist/assets/css/dominionstar-feed-flow.css
+          grep -Fq 'VISUAL REVIEW' public-dist/assets/css/dominionstar-visual-review.css
+          grep -Fq "connect-src 'none'" public-dist/_headers
+          grep -Fq 'Disallow: /' public-dist/robots.txt
+          if test -e public-dist/netlify/functions; then
+            echo 'Backend functions must never be present in review package' >&2
+            exit 1
+          fi
+      - name: Measure real Chromium post geometry at five viewport sizes
+        run: node scripts/review-feed-browser-geometry.mjs
+      - name: Click-through Like/Love/Comment/Repost/Share on synthetic posts
+        run: node scripts/review-feed-social-interactions.mjs
+      - name: Verify Founder Email read-only health panel across screen sizes
+        run: node scripts/review-founder-email-health-browser.mjs
+      - name: Store Founder Email desktop/mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: founder-email-read-only-health-screenshots
+          path: artifacts/founder-email-health/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Store desktop/mobile geometry screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feed-natural-height-chromium-screenshots
+          path: artifacts/feed-geometry/
+          if-no-files-found: warn
+          retention-days: 7

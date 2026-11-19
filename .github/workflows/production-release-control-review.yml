@@ -9,6 +9,8 @@ on:
       - 'assets/css/dominionstar-auth-os-v2.css'
       - 'assets/css/member-dashboard-executive.css'
       - 'assets/css/dominionstar-cinematic-os.css'
+      - 'assets/css/dominionstar-feed-flow.css'
+      - 'tests/feed-natural-post-flow-review.test.mjs'
       - 'assets/js/direct-messages.js'
       - 'assets/js/professional-profile.js'
       - 'assets/js/member-directory.js'
