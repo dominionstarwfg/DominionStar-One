@@ -507,3 +507,38 @@ body.ds-visual-review .dsg-chat-share-button{
   font:690 12px/1.65 system-ui,sans-serif!important;
   overflow-wrap:anywhere;
 }
+
+/* Team Groups reading audit: match the main Feed's readable body type.
+   Chat and post containers retain natural dimensions; controls stay compact. */
+#teamGroupsApp .dsg-chat-bubble{
+  box-sizing:border-box;min-width:0;max-width:100%;
+  font-size:15px!important;line-height:1.6!important;
+  color:#f1f6fc!important;white-space:pre-wrap;overflow-wrap:anywhere;
+}
+#teamGroupsApp .dsg-mine .dsg-chat-bubble{
+  background:#194f8b;color:#fff!important;
+}
+#teamGroupsApp .dsg-chat-bubble a{color:#ffe2a9!important;text-decoration:underline}
+#teamGroupsApp .dsg-post-copy{
+  font-size:15px!important;line-height:1.68!important;
+  color:#f1f6fc!important;
+}
+#teamGroupsApp .dsg-post-comment-text{
+  font-size:14px!important;line-height:1.6!important;
+}
+#teamGroupsApp .dsg-post-comment-bubble{
+  max-width:min(calc(100% - 42px),700px)!important;
+}
+#teamGroupsApp .dsg-message-form textarea,
+#teamGroupsApp .dsg-post-composer textarea,
+#teamGroupsApp .dsg-post-reply-input{
+  font-size:15px!important;line-height:1.6!important;
+}
+#teamGroupsApp .dsg-post-list{gap:16px}
+#teamGroupsApp .dsg-group-item b,
+#teamGroupsApp .dsg-member-item .dsg-member-name{font-size:13px}
+#teamGroupsApp .dsg-post-card{overflow:visible!important}
+@media(max-width:650px){
+  #teamGroupsApp .dsg-chat-bubble{padding:10px 12px}
+  #teamGroupsApp .dsg-post-card{padding:14px}
+}
