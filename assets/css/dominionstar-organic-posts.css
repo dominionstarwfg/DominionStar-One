@@ -485,3 +485,29 @@ body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardS
 .dsos-executive .dsx-dashboard-composer textarea{
   font-size:15px!important;line-height:1.6!important;color:#f5f9ff!important;
 }
+
+/* Audit repair: older demo span rules treated every action label as a
+   separate 40px control. Labels are part of the button, not another row. */
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-actions button .ds-review-action-label{
+  display:inline!important;min-height:0!important;height:auto!important;max-height:none!important;
+  padding:0!important;margin:0!important;line-height:1.25!important;
+  color:inherit!important;font-size:inherit!important;white-space:nowrap!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-actions button{
+  max-height:none!important;
+}
+@media(max-width:690px){
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-author{
+    flex-wrap:nowrap!important;gap:8px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-sample-mark{
+    font-size:8px!important;letter-spacing:0!important;padding:3px 4px!important;
+    max-width:76px!important;text-align:center;white-space:normal!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-engagement>span{
+    min-width:0!important;font-size:11px!important;
+  }
+  body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds-review-post.ds-review-text-post .ds-review-post-body{
+    margin-bottom:10px!important;
+  }
+}
