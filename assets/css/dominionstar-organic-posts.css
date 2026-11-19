@@ -511,3 +511,68 @@ body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardS
     margin-bottom:10px!important;
   }
 }
+
+/* Real-account screenshot regression: contain signed member portraits, keep
+   rank metadata and the menu legible on navy, not generic white controls. */
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-author-avatar{
+  display:grid!important;place-items:center!important;position:relative!important;
+  box-sizing:border-box!important;flex:0 0 42px!important;
+  width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;
+  max-width:42px!important;max-height:42px!important;border-radius:50%!important;
+  overflow:hidden!important;background:#173b64!important;border:2px solid #e6bb62!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-author-avatar .ds30-author-photo{
+  display:block!important;position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;
+  object-fit:cover!important;object-position:center!important;border-radius:50%!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-author-credentials{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px 8px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-rank{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  padding:0!important;margin:0!important;color:#c1d0e1!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-founding{
+  display:inline-flex!important;align-items:center!important;
+  width:max-content!important;max-width:100%!important;
+  border-radius:999px!important;padding:3px 8px!important;
+  font:700 10px/1.35 system-ui,sans-serif!important;
+  color:#241706!important;background:#efc566!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-options{position:relative!important;flex:0 0 auto!important;align-self:flex-start!important;}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-more-button{
+  display:grid!important;place-items:center!important;box-sizing:border-box!important;
+  width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;
+  max-width:34px!important;max-height:34px!important;padding:5px!important;
+  background:#16314e!important;color:#dceafa!important;border:1px solid #3a536e!important;
+  border-radius:9px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-more-button svg{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important;}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-actions>button{
+  background:transparent!important;color:#d5e3f2!important;box-shadow:none!important;
+  border:1px solid transparent!important;border-radius:9px!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-actions>button:hover,body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-actions>button:focus-visible{
+  background:#203f60!important;color:#fff!important;
+}
+body :is(#feedPageStream,#dashboardSocialPreview):is(#feedPageStream,#dashboardSocialPreview) .ds30-post-actions>button.is-liked{
+  color:#85baff!important;background:#123861!important;
+}
+#feedApp .dsx-feed-page-identity .dsos-feed-avatar{
+  position:relative!important;display:grid!important;place-items:center!important;
+  box-sizing:border-box!important;flex:0 0 44px!important;width:44px!important;height:44px!important;
+  min-width:44px!important;min-height:44px!important;max-width:44px!important;max-height:44px!important;
+  overflow:hidden!important;border-radius:50%!important;background:#173b64!important;
+}
+#feedApp #feedPageAvatar:not(.member-hidden){
+  position:absolute!important;inset:0!important;display:block!important;
+  width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;
+}
+#feedApp #feedPageAvatar.member-hidden{display:none!important;}
+#feedApp #feedPageRank{color:#c1d0e1!important;}
+#feedApp #feedPageFounding:not(.member-hidden){
+ display:inline-flex!important;align-items:center!important;padding:3px 8px!important;
+ background:#efc566!important;color:#241706!important;border-radius:999px!important;
+ font:700 10px/1.35 system-ui,sans-serif!important;
+}

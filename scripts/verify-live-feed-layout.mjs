@@ -7,18 +7,19 @@ const root=process.cwd(),origin='https://agent-layout.invalid';
 const browser=await chromium.launch({headless:true});
 const long=Array.from({length:12},(_,i)=>'Paragraph '+(i+1)+': Read the complete update, preserve line breaks, and review the team training material.').join('\n\n')+'\n\nEND OF COMPLETE POST';
 const seed=[
-  {id:'short',body:'A short real-renderer test update.',author_full_name:'Layout Test Member',author_rank:'SMD'},
+  {id:'short',body:'A short real-renderer test update.',author_full_name:'Layout Test Member',author_rank:'SMD',author_avatar_path:'test/portrait.jpg',author_exclusive_number:1},
   {id:'long',body:long,author_full_name:'Layout Test Member',author_rank:'SMD'},
   {id:'link',body:'Join our meeting at https://zoom.us/j/1234567890.\nThank you for your support.',author_full_name:'Layout Test Member',author_rank:'Associate'}
 ];
 await mkdir('artifacts/live-feed-layout',{recursive:true});
 try{
-  for(const surface of ['feed','member-dashboard'])for(const width of [1536,1180,1024,768,390]){
+  for(const surface of ['feed','member-dashboard'])for(const width of [1536,1180,1080,1024,768,390]){
     const page=await browser.newPage({viewport:{width,height:900}});
     try{
       await page.route('**/*',async route=>{
         const url=new URL(route.request().url());
         if(url.origin!==origin)return route.abort();
+        if(url.pathname==='/synthetic-portrait.svg')return route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="320"><rect width="160" height="320" fill="#315d88"/><circle cx="80" cy="100" r="45" fill="#e8c895"/></svg>'});
         let relative=url.pathname.replace(/^\/+/,'');
         if(relative.endsWith('/'))relative+='index.html';
         const file=path.resolve(root,relative);
@@ -42,6 +43,7 @@ try{
         Object.defineProperty(navigator,'share',{configurable:true,value:undefined});
         Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{state.copied=value;}}});
         const client={
+          storage:{from:()=>({createSignedUrl:async()=>({data:{signedUrl:location.origin+'/synthetic-portrait.svg'},error:null})})},
           rpc:async(name,args)=>{
             if(name==='community_toggle_reaction'){state.liked=!state.liked;return {data:state.liked,error:null};}
             if(name!=='list_community_feed')throw Error('Unexpected RPC '+name);
@@ -55,6 +57,28 @@ try{
         };
         await window.DSDashboardSocial.mount({client,memberId:'layout-test-member',target:document.getElementById(target),resultLimit:8});
       },{seed,target});
+      const realCard=page.locator('#'+target+' [data-post-id="short"]');
+      await realCard.locator('.ds30-author-photo').evaluate(img=>img.decode());
+      const identity=await realCard.evaluate(card=>{
+        const avatar=card.querySelector('.ds30-author-avatar'),photo=card.querySelector('.ds30-author-photo');
+        const rank=card.querySelector('.ds30-post-rank'),menu=card.querySelector('.ds30-more-button');
+        const r=n=>n.getBoundingClientRect();
+        return {avatar:[r(avatar).width,r(avatar).height],photo:[r(photo).width,r(photo).height],
+          natural:[photo.naturalWidth,photo.naturalHeight],fit:getComputedStyle(photo).objectFit,
+          rankBg:getComputedStyle(rank).backgroundColor,rankColor:getComputedStyle(rank).color,
+          menu:[r(menu).width,r(menu).height],menuBg:getComputedStyle(menu).backgroundColor,
+          icons:[...card.querySelectorAll('.ds30-post-actions svg')].map(n=>[r(n).width,r(n).height]),
+          copyBg:getComputedStyle(card.querySelector('.ds30-post-copy')).backgroundColor,
+          badge:card.querySelector('.ds30-post-founding')?.textContent};
+      });
+      assert.deepEqual(identity.avatar,[42,42]);assert.ok(identity.photo.every(n=>n>=36&&n<=42));
+      assert.deepEqual(identity.natural,[160,320]);assert.equal(identity.fit,'cover');
+      assert.equal(identity.rankBg,'rgba(0, 0, 0, 0)');assert.equal(identity.rankColor,'rgb(193, 208, 225)');
+      assert.deepEqual(identity.menu,[34,34]);assert.equal(identity.menuBg,'rgb(22, 49, 78)');
+      assert.ok(identity.icons.every(pair=>pair.every(n=>n===18)));
+      assert.equal(identity.copyBg,'rgba(0, 0, 0, 0)');
+      assert.match(identity.badge,/Founding Member #1/);
+      console.log('REAL_PROFILE_GEOMETRY_PASS',surface,width,JSON.stringify(identity));
       const m=await page.evaluate(target=>{
         const stream=document.getElementById(target),r=n=>n.getBoundingClientRect();
         const cards=[...stream.querySelectorAll('.ds30-social-post')];
