@@ -104,6 +104,58 @@ try{
           missing.push(response.status()+' '+new URL(response.url()).pathname);
       });
       await page.goto('http://127.0.0.1:'+port+'/feed/',{waitUntil:'networkidle'});
+      // Test real computed styles on the visible review cards before replacing
+      // them with the authenticated-renderer fixtures later in this suite.
+      await page.locator('#feedPageStream .ds-review-post').first().waitFor();
+      const visibleAudit=await page.evaluate(()=>{
+        const stage=document.querySelector('#feedPageStream');
+        const cards=[...stage.querySelectorAll(':scope > .ds-review-post')];
+        const rect=n=>n.getBoundingClientRect();
+        const short=stage.querySelector('.ds-review-text-post');
+        const long=stage.querySelector('.ds-review-long-post');
+        const photo=stage.querySelector('.ds-review-post-photo');
+        const zoom=stage.querySelector('.ds-review-message-bubble');
+        const rgb=color=>(color.match(/[\d.]+/g)||[]).slice(0,3).map(Number);
+        const lum=arr=>arr.map(c=>{const v=c/255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4)}).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
+        // Conservative dark-card comparison, not a claim of full WCAG compliance:
+        // the reference is lighter than the main navy card surfaces.
+        const refLum=lum([39,59,85]);
+        const contrast=node=>(lum(rgb(getComputedStyle(node).color))+.05)/(refLum+.05);
+        return {
+          count:cards.length,width:rect(stage).width,
+          short:rect(short).height,long:rect(long).height,
+          gaps:cards.slice(1).map((card,i)=>rect(card).top-rect(cards[i]).bottom),
+          paragraphs:[...stage.querySelectorAll('.ds-review-post-body,.ds-review-photo-caption,.ds-review-post > p')].map(n=>({
+            font:parseFloat(getComputedStyle(n).fontSize),contrast:contrast(n),
+            display:getComputedStyle(n).display,width:rect(n).width,scrollWidth:n.scrollWidth,
+            lines:getComputedStyle(n).whiteSpace
+          })),
+          links:[...stage.querySelectorAll('.ds-review-post-body a')].map(n=>({display:getComputedStyle(n).display,contrast:contrast(n)})),
+          zoomWidth:rect(zoom).width,zoomScroll:zoom.scrollWidth,
+          image:{naturalWidth:photo.naturalWidth,naturalHeight:photo.naturalHeight,width:rect(photo).width,height:rect(photo).height,fit:getComputedStyle(photo).objectFit}
+        };
+      });
+      assert.ok(visibleAudit.count>=5,v.label+' missing example posts');
+      assert.ok(visibleAudit.width<=801,v.label+' excessive reading-column width');
+      assert.ok(visibleAudit.short<300,v.label+' short post has excessive empty space');
+      assert.ok(visibleAudit.long>visibleAudit.short*1.5,v.label+' long post did not grow naturally');
+      for(const gap of visibleAudit.gaps)assert.ok(gap>=12&&gap<=20,v.label+' duplicate or inadequate card spacing: '+gap);
+      for(const p of visibleAudit.paragraphs){
+        assert.ok(p.font>=15,v.label+' post text too small: '+p.font);
+        assert.ok(p.contrast>=4.5,v.label+' insufficient post text contrast');
+        assert.equal(p.display,'block');
+        assert.ok(p.scrollWidth<=p.width+3,v.label+' squeezed/overflowing paragraph');
+      }
+      for(const a of visibleAudit.links){
+        assert.equal(a.display,'inline',v.label+' link is not inline');
+        assert.ok(a.contrast>=4.5,v.label+' link contrast too low');
+      }
+      assert.ok(visibleAudit.zoomScroll<=visibleAudit.zoomWidth+3,v.label+' Zoom bubble overflows');
+      assert.equal(visibleAudit.image.fit,'contain');
+      assert.ok(visibleAudit.image.naturalWidth>0,v.label+' photo not loaded');
+      assert.ok(Math.abs(visibleAudit.image.width/visibleAudit.image.height-visibleAudit.image.naturalWidth/visibleAudit.image.naturalHeight)<.025,v.label+' photo aspect ratio changed');
+      process.stdout.write('FEED_VISIBLE_READING_PASS '+v.label+' '+JSON.stringify({width:visibleAudit.width,short:visibleAudit.short,long:visibleAudit.long,gaps:visibleAudit.gaps})+'\n');
+
 
       if(v.label==='desktop'||v.label==='mobile'){
         // Real Feed composer markup + inert review script. This must work even
@@ -329,6 +381,16 @@ try{
       process.stdout.write('DASHBOARD_FOLD_DIAGNOSTIC '+view.label+' '+JSON.stringify(before.stages)+'\\n');
       assert.equal(before.closed,true,view.label+' metrics should default closed');
       assert.ok(before.postCount>=2,view.label+' representative feed missing');
+      const sharedReading=await page.evaluate(()=>{
+        const stage=document.querySelector('#dashboardSocialPreview');
+        const cards=[...stage.querySelectorAll(':scope > .ds-review-post')];
+        return {width:stage.getBoundingClientRect().width,
+          gaps:cards.slice(1).map((card,i)=>card.getBoundingClientRect().top-cards[i].getBoundingClientRect().bottom),
+          font:parseFloat(getComputedStyle(stage.querySelector('.ds-review-post-body')).fontSize)};
+      });
+      assert.ok(sharedReading.width<=801,view.label+' Dashboard reading column too wide');
+      assert.ok(sharedReading.font>=15,view.label+' Dashboard font is smaller than Feed');
+      assert.ok(sharedReading.gaps.every(gap=>gap>=12&&gap<=20),view.label+' Dashboard has inconsistent post spacing');
       assert.ok(before.composer.top<view.height,
         view.label+' composer must be in the initial viewport');
       assert.ok(before.firstPost.top<view.height+80,
